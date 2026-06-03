@@ -1,19 +1,22 @@
+export const dynamic = 'force-dynamic';
 import HomeClient from './HomeClient';
-import api from '@/lib/api';
 
 async function getData() {
+  const API = 'http://127.0.0.1:8080/api/v1';
   try {
     const [navRes, bannerRes, latestRes, categoriesRes] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'}/home/nav-items`, { next: { revalidate: 60 } }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'}/home/banners`, { next: { revalidate: 60 } }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'}/courses/latest`, { next: { revalidate: 60 } }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'}/categories`, { next: { revalidate: 60 } }),
+      fetch(API + '/home/nav-items', { cache: 'no-store' }),
+      fetch(API + '/home/banners', { cache: 'no-store' }),
+      fetch(API + '/courses/latest', { cache: 'no-store' }),
+      fetch(API + '/categories', { cache: 'no-store' }),
     ]);
+    const extract = async (res: Response) => {
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data || [];
+    };
     const [navItems, banners, latest, categories] = await Promise.all([
-      navRes.ok ? navRes.json() : [],
-      bannerRes.ok ? bannerRes.json() : [],
-      latestRes.ok ? latestRes.json() : [],
-      categoriesRes.ok ? categoriesRes.json() : [],
+      extract(navRes), extract(bannerRes), extract(latestRes), extract(categoriesRes),
     ]);
     return { navItems, banners, latest, categories };
   } catch {
