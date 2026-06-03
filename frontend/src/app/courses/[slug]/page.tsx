@@ -3,13 +3,13 @@ import type { Metadata } from 'next';
 import CourseDetailClient from './CourseDetailClient';
 import type { CourseDetail } from '@/types';
 
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+const baseUrl = 'http://127.0.0.1:8080/api/v1';
 
 async function getCourse(slug: string): Promise<CourseDetail | null> {
   try {
     const res = await fetch(`${baseUrl}/courses/${slug}`, { next: { revalidate: 60 } });
     if (!res.ok) return null;
-    return res.json();
+    return res.json().then(r => r.data);
   } catch {
     return null;
   }

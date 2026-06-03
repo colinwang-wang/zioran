@@ -21,33 +21,28 @@ export default function HomeClient({ navItems, banners, latest, categories }: Pr
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    if (activeTab === null) {
-      setTabCourses(latest);
-      return;
-    }
+    if (activeTab === null) { setTabCourses(latest); return; }
     getCourses({ categoryId: activeTab, pageSize: 8 }).then((res) => {
-      setTabCourses(res.items || []);
+      setTabCourses(Array.isArray(res) ? res : res?.items || []);
     }).catch(() => setTabCourses([]));
   }, [activeTab, latest]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/courses?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
+    if (searchQuery.trim()) router.push(`/courses?q=${encodeURIComponent(searchQuery.trim())}`);
   };
 
   return (
     <div>
       {/* 金刚区 */}
       {navItems.length > 0 && (
-        <section className="bg-surface py-6">
-          <div className="max-w-container mx-auto px-4">
+        <section className="bg-[#f6f6f3] py-5">
+          <div className="max-w-[1280px] mx-auto px-6">
             <div className="flex flex-wrap gap-4 justify-center">
               {navItems.map((item) => (
-                <Link key={item.id} href={item.url} className="flex flex-col items-center gap-2 px-4 py-3 rounded-card hover:bg-canvas transition-colors min-w-[80px]">
-                  {item.icon ? <img src={item.icon} alt="" className="w-10 h-10" /> : <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">{item.title[0]}</div>}
-                  <span className="text-xs font-semibold text-ink">{item.title}</span>
+                <Link key={item.id} href={item.url || '#'} className="flex flex-col items-center gap-2 px-5 py-3 rounded-[16px] bg-white hover:shadow-sm transition min-w-[100px]">
+                  {item.icon ? <img src={item.icon} alt="" className="w-12 h-12 rounded-xl object-cover" /> : <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#ff0036] to-[#ff6b6b] flex items-center justify-center text-white font-bold text-sm">{item.title[0]}</div>}
+                  <span className="text-xs font-semibold text-[#000]">{item.title}</span>
                 </Link>
               ))}
             </div>
@@ -55,82 +50,70 @@ export default function HomeClient({ navItems, banners, latest, categories }: Pr
         </section>
       )}
 
-      {/* Banner */}
-      {banners.length > 0 && (
-        <section className="max-w-container mx-auto px-4 mt-6">
-          <div className="rounded-card overflow-hidden aspect-[3/1] relative">
-            {banners[0].link_url ? (
-              <Link href={banners[0].link_url}>
-                <img src={banners[0].image_url} alt={banners[0].title} className="w-full h-full object-cover" />
-              </Link>
-            ) : (
-              <img src={banners[0].image_url} alt={banners[0].title} className="w-full h-full object-cover" />
-            )}
+      {/* Banner + 搜索（合并为一个深色区域） */}
+      <section className="py-8">
+        <div className="max-w-[1280px] mx-auto px-6">
+          <div className="relative rounded-[32px] overflow-hidden bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460] py-16 px-8 text-center text-white">
+            {/* 装饰光效 */}
+            <div className="absolute top-[-50%] right-[-10%] w-[400px] h-[400px] bg-[radial-gradient(circle,rgba(255,0,54,0.15),transparent_70%)]" />
+            <h1 className="text-3xl md:text-[44px] font-bold tracking-tight relative">知猿课堂，学有所长</h1>
+            <p className="text-white/60 mt-3 text-sm relative">以知为基，以猿为伴，打造优质网课资源课堂</p>
+            <form onSubmit={handleSearch} className="mt-8 max-w-[560px] mx-auto flex gap-2 relative">
+              <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="输入关键字搜索课程..." className="flex-1 px-5 py-3.5 rounded-full bg-white/95 text-[#333] text-sm border-none outline-none placeholder:text-[#999]" />
+              <button type="submit" className="px-7 py-3.5 bg-[#ff0036] text-white rounded-full text-sm font-bold hover:bg-[#e6002f] transition">搜索</button>
+            </form>
           </div>
-        </section>
-      )}
-
-      {/* 搜索区 */}
-      <section className="py-12 text-center">
-        <h1 className="text-3xl md:text-4xl font-bold text-ink tracking-tight">知猿课堂，学有所长</h1>
-        <p className="text-mute mt-2 text-sm">以知为基，以猿为伴，打造优质网课资源课堂</p>
-        <form onSubmit={handleSearch} className="mt-6 max-w-lg mx-auto px-4 flex gap-2">
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="搜索一下" className="flex-1 px-5 py-3 rounded-full bg-surface text-sm border border-hairline focus:border-primary outline-none" />
-          <button type="submit" className="px-6 py-3 bg-primary text-white rounded-full text-sm font-bold hover:bg-primary-pressed">搜索</button>
-        </form>
+        </div>
       </section>
 
       {/* 最新发布 */}
-      <section className="max-w-container mx-auto px-4 pb-12">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-ink">最新发布</h2>
-          <Link href="/courses?sort=latest" className="text-sm text-primary font-semibold hover:underline">查看更多 →</Link>
+      <section className="max-w-[1280px] mx-auto px-6 pb-12">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-xl font-bold text-[#000]">最新发布</h2>
+          <Link href="/courses?sort=latest" className="text-sm text-[#ff0036] font-semibold hover:underline">查看更多 →</Link>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {latest.slice(0, 8).map((c) => <CourseCard key={c.id} course={c} />)}
         </div>
       </section>
 
-      {/* 知猿课堂 */}
-      <section className="max-w-container mx-auto px-4 pb-12">
-        <h2 className="text-xl font-bold text-ink mb-4">知猿课堂</h2>
-        <div className="flex flex-wrap gap-2 mb-6">
-          <button onClick={() => setActiveTab(null)} className={`px-4 py-2 rounded-full text-sm font-bold transition-colors ${activeTab === null ? 'bg-ink text-white' : 'bg-surface text-ink hover:bg-secondary-bg'}`}>
-            全部课堂
-          </button>
-          {categories.map((cat) => (
-            <button key={cat.id} onClick={() => setActiveTab(cat.id)} className={`px-4 py-2 rounded-full text-sm font-bold transition-colors ${activeTab === cat.id ? 'bg-ink text-white' : 'bg-surface text-ink hover:bg-secondary-bg'}`}>
-              {cat.name}
-            </button>
-          ))}
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {tabCourses.slice(0, 8).map((c) => <CourseCard key={c.id} course={c} />)}
-        </div>
-        <div className="text-center mt-6">
-          <Link href={activeTab ? `/courses?categoryId=${activeTab}` : '/courses'} className="text-sm text-primary font-semibold hover:underline">
-            查看更多 →
-          </Link>
+      {/* 知猿课堂（Tab切换） */}
+      <section className="bg-[#f6f6f3] py-12">
+        <div className="max-w-[1280px] mx-auto px-6">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl font-bold text-[#000]">知猿课堂</h2>
+            <Link href={activeTab ? `/courses?categoryId=${activeTab}` : '/courses'} className="text-sm text-[#ff0036] font-semibold hover:underline">查看更多 →</Link>
+          </div>
+          <div className="flex flex-wrap gap-2 mb-6">
+            <button onClick={() => setActiveTab(null)} className={`px-4 py-2 rounded-full text-sm font-bold transition ${activeTab === null ? 'bg-[#000] text-white' : 'bg-white text-[#000] hover:bg-[#e5e5e0]'}`}>全部课堂</button>
+            {categories.map((cat) => (
+              <button key={cat.id} onClick={() => setActiveTab(cat.id)} className={`px-4 py-2 rounded-full text-sm font-bold transition ${activeTab === cat.id ? 'bg-[#000] text-white' : 'bg-white text-[#000] hover:bg-[#e5e5e0]'}`}>{cat.name}</button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {tabCourses.slice(0, 8).map((c) => <CourseCard key={c.id} course={c} />)}
+          </div>
         </div>
       </section>
 
       {/* VIP */}
-      <section className="bg-surface py-12">
-        <div className="max-w-container mx-auto px-4 text-center">
-          <h2 className="text-xl font-bold text-ink mb-6">关于VIP</h2>
-          <div className="max-w-sm mx-auto bg-canvas rounded-card p-8 border border-hairline">
-            <div className="text-primary text-sm font-bold mb-2">终身VIP</div>
-            <div className="text-4xl font-bold text-ink">99 <span className="text-base font-normal text-mute">金币</span></div>
-            <div className="text-sm text-mute mt-1">永久</div>
-            <ul className="mt-4 text-sm text-body space-y-2 text-left">
-              <li>· 持续每天更新资源</li>
-              <li>· 原价699金币</li>
-              <li>· 全站免费下载</li>
+      <section className="py-16">
+        <div className="max-w-[1280px] mx-auto px-6 text-center">
+          <h2 className="text-xl font-bold text-[#000] mb-8">关于VIP</h2>
+          <div className="max-w-[400px] mx-auto bg-white rounded-[32px] p-10 border-2 border-[#ff0036] relative shadow-[0_20px_60px_rgba(255,0,54,0.08)]">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[#ff0036] rounded-t-[32px]" />
+            <span className="inline-block bg-[#ff0036] text-white px-4 py-1 rounded-full text-xs font-bold mb-6">推荐</span>
+            <h3 className="text-2xl font-bold text-[#000]">终身VIP</h3>
+            <div className="text-[44px] font-bold text-[#ff0036] mt-2">99 <span className="text-base font-normal text-[#62625b]">金币</span></div>
+            <div className="text-sm text-[#91918c] line-through mt-1">原价 699 金币</div>
+            <div className="text-base text-[#62625b] mt-4 pb-4 border-b border-[#dadad3]">永久有效</div>
+            <ul className="mt-6 text-sm text-[#33332e] space-y-3 text-left">
+              <li className="flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-[#fff0f3] text-[#ff0036] flex items-center justify-center text-xs font-bold">✓</span>全站课程免费下载</li>
+              <li className="flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-[#fff0f3] text-[#ff0036] flex items-center justify-center text-xs font-bold">✓</span>持续每天更新资源</li>
+              <li className="flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-[#fff0f3] text-[#ff0036] flex items-center justify-center text-xs font-bold">✓</span>专属客服支持</li>
             </ul>
-            <Link href="/vip" className="mt-6 block w-full py-3 bg-primary text-white text-sm font-bold rounded-card hover:bg-primary-pressed text-center">
-              立即升级
-            </Link>
-            <p className="text-xs text-mute mt-3">75%的人选择该套餐</p>
+            <Link href="/vip" className="mt-8 block w-full py-3.5 bg-[#ff0036] text-white text-sm font-bold rounded-[16px] hover:bg-[#e6002f] text-center transition">立即升级</Link>
+            <p className="text-xs text-[#91918c] mt-4">75% 的人选择该套餐</p>
           </div>
         </div>
       </section>
