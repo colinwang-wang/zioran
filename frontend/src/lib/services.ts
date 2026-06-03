@@ -3,7 +3,7 @@ import type {
   AuthResponse, CaptchaResponse, CategoryBrief, CoinBalance,
   CommentItem, CourseDetail, CourseListItem, DownloadItem,
   FavoriteItem, GuestbookItem, NavItem, Banner, OrderItem,
-  PaginatedList, TagBrief, VipPackage, VipStatus, UserResponse,
+  PaginatedList, TagBrief, Ticket, VipPackage, VipStatus, UserResponse,
 } from '@/types';
 
 // Auth
@@ -74,3 +74,17 @@ export const downloadCourse = (id: number) => api.post(`/courses/${id}/download`
 // Orders
 export const createOrder = (data: { type: string; target_id?: number; amount?: number }) =>
   api.post('/orders', data);
+
+// Forgot Password
+export const forgotPassword = (data: { phone: string; sms_code: string; new_password: string }) =>
+  api.post('/auth/forgot-password', data);
+
+// Tickets
+export const getTickets = (params?: { page?: number }) =>
+  api.get<PaginatedList<Ticket>>('/tickets', { params }).then(r => r.data);
+export const createTicket = (data: { subject: string; content: string }) =>
+  api.post('/tickets', data);
+export const getTicketDetail = (id: number) =>
+  api.get<Ticket>(`/tickets/${id}`).then(r => r.data);
+export const replyTicket = (id: number, content: string) =>
+  api.post(`/tickets/${id}/reply`, { content });

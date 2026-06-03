@@ -69,6 +69,8 @@ export default function LoginPage() {
         <div className="mt-4 text-center text-sm">
           <span className="text-mute">没有账号？</span>
           <Link href="/register" className="text-primary font-semibold ml-1">注册</Link>
+          <span className="text-mute ml-3">·</span>
+          <Link href="/forgot-password" className="text-primary font-semibold ml-1">忘记密码</Link>
         </div>
         <div className="mt-6 border-t border-hairline pt-4 text-center">
           <p className="text-xs text-mute mb-3">社交账号快速登录</p>

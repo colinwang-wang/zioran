@@ -33,12 +33,14 @@ func main() {
 	favRepo := repository.NewFavoriteRepository(db)
 	payRepo := repository.NewPaymentRepository(db)
 	commRepo := repository.NewCommunityRepository(db)
+	ticketRepo := repository.NewTicketRepository(db)
 
 	// Services
 	authSvc := service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.Expire)
 	courseSvc := service.NewCourseService(courseRepo, catRepo, tagRepo, favRepo)
 	paySvc := service.NewPaymentService(payRepo, courseRepo, userRepo)
 	commSvc := service.NewCommunityService(commRepo)
+	ticketSvc := service.NewTicketService(ticketRepo, userRepo)
 
 	// Handlers
 	authHandler := api.NewAuthHandler(authSvc)
@@ -48,8 +50,9 @@ func main() {
 	commHandler := api.NewCommunityHandler(commSvc)
 	adminPayHandler := api.NewAdminPaymentHandler(paySvc, commSvc)
 	uploadHandler := api.NewUploadHandler("./uploads")
+	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, cfg.JWT.Secret, cfg.JWT.Expire, "./uploads")
 
-	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, uploadHandler, cfg.JWT.Secret)
+	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, uploadHandler, ticketHandler, cfg.JWT.Secret)
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
 	log.Printf("Server starting on %s", addr)
 	if err := r.Run(addr); err != nil {

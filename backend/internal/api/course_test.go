@@ -29,7 +29,8 @@ func setupCourseTestRouter(t *testing.T) (*gorm.DB, *httptest.Server, string) {
 	assert.NoError(t, err)
 	assert.NoError(t, db.AutoMigrate(&model.User{}, &model.Course{}, &model.Category{}, &model.Tag{}, &model.CourseResource{}, &model.UserFavorite{},
 		&model.CoinAccount{}, &model.CoinTransaction{}, &model.VipPackage{}, &model.UserVip{}, &model.Order{}, &model.Purchase{},
-		&model.Guestbook{}, &model.GuestbookLike{}, &model.Comment{}, &model.NavItem{}, &model.Banner{}, &model.UserDownload{}))
+		&model.Guestbook{}, &model.GuestbookLike{}, &model.Comment{}, &model.NavItem{}, &model.Banner{}, &model.UserDownload{},
+		&model.Ticket{}, &model.TicketReply{}, &model.Setting{}, &model.OperationLog{}, &model.PaymentLog{}))
 
 	// Seed data
 	cat := model.Category{Name: "AIGC课堂", Slug: "aigc", IsActive: true}
@@ -74,8 +75,11 @@ func setupCourseTestRouter(t *testing.T) (*gorm.DB, *httptest.Server, string) {
 	payHandler := api.NewPaymentHandler(paySvc)
 	commHandler := api.NewCommunityHandler(commSvc)
 	adminPayHandler := api.NewAdminPaymentHandler(paySvc, commSvc)
+	ticketRepo := repository.NewTicketRepository(db)
+	ticketSvc := service.NewTicketService(ticketRepo, userRepo)
+	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, testJWTSecret, 72*time.Hour, t.TempDir())
 
-	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, api.NewUploadHandler(t.TempDir()), testJWTSecret)
+	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, api.NewUploadHandler(t.TempDir()), ticketHandler, testJWTSecret)
 	ts := httptest.NewServer(r)
 
 	// Register a user and get token

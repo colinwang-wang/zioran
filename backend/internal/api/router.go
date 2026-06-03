@@ -13,6 +13,7 @@ func SetupRouter(
 	commHandler *CommunityHandler,
 	adminPayHandler *AdminPaymentHandler,
 	uploadHandler *UploadHandler,
+	ticketHandler *TicketHandler,
 	jwtSecret string,
 ) *gin.Engine {
 	r := gin.New()
@@ -27,6 +28,10 @@ func SetupRouter(
 			auth.POST("/sms/send", authHandler.SendSMS)
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
+			auth.POST("/forgot-password", ticketHandler.ForgotPassword)
+			// OAuth (MOCK: 待接入真实服务)
+			auth.GET("/oauth/wechat", ticketHandler.OAuthWechat)
+			auth.POST("/oauth/wechat/callback", ticketHandler.OAuthWechatCallback)
 		}
 
 		// Public course routes
@@ -40,6 +45,7 @@ func SetupRouter(
 		// Public home config
 		v1.GET("/home/nav-items", commHandler.NavItems)
 		v1.GET("/home/banners", commHandler.Banners)
+		v1.GET("/home/config", ticketHandler.HomeConfig)
 
 		// Public VIP packages
 		v1.GET("/vip/packages", payHandler.VipPackages)
@@ -50,17 +56,26 @@ func SetupRouter(
 		// Public comments (read)
 		v1.GET("/comments", commHandler.CommentList)
 
+		// Payment notify (MOCK: 待接入真实服务)
+		v1.POST("/pay/notify/wechat", ticketHandler.WechatNotify)
+		v1.POST("/pay/notify/alipay", ticketHandler.AlipayNotify)
+
 		// Authed routes
 		authed := v1.Group("")
 		authed.Use(middleware.JWTAuth(jwtSecret))
 		{
+			// Token refresh
+			authed.POST("/auth/refresh", ticketHandler.RefreshToken)
+
 			// Upload
 			authed.POST("/upload/image", uploadHandler.ImageUpload)
+			authed.POST("/upload/images", ticketHandler.BatchImageUpload)
 
 			// User profile
 			authed.GET("/user/profile", authHandler.Profile)
 			authed.PUT("/user/password", payHandler.ChangePassword)
 			authed.GET("/user/orders", payHandler.UserOrders)
+			authed.GET("/user/orders/:id", payHandler.GetOrder)
 			authed.GET("/user/downloads", payHandler.UserDownloads)
 			authed.GET("/user/favorites", payHandler.UserFavorites)
 			authed.POST("/user/favorites", payHandler.AddFavorite)
@@ -82,6 +97,7 @@ func SetupRouter(
 			// Orders
 			authed.POST("/orders", payHandler.CreateOrder)
 			authed.GET("/orders/:id", payHandler.GetOrder)
+			authed.POST("/orders/:id/cancel", ticketHandler.CancelOrder)
 
 			// Guestbook (write)
 			authed.POST("/guestbook", commHandler.GuestbookCreate)
@@ -91,6 +107,12 @@ func SetupRouter(
 			// Comments (write)
 			authed.POST("/comments", commHandler.CommentCreate)
 			authed.DELETE("/comments/:id", commHandler.CommentDelete)
+
+			// Tickets (user)
+			authed.GET("/tickets", ticketHandler.TicketList)
+			authed.POST("/tickets", ticketHandler.TicketCreate)
+			authed.GET("/tickets/:id", ticketHandler.TicketDetail)
+			authed.POST("/tickets/:id/reply", ticketHandler.TicketReply)
 		}
 
 		// Admin login (no JWT required)
@@ -142,6 +164,7 @@ func SetupRouter(
 			admin.GET("/comments", adminPayHandler.CommentList)
 			admin.PUT("/comments/:id/status", adminPayHandler.CommentUpdateStatus)
 			admin.DELETE("/comments/:id", adminPayHandler.CommentDelete)
+			admin.POST("/comments/:id/reply", ticketHandler.AdminCommentReply)
 
 			// Nav items management
 			admin.GET("/nav-items", adminPayHandler.NavItemList)
@@ -158,6 +181,30 @@ func SetupRouter(
 			// Dashboard
 			admin.GET("/dashboard/stats", adminPayHandler.DashboardStats)
 			admin.GET("/dashboard/charts", adminPayHandler.DashboardCharts)
+
+			// Tickets (admin)
+			admin.GET("/tickets", ticketHandler.AdminTicketList)
+			admin.GET("/tickets/:id", ticketHandler.AdminTicketDetail)
+			admin.PUT("/tickets/:id/status", ticketHandler.AdminTicketUpdateStatus)
+			admin.POST("/tickets/:id/reply", ticketHandler.AdminTicketReply)
+
+			// Settings
+			admin.GET("/settings", ticketHandler.GetSettings)
+			admin.PUT("/settings", ticketHandler.UpdateSettings)
+
+			// Admin account management
+			admin.GET("/admins", ticketHandler.AdminList)
+			admin.POST("/admins", ticketHandler.AdminCreate)
+			admin.PUT("/admins/:id", ticketHandler.AdminUpdate)
+			admin.DELETE("/admins/:id", ticketHandler.AdminDelete)
+
+			// Finance
+			admin.GET("/finance/summary", ticketHandler.FinanceSummary)
+			admin.GET("/finance/withdrawals", ticketHandler.FinanceWithdrawals)
+
+			// Logs
+			admin.GET("/logs/operations", ticketHandler.OperationLogs)
+			admin.GET("/logs/payments", ticketHandler.PaymentLogs)
 		}
 	}
 

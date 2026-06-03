@@ -25,7 +25,8 @@ func setupTestRouter(t *testing.T) (*service.AuthService, *httptest.Server) {
 	assert.NoError(t, err)
 	assert.NoError(t, db.AutoMigrate(&model.User{}, &model.Course{}, &model.Category{}, &model.Tag{}, &model.CourseResource{}, &model.UserFavorite{},
 		&model.CoinAccount{}, &model.CoinTransaction{}, &model.VipPackage{}, &model.UserVip{}, &model.Order{}, &model.Purchase{},
-		&model.Guestbook{}, &model.GuestbookLike{}, &model.Comment{}, &model.NavItem{}, &model.Banner{}, &model.UserDownload{}))
+		&model.Guestbook{}, &model.GuestbookLike{}, &model.Comment{}, &model.NavItem{}, &model.Banner{}, &model.UserDownload{},
+		&model.Ticket{}, &model.TicketReply{}, &model.Setting{}, &model.OperationLog{}, &model.PaymentLog{}))
 
 	userRepo := repository.NewUserRepository(db)
 	courseRepo := repository.NewCourseRepository(db)
@@ -34,11 +35,13 @@ func setupTestRouter(t *testing.T) (*service.AuthService, *httptest.Server) {
 	favRepo := repository.NewFavoriteRepository(db)
 	payRepo := repository.NewPaymentRepository(db)
 	commRepo := repository.NewCommunityRepository(db)
+	ticketRepo := repository.NewTicketRepository(db)
 
 	authSvc := service.NewAuthService(userRepo, testJWTSecret, 72*time.Hour)
 	courseSvc := service.NewCourseService(courseRepo, catRepo, tagRepo, favRepo)
 	paySvc := service.NewPaymentService(payRepo, courseRepo, userRepo)
 	commSvc := service.NewCommunityService(commRepo)
+	ticketSvc := service.NewTicketService(ticketRepo, userRepo)
 
 	authHandler := api.NewAuthHandler(authSvc)
 	courseHandler := api.NewCourseHandler(courseSvc)
@@ -46,8 +49,9 @@ func setupTestRouter(t *testing.T) (*service.AuthService, *httptest.Server) {
 	payHandler := api.NewPaymentHandler(paySvc)
 	commHandler := api.NewCommunityHandler(commSvc)
 	adminPayHandler := api.NewAdminPaymentHandler(paySvc, commSvc)
+	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, testJWTSecret, 72*time.Hour, t.TempDir())
 
-	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, api.NewUploadHandler(t.TempDir()), testJWTSecret)
+	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, api.NewUploadHandler(t.TempDir()), ticketHandler, testJWTSecret)
 	ts := httptest.NewServer(r)
 	return authSvc, ts
 }

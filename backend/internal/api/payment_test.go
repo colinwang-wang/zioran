@@ -29,6 +29,8 @@ func setupPhase34Router(t *testing.T) (*gorm.DB, *httptest.Server, string) {
 		&model.UserVip{}, &model.Order{}, &model.Purchase{},
 		&model.Guestbook{}, &model.GuestbookLike{}, &model.Comment{},
 		&model.NavItem{}, &model.Banner{}, &model.UserDownload{},
+		&model.Ticket{}, &model.TicketReply{}, &model.Setting{},
+		&model.OperationLog{}, &model.PaymentLog{},
 	))
 
 	userRepo := repository.NewUserRepository(db)
@@ -38,11 +40,13 @@ func setupPhase34Router(t *testing.T) (*gorm.DB, *httptest.Server, string) {
 	favRepo := repository.NewFavoriteRepository(db)
 	payRepo := repository.NewPaymentRepository(db)
 	commRepo := repository.NewCommunityRepository(db)
+	ticketRepo := repository.NewTicketRepository(db)
 
 	authSvc := service.NewAuthService(userRepo, testJWTSecret, 72*time.Hour)
 	courseSvc := service.NewCourseService(courseRepo, catRepo, tagRepo, favRepo)
 	paySvc := service.NewPaymentService(payRepo, courseRepo, userRepo)
 	commSvc := service.NewCommunityService(commRepo)
+	ticketSvc := service.NewTicketService(ticketRepo, userRepo)
 
 	authHandler := api.NewAuthHandler(authSvc)
 	courseHandler := api.NewCourseHandler(courseSvc)
@@ -50,8 +54,9 @@ func setupPhase34Router(t *testing.T) (*gorm.DB, *httptest.Server, string) {
 	payHandler := api.NewPaymentHandler(paySvc)
 	commHandler := api.NewCommunityHandler(commSvc)
 	adminPayHandler := api.NewAdminPaymentHandler(paySvc, commSvc)
+	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, testJWTSecret, 72*time.Hour, t.TempDir())
 
-	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, api.NewUploadHandler(t.TempDir()), testJWTSecret)
+	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, api.NewUploadHandler(t.TempDir()), ticketHandler, testJWTSecret)
 	ts := httptest.NewServer(r)
 
 	// Create test user

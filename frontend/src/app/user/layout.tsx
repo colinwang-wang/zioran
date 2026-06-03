@@ -11,6 +11,7 @@ const tabs = [
   { href: '/user/orders', label: '我的订单' },
   { href: '/user/downloads', label: '我的下载' },
   { href: '/user/favorites', label: '我的收藏' },
+  { href: '/user/tickets', label: '我的工单' },
   { href: '/user/recharge', label: '充值' },
   { href: '/user/settings', label: '账号设置' },
 ];

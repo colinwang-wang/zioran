@@ -17,6 +17,10 @@ const GuestbookList = lazy(() => import('./pages/guestbook/List'))
 const CommentList = lazy(() => import('./pages/comment/List'))
 const HomeConfig = lazy(() => import('./pages/config/HomeConfig'))
 const DataBoard = lazy(() => import('./pages/data/Board'))
+const TicketList = lazy(() => import('./pages/ticket/List'))
+const TicketDetail = lazy(() => import('./pages/ticket/Detail'))
+const SettingsPage = lazy(() => import('./pages/settings/Index'))
+const AdminList = lazy(() => import('./pages/admin/List'))
 
 const Loading = <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 200 }}><Spin size="large" /></div>
 
@@ -47,6 +51,10 @@ export default function App() {
           <Route path="comments" element={<CommentList />} />
           <Route path="config" element={<HomeConfig />} />
           <Route path="data" element={<DataBoard />} />
+          <Route path="tickets" element={<TicketList />} />
+          <Route path="tickets/:id" element={<TicketDetail />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="admins" element={<AdminList />} />
         </Route>
       </Routes>
     </Suspense>

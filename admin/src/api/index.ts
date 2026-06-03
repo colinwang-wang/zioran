@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import type { ApiResponse, PageResponse, LoginParams, LoginResult, Course, Category, Tag, User, Order, Guestbook, Comment, NavItem, Banner, DashboardStats, ChartData } from '@/types'
+import type { ApiResponse, PageResponse, LoginParams, LoginResult, Course, Category, Tag, User, Order, Guestbook, Comment, NavItem, Banner, DashboardStats, ChartData, Ticket, TicketDetail, Settings, Admin } from '@/types'
 
 // POST /api/v1/admin/login
 export const login = (data: LoginParams) => request.post<unknown, ApiResponse<LoginResult>>('/admin/login', data)
@@ -107,3 +107,19 @@ export const uploadImage = (file: File) => {
   form.append('file', file)
   return request.post<unknown, ApiResponse<{ url: string }>>('/upload/image', form)
 }
+
+// 工单管理
+export const getTickets = (params: Record<string, unknown>) => request.get<unknown, PageResponse<Ticket>>('/admin/tickets', { params })
+export const getTicket = (id: number) => request.get<unknown, ApiResponse<TicketDetail>>(`/admin/tickets/${id}`)
+export const replyTicket = (id: number, content: string) => request.post<unknown, ApiResponse<null>>(`/admin/tickets/${id}/reply`, { content })
+export const updateTicketStatus = (id: number, status: string) => request.put<unknown, ApiResponse<null>>(`/admin/tickets/${id}`, { status })
+
+// 系统设置
+export const getSettings = () => request.get<unknown, ApiResponse<Settings>>('/admin/settings')
+export const updateSettings = (data: Partial<Settings>) => request.put<unknown, ApiResponse<null>>('/admin/settings', data)
+
+// 管理员管理
+export const getAdmins = (params?: Record<string, unknown>) => request.get<unknown, PageResponse<Admin>>('/admin/admins', { params })
+export const createAdmin = (data: { username: string; password: string; role: string }) => request.post<unknown, ApiResponse<Admin>>('/admin/admins', data)
+export const updateAdmin = (id: number, data: Partial<Admin & { password?: string }>) => request.put<unknown, ApiResponse<null>>(`/admin/admins/${id}`, data)
+export const deleteAdmin = (id: number) => request.delete<unknown, ApiResponse<null>>(`/admin/admins/${id}`)

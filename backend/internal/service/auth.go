@@ -134,6 +134,15 @@ func (s *AuthService) GetProfile(ctx context.Context, userID int64) (*model.User
 	return &resp, nil
 }
 
+// VerifySMSCode verifies and consumes an SMS code
+func (s *AuthService) VerifySMSCode(phone, code string) bool {
+	val, ok := s.smsCodes.LoadAndDelete(phone)
+	if !ok {
+		return false
+	}
+	return val.(string) == code
+}
+
 // SetSMSCode is for testing only
 func (s *AuthService) SetSMSCode(phone, code string) {
 	s.smsCodes.Store(phone, code)

@@ -1,6 +1,6 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { ProLayout } from '@ant-design/pro-components'
-import { DashboardOutlined, BookOutlined, AppstoreOutlined, TagsOutlined, UserOutlined, ShoppingCartOutlined, MessageOutlined, CommentOutlined, SettingOutlined, BarChartOutlined } from '@ant-design/icons'
+import { DashboardOutlined, BookOutlined, AppstoreOutlined, TagsOutlined, UserOutlined, ShoppingCartOutlined, MessageOutlined, CommentOutlined, SettingOutlined, BarChartOutlined, CustomerServiceOutlined, TeamOutlined, ToolOutlined } from '@ant-design/icons'
 import { Button, Dropdown } from 'antd'
 import { LogoutOutlined } from '@ant-design/icons'
 
@@ -16,6 +16,9 @@ const menuRoutes = {
     { path: '/comments', name: '评论管理', icon: <CommentOutlined /> },
     { path: '/config', name: '首页配置', icon: <SettingOutlined /> },
     { path: '/data', name: '数据看板', icon: <BarChartOutlined /> },
+    { path: '/tickets', name: '工单管理', icon: <CustomerServiceOutlined /> },
+    { path: '/settings', name: '系统设置', icon: <ToolOutlined /> },
+    { path: '/admins', name: '管理员', icon: <TeamOutlined /> },
   ],
 }
 

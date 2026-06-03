@@ -1,97 +1,114 @@
-# Phase 1 — 后端专家指令
+# Phase 6 — 后端专家指令：补齐PRD定义的剩余接口
 
 > 状态: PENDING
-> 依赖: 无
-> 更新时间: 2026-06-03T23:41
+> 更新时间: 2026-06-04T01:05
+> 背景: QA对比PRD发现25个定义但未实现的API，按优先级分批补齐
 
-## 背景
-知猿(zioran)项目启动，需要搭建 Go+Gin 后端基础架构，完成数据库建表和用户认证模块。
+## 优先级 A — 核心功能（必须实现）
 
-## 项目信息
-- 数据库：MySQL 8, root/root123456, 数据库名 zioran
-- 技术栈：Go + Gin + GORM + Redis + JWT
-- 参考文档：docs/prd/01-user.md, docs/prd/07-database.md, docs/prd/08-api.md
-
-## 任务列表
-
-### 1. 项目初始化
-在项目根目录创建 `backend/` 目录，初始化 Go module：
+### 1. 忘记密码
 ```
-backend/
-├── cmd/server/main.go
-├── internal/
-│   ├── api/          # 路由 + handler
-│   ├── service/      # 业务逻辑
-│   ├── repository/   # 数据访问
-│   ├── model/        # 数据库模型 + DTO
-│   └── middleware/   # JWT、CORS
-├── pkg/
-│   ├── errcode/      # 统一错误码
-│   ├── response/     # 统一响应 {code, message, data}
-│   └── config/       # 配置加载
-├── migrations/       # 数据库迁移 SQL
-├── config.yaml       # 配置文件
-└── go.mod
+POST /api/v1/auth/forgot-password
+Body: { phone, sms_code, new_password }
+→ 验证短信码 → 更新密码
 ```
 
-### 2. 数据库迁移
-参考 docs/prd/07-database.md，将 PostgreSQL 语法转为 MySQL 语法，创建以下核心表：
-- users（手机号为主标识，NOT NULL UNIQUE）
-- categories
-- tags
-- courses + course_tags + course_resources
-- coin_accounts + coin_transactions
-- vip_packages + user_vip
-- orders + purchases
-
-注意 MySQL 语法差异：BIGSERIAL → BIGINT AUTO_INCREMENT, TIMESTAMP → DATETIME, TEXT 保持, JSONB → JSON, BOOLEAN → TINYINT(1)
-
-### 3. 用户认证模块（TDD）
-严格按 RED-GREEN-REFACTOR 开发以下接口：
-
-| 接口 | 说明 |
-|------|------|
-| POST /api/v1/auth/captcha | 获取图形验证码 |
-| POST /api/v1/auth/sms/send | 发送短信验证码（暂用 mock，控制台打印） |
-| POST /api/v1/auth/register | 手机号+短信验证码+密码注册 |
-| POST /api/v1/auth/login | 手机号+密码+图形验证码登录 |
-| GET /api/v1/user/profile | 获取当前用户信息（需JWT） |
-
-### 4. 统一响应格式
-```json
-{ "code": 0, "message": "ok", "data": {} }
+### 2. Token刷新
 ```
-错误码：40001 参数错误, 40101 未认证, 40301 无权限, 50001 服务器错误
+POST /api/v1/auth/refresh
+Header: Authorization: Bearer <token>
+→ 验证旧token → 生成新token
+```
 
-### 5. 配置文件 config.yaml
-```yaml
-server:
-  port: 8080
-database:
-  host: 127.0.0.1
-  port: 3306
-  user: root
-  password: root123456
-  dbname: zioran
-redis:
-  host: 127.0.0.1
-  port: 6379
-jwt:
-  secret: zioran-jwt-secret-2026
-  expire: 72h
+### 3. 订单取消
+```
+POST /api/v1/orders/:id/cancel
+→ 仅pending状态可取消
+```
+
+### 4. 用户订单详情
+```
+GET /api/v1/user/orders/:id
+→ 返回订单详情（仅本人可查看）
+```
+
+### 5. 工单系统（用户端）
+```
+GET  /api/v1/tickets            — 我的工单列表
+POST /api/v1/tickets            — 提交工单 { title, content }
+GET  /api/v1/tickets/:id        — 工单详情（含回复）
+POST /api/v1/tickets/:id/reply  — 回复工单 { content }
+```
+
+### 6. 工单系统（管理端）
+```
+GET  /api/v1/admin/tickets             — 全部工单列表
+GET  /api/v1/admin/tickets/:id         — 工单详情
+PUT  /api/v1/admin/tickets/:id/status  — 更新状态(processing/replied/closed)
+POST /api/v1/admin/tickets/:id/reply   — 管理员回复
+```
+
+## 优先级 B — 管理后台辅助功能
+
+### 7. 系统设置
+```
+GET /api/v1/admin/settings   — 获取全部设置
+PUT /api/v1/admin/settings   — 更新设置 { key: value }
+```
+
+### 8. 管理员账号管理
+```
+GET    /api/v1/admin/admins      — 管理员列表
+POST   /api/v1/admin/admins      — 创建管理员 { username, password, role }
+PUT    /api/v1/admin/admins/:id  — 更新管理员
+DELETE /api/v1/admin/admins/:id  — 删除管理员
+```
+
+### 9. 财务管理
+```
+GET /api/v1/admin/finance/summary      — 收支明细（每日/已结算/待结算）
+GET /api/v1/admin/finance/withdrawals  — 提现列表
+```
+
+### 10. 日志
+```
+GET /api/v1/admin/logs/operations  — 管理员操作日志
+GET /api/v1/admin/logs/payments    — 支付异常日志
+```
+
+### 11. 评论管理员回复
+```
+POST /api/v1/admin/comments/:id/reply  — 管理员回复评论 { content }
+```
+
+## 优先级 C — 第三方对接预留（MOCK）
+
+### 12. 支付回调
+```
+POST /api/v1/pay/notify/wechat   — 微信回调（MOCK: 直接标记订单已支付）
+POST /api/v1/pay/notify/alipay   — 支付宝回调（MOCK: 同上）
+```
+
+### 13. 微信登录
+```
+GET  /api/v1/auth/oauth/wechat           — 返回微信授权URL（MOCK）
+POST /api/v1/auth/oauth/wechat/callback  — 微信回调（MOCK: 自动创建用户）
+```
+
+### 14. 其他
+```
+POST /api/v1/upload/images    — 批量上传（复用单图上传逻辑）
+GET  /api/v1/home/config      — 首页配置（文案等，从settings表读取）
 ```
 
 ## 交付标准
-- [ ] `go build ./...` 零错误
-- [ ] `go test ./...` 全部通过（认证模块覆盖率 ≥ 80%）
-- [ ] 数据库表已创建（通过 migration 文件）
-- [ ] 注册→登录→获取profile 主流程可用
-- [ ] 短信验证码 mock 到控制台输出
-- [ ] 统一响应格式，错误返回正确业务码
+- [ ] go build ./... 零错误
+- [ ] go test ./... 全部通过
+- [ ] 所有新路由在 router.go 注册
+- [ ] MOCK接口标注 `// MOCK: 待接入真实服务`
+- [ ] 工单表 tickets + ticket_replies 通过migration创建
 
-## 自检清单
-- [ ] 手机号重复注册返回 40001
-- [ ] 密码错误返回 40001
-- [ ] 缺少必填字段返回 40001
-- [ ] 未携带 Token 访问 profile 返回 40101
-- [ ] Token 正确时返回用户信息（手机号脱敏）
+## 同时需要
+- 管理端补充工单管理页面
+- 管理端补充系统设置页面
+- 前端补充忘记密码页面、工单页面

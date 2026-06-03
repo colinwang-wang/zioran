@@ -177,3 +177,25 @@ export interface VipPackage {
   duration: string;
   features: string[];
 }
+
+export interface TicketReply {
+  id: number;
+  ticket_id: number;
+  user_id: number;
+  username: string;
+  avatar: string;
+  content: string;
+  is_admin: boolean;
+  created_at: string;
+}
+
+export interface Ticket {
+  id: number;
+  user_id: number;
+  subject: string;
+  content: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  replies?: TicketReply[];
+}

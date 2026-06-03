@@ -151,6 +151,54 @@ export interface ChartData {
   datasets: { label: string; data: number[] }[]
 }
 
+// 工单
+export interface Ticket {
+  id: number
+  userId: number
+  userName: string
+  subject: string
+  content: string
+  status: 'pending' | 'processing' | 'replied' | 'closed'
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TicketReply {
+  id: number
+  ticketId: number
+  userId: number
+  userName: string
+  content: string
+  isAdmin: boolean
+  createdAt: string
+}
+
+export interface TicketDetail extends Ticket {
+  replies: TicketReply[]
+}
+
+// 系统设置
+export interface Settings {
+  siteName: string
+  siteDescription: string
+  contactPhone: string
+  contactEmail: string
+  vipMonthlyPrice: number
+  vipYearlyPrice: number
+  withdrawMinAmount: number
+  commissionRate: number
+}
+
+// 管理员
+export interface Admin {
+  id: number
+  username: string
+  role: string
+  status: 'active' | 'disabled'
+  createdAt: string
+  lastLoginAt: string
+}
+
 // 管理员登录
 export interface LoginParams {
   username: string
