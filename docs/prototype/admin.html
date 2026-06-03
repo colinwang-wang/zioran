@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知猿 - 管理后台</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root { --primary: #ff0036; --ink: #000; --body: #33332e; --mute: #62625b; --ash: #91918c; --hairline: #dadad3; --canvas: #fff; --surface-soft: #fbfbf9; --surface-card: #f6f6f3; --on-primary: #fff; --on-dark: #fff; --surface-dark: #1a1a2e; --rounded-md: 16px; --rounded-sm: 8px; --rounded-full: 9999px; }
+body { font-family: Inter, -apple-system, sans-serif; color: var(--body); background: var(--surface-soft); line-height: 1.4; margin: 0; }
+
+/* Top Bar */
+.topbar { height: 56px; background: var(--surface-dark); display: flex; align-items: center; padding: 0 24px; position: fixed; top: 0; left: 0; right: 0; z-index: 100; }
+.topbar .logo { font-size: 18px; font-weight: 700; color: var(--primary); }
+.topbar .title { font-size: 14px; color: rgba(255,255,255,0.6); margin-left: 12px; }
+.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.topbar .admin-name { font-size: 13px; color: rgba(255,255,255,0.8); }
+.topbar .btn-logout { font-size: 12px; color: rgba(255,255,255,0.5); background: none; border: 1px solid rgba(255,255,255,0.2); padding: 4px 12px; border-radius: var(--rounded-sm); cursor: pointer; }
+
+/* Sidebar */
+.sidebar { width: 220px; position: fixed; top: 56px; left: 0; bottom: 0; background: var(--canvas); border-right: 1px solid var(--hairline); overflow-y: auto; padding: 16px 0; }
+.sidebar .nav-group { margin-bottom: 8px; }
+.sidebar .nav-group .group-title { font-size: 11px; font-weight: 700; color: var(--ash); text-transform: uppercase; padding: 8px 20px; letter-spacing: 0.5px; }
+.sidebar .nav-item { display: block; padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--body); text-decoration: none; border-left: 3px solid transparent; transition: all .15s; }
+.sidebar .nav-item:hover { background: var(--surface-card); color: var(--ink); }
+.sidebar .nav-item.active { background: #fff0f3; color: var(--primary); border-left-color: var(--primary); font-weight: 600; }
+
+/* Main */
+.main { margin-left: 220px; margin-top: 56px; padding: 24px; min-height: calc(100vh - 56px); }
+
+/* Stats */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: var(--canvas); border-radius: var(--rounded-md); padding: 20px; }
+.stat-card .label { font-size: 12px; color: var(--mute); margin-bottom: 8px; }
+.stat-card .value { font-size: 28px; font-weight: 700; color: var(--ink); }
+.stat-card .trend { font-size: 12px; color: #1aae39; margin-top: 4px; }
+.stat-card.highlight .value { color: var(--primary); }
+
+/* Chart placeholder */
+.chart-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
+.chart-card { background: var(--canvas); border-radius: var(--rounded-md); padding: 24px; }
+.chart-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--ink); }
+.chart-placeholder { height: 200px; background: linear-gradient(180deg, var(--surface-card), var(--surface-soft)); border-radius: var(--rounded-sm); display: flex; align-items: center; justify-content: center; color: var(--ash); font-size: 14px; }
+.pie-placeholder { width: 160px; height: 160px; border-radius: var(--rounded-full); background: conic-gradient(var(--primary) 0% 30%, #ff6b6b 30% 50%, #ffd93d 50% 70%, #6bcf7f 70% 85%, var(--ash) 85% 100%); margin: 0 auto; position: relative; }
+.pie-placeholder::after { content: ''; position: absolute; inset: 40px; background: var(--canvas); border-radius: var(--rounded-full); }
+
+/* Table */
+.table-card { background: var(--canvas); border-radius: var(--rounded-md); padding: 24px; margin-bottom: 24px; }
+.table-card .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.table-card h3 { font-size: 16px; font-weight: 600; color: var(--ink); }
+.table-card .actions { display: flex; gap: 8px; }
+.btn-sm { padding: 6px 14px; border-radius: var(--rounded-sm); font-size: 12px; font-weight: 700; cursor: pointer; border: none; }
+.btn-primary { background: var(--primary); color: var(--on-primary); }
+.btn-secondary { background: var(--surface-card); color: var(--ink); }
+
+/* Filter bar */
+.filter-bar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.filter-bar select, .filter-bar input { height: 36px; border: 1px solid var(--hairline); border-radius: var(--rounded-sm); padding: 0 12px; font-size: 13px; background: var(--canvas); }
+.filter-bar input { width: 200px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-size: 12px; font-weight: 700; color: var(--mute); padding: 10px 12px; border-bottom: 1px solid var(--hairline); background: var(--surface-soft); }
+td { padding: 10px 12px; border-bottom: 1px solid var(--hairline); vertical-align: middle; }
+td img { width: 48px; height: 32px; object-fit: cover; border-radius: 4px; background: var(--surface-card); }
+.badge { display: inline-block; padding: 2px 8px; border-radius: var(--rounded-full); font-size: 11px; font-weight: 600; }
+.badge-success { background: #e8f8ed; color: #1aae39; }
+.badge-warning { background: #fff8e6; color: #d4a006; }
+.badge-error { background: #fef0f0; color: #e03131; }
+.badge-gray { background: var(--surface-card); color: var(--mute); }
+td .actions-cell { display: flex; gap: 6px; }
+td .actions-cell a { font-size: 12px; color: var(--mute); text-decoration: none; padding: 4px 8px; border-radius: 4px; background: var(--surface-card); }
+td .actions-cell a:hover { color: var(--primary); }
+td .actions-cell a.danger:hover { color: #e03131; }
+
+/* Pagination */
+.table-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; font-size: 13px; color: var(--mute); }
+.table-footer .pages { display: flex; gap: 4px; }
+.table-footer .pages a, .table-footer .pages span { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; text-decoration: none; font-size: 12px; color: var(--ink); background: var(--surface-card); }
+.table-footer .pages .active { background: var(--primary); color: white; }
+
+@media (max-width: 1200px) { .stats-row { grid-template-columns: repeat(2, 1fr); } .chart-row { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; } }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <span class="logo">知猿</span>
+  <span class="title">管理后台</span>
+  <div class="right">
+    <span class="admin-name">管理员</span>
+    <button class="btn-logout">退出</button>
+  </div>
+</div>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="nav-group">
+    <a href="#" class="nav-item active">📊 仪表盘</a>
+  </div>
+  <div class="nav-group">
+    <div class="group-title">内容管理</div>
+    <a href="#courses" class="nav-item">📚 课程管理</a>
+    <a href="#categories" class="nav-item">📁 分类管理</a>
+  </div>
+  <div class="nav-group">
+    <div class="group-title">用户与订单</div>
+    <a href="#users" class="nav-item">👥 用户管理</a>
+    <a href="#orders" class="nav-item">📋 订单管理</a>
+    <a href="#finance" class="nav-item">💰 财务管理</a>
+  </div>
+  <div class="nav-group">
+    <div class="group-title">运营</div>
+    <a href="#" class="nav-item">📈 数据看板</a>
+    <a href="#" class="nav-item">💬 留言管理</a>
+    <a href="#" class="nav-item">📝 评论管理</a>
+    <a href="#" class="nav-item">🎫 工单管理</a>
+  </div>
+  <div class="nav-group">
+    <div class="group-title">系统</div>
+    <a href="#" class="nav-item">⚙️ 系统配置</a>
+    <a href="#" class="nav-item">🔑 账号管理</a>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main class="main">
+
+  <!-- Dashboard -->
+  <section id="dashboard">
+    <div class="stats-row">
+      <div class="stat-card highlight"><div class="label">今日收入</div><div class="value">¥2,480</div><div class="trend">↑ 12% vs 昨日</div></div>
+      <div class="stat-card"><div class="label">课程总数</div><div class="value">3,218</div><div class="trend">↑ 今日新增 3</div></div>
+      <div class="stat-card"><div class="label">注册用户</div><div class="value">8,652</div><div class="trend">↑ 今日 +28</div></div>
+      <div class="stat-card"><div class="label">VIP用户</div><div class="value">1,203</div><div class="trend">↑ 今日 +5</div></div>
+    </div>
+
+    <div class="chart-row">
+      <div class="chart-card">
+        <h3>近30天销售趋势</h3>
+        <div class="chart-placeholder">📈 折线图区域</div>
+      </div>
+      <div class="chart-card">
+        <h3>分类分布</h3>
+        <div class="pie-placeholder"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Course Management -->
+  <section id="courses">
+    <div class="table-card">
+      <div class="header">
+        <h3>课程管理</h3>
+        <div class="actions">
+          <button class="btn-sm btn-primary">+ 新建课程</button>
+          <button class="btn-sm btn-secondary">批量操作</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <select><option>全部分类</option><option>AIGC课程</option><option>Blender课程</option><option>C4D课程</option><option>手绘课程</option></select>
+        <select><option>全部状态</option><option>已发布</option><option>草稿</option><option>已下架</option></select>
+        <input type="text" placeholder="搜索课程标题...">
+        <button class="btn-sm btn-secondary">搜索</button>
+      </div>
+      <table>
+        <thead><tr><th><input type="checkbox"></th><th>ID</th><th>封面</th><th>标题</th><th>分类</th><th>价格</th><th>状态</th><th>发布时间</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr><td><input type="checkbox"></td><td>3218</td><td><img></td><td>塵蒲2026唯美古风半厚涂第5期</td><td>手绘课程</td><td>2 金币</td><td><span class="badge badge-success">已发布</span></td><td>06-03 14:20</td><td><div class="actions-cell"><a href="#">编辑</a><a href="#">下架</a><a href="#" class="danger">删除</a></div></td></tr>
+          <tr><td><input type="checkbox"></td><td>3217</td><td><img></td><td>Midjourney商业插画全流程实战</td><td>AIGC课程</td><td>2 金币</td><td><span class="badge badge-success">已发布</span></td><td>06-03 10:15</td><td><div class="actions-cell"><a href="#">编辑</a><a href="#">下架</a><a href="#" class="danger">删除</a></div></td></tr>
+          <tr><td><input type="checkbox"></td><td>3216</td><td><img></td><td>Blender 4.0写实场景全流程</td><td>Blender课程</td><td>2 金币</td><td><span class="badge badge-success">已发布</span></td><td>06-02 18:30</td><td><div class="actions-cell"><a href="#">编辑</a><a href="#">下架</a><a href="#" class="danger">删除</a></div></td></tr>
+          <tr><td><input type="checkbox"></td><td>3215</td><td><img></td><td>C4D电商产品渲染高级班第3期</td><td>C4D课程</td><td>2 金币</td><td><span class="badge badge-warning">草稿</span></td><td>—</td><td><div class="actions-cell"><a href="#">编辑</a><a href="#">发布</a><a href="#" class="danger">删除</a></div></td></tr>
+          <tr><td><input type="checkbox"></td><td>3214</td><td><img></td><td>AE高级动效设计与MG动画</td><td>AE课程</td><td>2 金币</td><td><span class="badge badge-gray">已下架</span></td><td>06-01 09:00</td><td><div class="actions-cell"><a href="#">编辑</a><a href="#">上架</a><a href="#" class="danger">删除</a></div></td></tr>
+        </tbody>
+      </table>
+      <div class="table-footer">
+        <span>共 3218 条 · 每页 20 条</span>
+        <div class="pages"><a href="#">‹</a><span class="active">1</span><a href="#">2</a><a href="#">3</a><a href="#">...</a><a href="#">161</a><a href="#">›</a></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- User Management -->
+  <section id="users">
+    <div class="table-card">
+      <div class="header"><h3>用户管理</h3></div>
+      <div class="filter-bar">
+        <select><option>全部用户</option><option>普通用户</option><option>VIP会员</option></select>
+        <input type="text" placeholder="搜索用户名/手机号...">
+        <button class="btn-sm btn-secondary">搜索</button>
+      </div>
+      <table>
+        <thead><tr><th>ID</th><th>昵称</th><th>手机号</th><th>VIP</th><th>余额</th><th>已购课程</th><th>注册时间</th><th>状态</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr><td>1001</td><td>张同学</td><td>138****8888</td><td><span class="badge badge-success">终身VIP</span></td><td>150</td><td>23</td><td>2025-12-01</td><td><span class="badge badge-success">正常</span></td><td><div class="actions-cell"><a href="#">查看</a><a href="#">充值</a><a href="#" class="danger">禁用</a></div></td></tr>
+          <tr><td>1002</td><td>lemon_art</td><td>139****6666</td><td><span class="badge badge-gray">普通</span></td><td>20</td><td>5</td><td>2026-01-15</td><td><span class="badge badge-success">正常</span></td><td><div class="actions-cell"><a href="#">查看</a><a href="#">充值</a><a href="#" class="danger">禁用</a></div></td></tr>
+          <tr><td>1003</td><td>makoto</td><td>136****1234</td><td><span class="badge badge-success">终身VIP</span></td><td>0</td><td>45</td><td>2025-10-08</td><td><span class="badge badge-success">正常</span></td><td><div class="actions-cell"><a href="#">查看</a><a href="#">充值</a><a href="#" class="danger">禁用</a></div></td></tr>
+          <tr><td>1004</td><td>spam_user</td><td>135****0000</td><td><span class="badge badge-gray">普通</span></td><td>0</td><td>0</td><td>2026-05-30</td><td><span class="badge badge-error">已禁用</span></td><td><div class="actions-cell"><a href="#">查看</a><a href="#">启用</a></div></td></tr>
+        </tbody>
+      </table>
+      <div class="table-footer"><span>共 8652 条</span><div class="pages"><span class="active">1</span><a href="#">2</a><a href="#">3</a><a href="#">...</a></div></div>
+    </div>
+  </section>
+
+  <!-- Order Management -->
+  <section id="orders">
+    <div class="table-card">
+      <div class="header"><h3>订单管理</h3></div>
+      <div class="filter-bar">
+        <select><option>全部类型</option><option>课程购买</option><option>VIP购买</option><option>金币充值</option></select>
+        <select><option>全部状态</option><option>已完成</option><option>待支付</option><option>已退款</option></select>
+        <input type="date"><span style="line-height:36px;color:var(--ash);">至</span><input type="date">
+        <button class="btn-sm btn-secondary">筛选</button>
+      </div>
+      <table>
+        <thead><tr><th>订单号</th><th>用户</th><th>商品</th><th>金额</th><th>支付方式</th><th>状态</th><th>下单时间</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr><td>20260603001</td><td>张同学</td><td>塵蒲2026古风5期</td><td>2 金币</td><td>金币</td><td><span class="badge badge-success">已完成</span></td><td>06-03 14:30</td><td><div class="actions-cell"><a href="#">详情</a><a href="#">退款</a></div></td></tr>
+          <tr><td>20260603002</td><td>lemon_art</td><td>金币充值 ¥50</td><td>¥50</td><td>微信</td><td><span class="badge badge-success">已完成</span></td><td>06-03 12:15</td><td><div class="actions-cell"><a href="#">详情</a></div></td></tr>
+          <tr><td>20260602003</td><td>kk_design</td><td>终身VIP</td><td>99 金币</td><td>金币</td><td><span class="badge badge-success">已完成</span></td><td>06-02 20:00</td><td><div class="actions-cell"><a href="#">详情</a><a href="#">退款</a></div></td></tr>
+          <tr><td>20260602004</td><td>yc001</td><td>金币充值 ¥100</td><td>¥100</td><td>支付宝</td><td><span class="badge badge-warning">待支付</span></td><td>06-02 18:45</td><td><div class="actions-cell"><a href="#">详情</a><a href="#" class="danger">取消</a></div></td></tr>
+        </tbody>
+      </table>
+      <div class="table-footer"><span>共 4,580 条</span><div class="pages"><span class="active">1</span><a href="#">2</a><a href="#">3</a><a href="#">...</a></div></div>
+    </div>
+  </section>
+
+  <!-- Finance -->
+  <section id="finance">
+    <div class="stats-row">
+      <div class="stat-card highlight"><div class="label">本月营收</div><div class="value">¥48,600</div></div>
+      <div class="stat-card"><div class="label">已结算</div><div class="value">¥42,300</div></div>
+      <div class="stat-card"><div class="label">待结算</div><div class="value">¥6,300</div></div>
+      <div class="stat-card"><div class="label">本月退款</div><div class="value">¥280</div></div>
+    </div>
+  </section>
+
+  <!-- Categories -->
+  <section id="categories">
+    <div class="table-card">
+      <div class="header">
+        <h3>分类管理</h3>
+        <button class="btn-sm btn-primary">+ 新增分类</button>
+      </div>
+      <table>
+        <thead><tr><th>ID</th><th>名称</th><th>Slug</th><th>课程数</th><th>排序</th><th>状态</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>AIGC课堂</td><td>aigc</td><td>286</td><td>1</td><td><span class="badge badge-success">上架</span></td><td><div class="actions-cell"><a href="#">编辑</a><a href="#">下架</a></div></td></tr>
+          <tr><td>2</td><td>Blender课堂</td><td>blender</td><td>312</td><td>2</td><td><span class="badge badge-success">上架</span></td><td><div class="actions-cell"><a href="#">编辑</a><a href="#">下架</a></div></td></tr>
+          <tr><td>3</td><td>C4D课程</td><td>c4d</td><td>245</td><td>3</td><td><span class="badge badge-success">上架</span></td><td><div class="actions-cell"><a href="#">编辑</a><a href="#">下架</a></div></td></tr>
+          <tr><td>4</td><td>手绘课程</td><td>drawing</td><td>520</td><td>4</td><td><span class="badge badge-success">上架</span></td><td><div class="actions-cell"><a href="#">编辑</a><a href="#">下架</a></div></td></tr>
+          <tr><td>5</td><td>AE课程</td><td>ae</td><td>198</td><td>5</td><td><span class="badge badge-success">上架</span></td><td><div class="actions-cell"><a href="#">编辑</a><a href="#">下架</a></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+</body>
+</html>

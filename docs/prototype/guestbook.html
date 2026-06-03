@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知猿 - 留言反馈</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root { --primary: #ff0036; --ink: #000; --body: #33332e; --mute: #62625b; --ash: #91918c; --hairline: #dadad3; --canvas: #fff; --surface-soft: #fbfbf9; --surface-card: #f6f6f3; --on-primary: #fff; --rounded-md: 16px; --rounded-full: 9999px; }
+body { font-family: Inter, -apple-system, sans-serif; color: var(--body); background: var(--canvas); line-height: 1.4; }
+.container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+.header { height: 64px; background: var(--canvas); border-bottom: 1px solid var(--hairline); position: sticky; top: 0; z-index: 100; }
+.header > div { max-width: 1280px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; height: 100%; }
+.logo { font-size: 22px; font-weight: 700; color: var(--primary); margin-right: 32px; text-decoration: none; }
+.nav-main { display: flex; gap: 24px; list-style: none; }
+.nav-main a { text-decoration: none; color: var(--ink); font-size: 16px; font-weight: 600; }
+.nav-main a.active { color: var(--primary); }
+.nav-right { margin-left: auto; }
+.btn-login { background: var(--primary); color: var(--on-primary); border: none; padding: 8px 20px; border-radius: var(--rounded-md); font-size: 14px; font-weight: 700; cursor: pointer; }
+
+/* Page */
+.page-header { padding: 48px 0 16px; }
+.page-header h1 { font-size: 28px; font-weight: 700; color: var(--ink); letter-spacing: -1.2px; }
+.page-header p { font-size: 14px; color: var(--mute); margin-top: 8px; }
+.page-header .count { font-size: 14px; color: var(--ash); margin-top: 16px; }
+
+/* Input */
+.message-input { background: var(--surface-card); border-radius: var(--rounded-md); padding: 20px; margin-bottom: 32px; }
+.message-input textarea { width: 100%; height: 100px; border: 1px solid var(--hairline); border-radius: var(--rounded-md); padding: 12px; font-size: 14px; resize: none; font-family: inherit; background: var(--canvas); }
+.message-input textarea:focus { outline: none; border-color: var(--ink); }
+.message-input button { margin-top: 12px; padding: 10px 24px; background: var(--primary); color: white; border: none; border-radius: var(--rounded-md); font-size: 14px; font-weight: 700; cursor: pointer; }
+
+/* Messages */
+.message-list { list-style: none; }
+.message-item { padding: 20px 0; border-bottom: 1px solid var(--hairline); }
+.message-item .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.message-item .user { display: flex; align-items: center; gap: 10px; }
+.message-item .avatar { width: 32px; height: 32px; border-radius: var(--rounded-full); background: var(--surface-card); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--mute); }
+.message-item .name { font-size: 14px; font-weight: 600; color: var(--ink); }
+.message-item .like-btn { display: flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: var(--rounded-full); background: var(--surface-card); border: none; font-size: 13px; color: var(--mute); cursor: pointer; }
+.message-item .like-btn:hover { color: var(--primary); }
+.message-item .content { font-size: 14px; color: var(--body); line-height: 1.6; margin-bottom: 8px; }
+.message-item .date { font-size: 12px; color: var(--ash); }
+
+/* Pagination */
+.pagination { display: flex; justify-content: center; gap: 8px; padding: 32px 0; }
+.pagination a, .pagination span { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; border-radius: var(--rounded-md); font-size: 14px; font-weight: 600; text-decoration: none; color: var(--ink); background: var(--surface-card); }
+.pagination .active { background: var(--primary); color: white; }
+
+.footer { padding: 48px 0 32px; text-align: center; font-size: 12px; color: var(--ash); }
+</style>
+</head>
+<body>
+
+<header class="header"><div><a class="logo" href="index.html">知猿</a><ul class="nav-main"><li><a href="index.html">首页</a></li><li><a href="courses.html">知猿课堂</a></li><li><a href="guestbook.html" class="active">留言反馈</a></li><li><a href="vip.html">成为会员</a></li></ul><div class="nav-right"><button class="btn-login">登录</button></div></div></header>
+
+<div class="container">
+  <div class="page-header">
+    <h1>留言反馈</h1>
+    <p>需要其他课程可以留言，说明：【机翻的课程不要留言】</p>
+    <div class="count">留言 234</div>
+  </div>
+
+  <div class="message-input">
+    <textarea placeholder="输入留言内容..."></textarea>
+    <button>提交留言</button>
+  </div>
+
+  <ul class="message-list">
+    <li class="message-item">
+      <div class="top"><div class="user"><div class="avatar">M</div><span class="name">makoto</span></div><button class="like-btn">👍 21</button></div>
+      <div class="content">求恶童在养猫的硬边缘场景色彩专项训练营，椰几羊的色彩场景速涂</div>
+      <div class="date">2025-03-19</div>
+    </li>
+    <li class="message-item">
+      <div class="top"><div class="user"><div class="avatar">Y</div><span class="name">yc001</span></div><button class="like-btn">👍 14</button></div>
+      <div class="content">求tx科学 49天日训企划 摩卡黑狗|椰蓉塘主的角色全流程强化班，还有大触团练最新期</div>
+      <div class="date">2025-03-22</div>
+    </li>
+    <li class="message-item">
+      <div class="top"><div class="user"><div class="avatar">C</div><span class="name">cxjhcxbsdj</span></div><button class="like-btn">👍 16</button></div>
+      <div class="content">原盐野团练，土味叉烧煲团练2期，二木2期，多肉团练5期</div>
+      <div class="date">2025-04-23</div>
+    </li>
+    <li class="message-item">
+      <div class="top"><div class="user"><div class="avatar">L</div><span class="name">lemon_art</span></div><button class="like-btn">👍 8</button></div>
+      <div class="content">求Blender角色建模全流程，最好是带绑定和动画的完整课程</div>
+      <div class="date">2025-05-10</div>
+    </li>
+    <li class="message-item">
+      <div class="top"><div class="user"><div class="avatar">K</div><span class="name">kk_design</span></div><button class="like-btn">👍 5</button></div>
+      <div class="content">有没有最新的C4D+OC产品渲染课？之前的版本太旧了</div>
+      <div class="date">2025-05-28</div>
+    </li>
+  </ul>
+
+  <div class="pagination">
+    <span class="active">1</span>
+    <a href="#">2</a>
+    <a href="#">3</a>
+    <span>...</span>
+    <a href="#">24</a>
+    <a href="#">下一页</a>
+  </div>
+</div>
+
+<footer class="footer">© 2026 知猿 zioran.com</footer>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知猿 - 成为会员</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root { --primary: #ff0036; --ink: #000; --body: #33332e; --mute: #62625b; --ash: #91918c; --hairline: #dadad3; --canvas: #fff; --surface-soft: #fbfbf9; --surface-card: #f6f6f3; --on-primary: #fff; --on-dark: #fff; --surface-dark: #262622; --rounded-md: 16px; --rounded-lg: 32px; --rounded-full: 9999px; }
+body { font-family: Inter, -apple-system, sans-serif; color: var(--body); background: var(--canvas); line-height: 1.4; }
+.header { height: 64px; background: var(--canvas); border-bottom: 1px solid var(--hairline); position: sticky; top: 0; z-index: 100; }
+.header > div { max-width: 1280px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; height: 100%; }
+.logo { font-size: 22px; font-weight: 700; color: var(--primary); margin-right: 32px; text-decoration: none; }
+.nav-main { display: flex; gap: 24px; list-style: none; }
+.nav-main a { text-decoration: none; color: var(--ink); font-size: 16px; font-weight: 600; }
+.nav-main a.active { color: var(--primary); }
+.nav-right { margin-left: auto; }
+.btn-login { background: var(--primary); color: var(--on-primary); border: none; padding: 8px 20px; border-radius: var(--rounded-md); font-size: 14px; font-weight: 700; cursor: pointer; }
+
+/* Hero */
+.vip-hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); padding: 80px 24px; text-align: center; color: var(--on-dark); position: relative; overflow: hidden; }
+.vip-hero::before { content: ''; position: absolute; top: -100px; right: -100px; width: 400px; height: 400px; background: radial-gradient(circle, rgba(255,0,54,0.15), transparent 70%); }
+.vip-hero::after { content: ''; position: absolute; bottom: -100px; left: -100px; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,107,107,0.1), transparent 70%); }
+.vip-hero h1 { font-size: 44px; font-weight: 700; letter-spacing: -0.8px; margin-bottom: 12px; position: relative; }
+.vip-hero p { font-size: 16px; opacity: 0.7; position: relative; }
+
+/* VIP Card */
+.vip-section { padding: 64px 24px; display: flex; justify-content: center; }
+.vip-card { background: var(--canvas); border: 2px solid var(--primary); border-radius: var(--rounded-lg); padding: 48px 40px; width: 100%; max-width: 440px; text-align: center; position: relative; box-shadow: 0 20px 60px rgba(255,0,54,0.08); }
+.vip-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--primary); border-radius: var(--rounded-lg) var(--rounded-lg) 0 0; }
+.vip-card .badge { display: inline-block; background: var(--primary); color: white; padding: 4px 16px; border-radius: var(--rounded-full); font-size: 12px; font-weight: 700; margin-bottom: 24px; }
+.vip-card h2 { font-size: 28px; font-weight: 700; color: var(--ink); margin-bottom: 16px; }
+.vip-card .price { font-size: 56px; font-weight: 700; color: var(--primary); line-height: 1; }
+.vip-card .price span { font-size: 18px; font-weight: 400; color: var(--mute); }
+.vip-card .original { font-size: 16px; color: var(--ash); text-decoration: line-through; margin-top: 8px; }
+.vip-card .duration { font-size: 18px; font-weight: 600; color: var(--ink); margin: 24px 0; padding: 12px 0; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+.vip-card ul { list-style: none; text-align: left; margin: 24px 0 32px; }
+.vip-card ul li { padding: 10px 0; font-size: 15px; color: var(--body); display: flex; align-items: center; gap: 10px; }
+.vip-card ul li::before { content: '✓'; display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; background: #fff0f3; color: var(--primary); border-radius: var(--rounded-full); font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.vip-card .btn-vip { display: block; width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: var(--rounded-md); font-size: 18px; font-weight: 700; cursor: pointer; transition: background .2s; }
+.vip-card .btn-vip:hover { background: #e6002f; }
+.vip-card .note { font-size: 13px; color: var(--mute); margin-top: 16px; }
+
+/* Features */
+.features { max-width: 800px; margin: 0 auto; padding: 0 24px 64px; }
+.features h3 { font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 32px; color: var(--ink); }
+.feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.feature-item { background: var(--surface-card); border-radius: var(--rounded-md); padding: 24px; text-align: center; }
+.feature-item .icon { font-size: 32px; margin-bottom: 12px; }
+.feature-item .title { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+.feature-item .desc { font-size: 12px; color: var(--mute); }
+
+.footer { padding: 32px 0; text-align: center; font-size: 12px; color: var(--ash); border-top: 1px solid var(--hairline); }
+@media (max-width: 768px) { .vip-hero h1 { font-size: 28px; } .vip-card .price { font-size: 40px; } .feature-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header class="header"><div><a class="logo" href="index.html">知猿</a><ul class="nav-main"><li><a href="index.html">首页</a></li><li><a href="courses.html">知猿课堂</a></li><li><a href="guestbook.html">留言反馈</a></li><li><a href="vip.html" class="active">成为会员</a></li></ul><div class="nav-right"><button class="btn-login">登录</button></div></div></header>
+
+<section class="vip-hero">
+  <h1>成为知猿VIP会员</h1>
+  <p>全站课程免费下载，每天持续更新优质资源</p>
+</section>
+
+<section class="vip-section">
+  <div class="vip-card">
+    <span class="badge">限时优惠</span>
+    <h2>终身VIP</h2>
+    <div class="price">99 <span>金币</span></div>
+    <div class="original">原价 699 金币</div>
+    <div class="duration">永久有效 · 一次购买终身享用</div>
+    <ul>
+      <li>全站 3200+ 课程免费下载</li>
+      <li>每天持续更新优质资源</li>
+      <li>专属客服优先支持</li>
+      <li>新课程第一时间获取</li>
+    </ul>
+    <button class="btn-vip">立即升级 VIP</button>
+    <div class="note">75% 的用户选择该套餐 · 已有 1200+ 人开通</div>
+  </div>
+</section>
+
+<section class="features">
+  <h3>VIP 会员权益</h3>
+  <div class="feature-grid">
+    <div class="feature-item"><div class="icon">🎓</div><div class="title">全站免费</div><div class="desc">3200+课程全部免费下载</div></div>
+    <div class="feature-item"><div class="icon">🔄</div><div class="title">每日更新</div><div class="desc">每天上新优质课程资源</div></div>
+    <div class="feature-item"><div class="icon">💎</div><div class="title">永久有效</div><div class="desc">一次购买终身享用</div></div>
+    <div class="feature-item"><div class="icon">⚡</div><div class="title">极速下载</div><div class="desc">高速网盘链接直达</div></div>
+    <div class="feature-item"><div class="icon">🛡</div><div class="title">专属客服</div><div class="desc">VIP用户优先处理</div></div>
+    <div class="feature-item"><div class="icon">🎁</div><div class="title">超值优惠</div><div class="desc">原价699现仅需99金币</div></div>
+  </div>
+</section>
+
+<footer class="footer">© 2026 知猿 zioran.com</footer>
+</body>
+</html>

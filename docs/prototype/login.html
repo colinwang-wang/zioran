@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知猿 - 登录/注册</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root { --primary: #ff0036; --ink: #000; --body: #33332e; --mute: #62625b; --ash: #91918c; --hairline: #dadad3; --canvas: #fff; --surface-card: #f6f6f3; --on-primary: #fff; --rounded-md: 16px; --rounded-lg: 32px; --rounded-full: 9999px; }
+body { font-family: Inter, -apple-system, sans-serif; color: var(--body); line-height: 1.4; }
+
+/* Modal Overlay */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal-card { background: var(--canvas); border-radius: var(--rounded-lg); padding: 40px 32px; width: 100%; max-width: 400px; position: relative; }
+.modal-close { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: var(--rounded-full); background: var(--surface-card); border: none; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+/* Logo */
+.modal-logo { text-align: center; margin-bottom: 32px; }
+.modal-logo .brand { font-size: 28px; font-weight: 700; color: var(--primary); }
+
+/* Form */
+.form-group { margin-bottom: 16px; position: relative; }
+.form-group input { width: 100%; height: 44px; border: 1px solid var(--hairline); border-radius: var(--rounded-md); padding: 0 16px 0 44px; font-size: 16px; font-family: inherit; background: var(--canvas); }
+.form-group input:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+.form-group .icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--ash); }
+.captcha-row { display: flex; gap: 12px; }
+.captcha-row input { flex: 1; }
+.captcha-btn { height: 44px; padding: 0 16px; background: var(--surface-card); border: 1px solid var(--hairline); border-radius: var(--rounded-md); font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; color: var(--mute); }
+
+.btn-submit { display: block; width: 100%; height: 48px; background: var(--primary); color: var(--on-primary); border: none; border-radius: var(--rounded-md); font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 24px; }
+.btn-submit:hover { background: #e6002f; }
+
+/* Links */
+.form-links { display: flex; justify-content: space-between; margin-top: 16px; font-size: 14px; }
+.form-links a { color: var(--mute); text-decoration: none; }
+.form-links a:hover { color: var(--primary); }
+
+/* Social */
+.social-login { margin-top: 32px; text-align: center; border-top: 1px solid var(--hairline); padding-top: 24px; }
+.social-login .label { font-size: 12px; color: var(--ash); margin-bottom: 16px; }
+.social-login .wechat-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px; background: #07c160; color: white; border-radius: var(--rounded-md); font-size: 14px; font-weight: 600; border: none; cursor: pointer; }
+
+/* Tab switch */
+.tab-switch { display: none; }
+.tab-switch:checked ~ .login-form { display: none; }
+.tab-switch:checked ~ .register-form { display: block; }
+.register-form { display: none; }
+
+/* Demo: show both forms side by side for prototype */
+.forms-demo { display: flex; gap: 32px; padding: 48px; justify-content: center; flex-wrap: wrap; background: var(--surface-card); min-height: 100vh; align-items: flex-start; }
+</style>
+</head>
+<body>
+
+<div class="forms-demo">
+  <!-- Login Modal -->
+  <div class="modal-card">
+    <button class="modal-close">✕</button>
+    <div class="modal-logo"><div class="brand">知猿</div></div>
+    
+    <div class="form-group">
+      <span class="icon">👤</span>
+      <input type="text" placeholder="用户名/邮箱">
+    </div>
+    <div class="form-group">
+      <span class="icon">🔒</span>
+      <input type="password" placeholder="密码">
+    </div>
+    <div class="form-group">
+      <div class="captcha-row">
+        <div class="form-group" style="margin-bottom:0;flex:1;position:relative;">
+          <span class="icon">🛡</span>
+          <input type="text" placeholder="验证码">
+        </div>
+        <button class="captcha-btn">显示验证码</button>
+      </div>
+    </div>
+
+    <button class="btn-submit">登 录</button>
+
+    <div class="form-links">
+      <a href="#">没有账号？注册</a>
+      <a href="#">忘记密码？</a>
+    </div>
+
+    <div class="social-login">
+      <div class="label">社交账号快速登录</div>
+      <button class="wechat-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 01.213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 00.167-.054l1.903-1.114a.864.864 0 01.717-.098 10.16 10.16 0 002.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-2.187 6.112-2.187.202 0 .396.013.593.022C16.747 4.014 13.013 2.188 8.691 2.188z"/></svg>
+        微信登录
+      </button>
+    </div>
+  </div>
+
+  <!-- Register Modal -->
+  <div class="modal-card">
+    <button class="modal-close">✕</button>
+    <div class="modal-logo"><div class="brand">知猿</div></div>
+    
+    <div class="form-group">
+      <span class="icon">👤</span>
+      <input type="text" placeholder="用户名">
+    </div>
+    <div class="form-group">
+      <span class="icon">✉️</span>
+      <input type="email" placeholder="邮箱">
+    </div>
+    <div class="form-group">
+      <span class="icon">🔒</span>
+      <input type="password" placeholder="密码">
+    </div>
+    <div class="form-group">
+      <div class="captcha-row">
+        <div class="form-group" style="margin-bottom:0;flex:1;position:relative;">
+          <span class="icon">🛡</span>
+          <input type="text" placeholder="验证码">
+        </div>
+        <button class="captcha-btn">显示验证码</button>
+      </div>
+    </div>
+
+    <button class="btn-submit">注 册</button>
+
+    <div class="form-links">
+      <a href="#">已有账号？返回登录</a>
+      <span></span>
+    </div>
+
+    <div class="social-login">
+      <div class="label">社交账号快速登录</div>
+      <button class="wechat-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 01.213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 00.167-.054l1.903-1.114a.864.864 0 01.717-.098 10.16 10.16 0 002.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-2.187 6.112-2.187.202 0 .396.013.593.022C16.747 4.014 13.013 2.188 8.691 2.188z"/></svg>
+        微信登录
+      </button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

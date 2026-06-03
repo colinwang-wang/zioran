@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知猿 - 首页</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --primary: #ff0036;
+  --primary-pressed: #e6002f;
+  --ink: #000000;
+  --body: #33332e;
+  --mute: #62625b;
+  --ash: #91918c;
+  --stone: #c8c8c1;
+  --hairline: #dadad3;
+  --canvas: #ffffff;
+  --surface-soft: #fbfbf9;
+  --surface-card: #f6f6f3;
+  --secondary-bg: #e5e5e0;
+  --on-primary: #ffffff;
+  --on-dark: #ffffff;
+  --surface-dark: #262622;
+  --rounded-md: 16px;
+  --rounded-lg: 32px;
+  --rounded-full: 9999px;
+}
+body { font-family: Inter, -apple-system, system-ui, sans-serif; color: var(--body); background: var(--canvas); line-height: 1.4; }
+.container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+
+/* Header */
+.header { height: 64px; background: var(--canvas); border-bottom: 1px solid var(--hairline); position: sticky; top: 0; z-index: 100; display: flex; align-items: center; }
+.header .container { display: flex; align-items: center; width: 100%; }
+.logo { font-size: 22px; font-weight: 700; color: var(--primary); letter-spacing: -0.8px; margin-right: 32px; }
+.nav-main { display: flex; gap: 24px; list-style: none; }
+.nav-main a { text-decoration: none; color: var(--ink); font-size: 16px; font-weight: 600; }
+.nav-main a:hover { color: var(--primary); }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.nav-right .vip-icon { color: var(--primary); font-weight: 700; font-size: 14px; background: #fff0f3; padding: 4px 12px; border-radius: var(--rounded-full); }
+.btn-search { width: 40px; height: 40px; border-radius: var(--rounded-full); background: var(--surface-card); border: none; cursor: pointer; font-size: 18px; }
+.btn-login { background: var(--primary); color: var(--on-primary); border: none; padding: 8px 20px; border-radius: var(--rounded-md); font-size: 14px; font-weight: 700; cursor: pointer; }
+
+/* 金刚区 */
+.kong-section { padding: 32px 0; background: var(--surface-soft); }
+.kong-grid { display: flex; gap: 16px; overflow-x: auto; padding: 0 24px; }
+.kong-item { flex-shrink: 0; background: var(--canvas); border-radius: var(--rounded-md); padding: 20px 24px; text-align: center; min-width: 140px; cursor: pointer; transition: transform .2s; }
+.kong-item:hover { transform: translateY(-2px); }
+.kong-item .icon { width: 48px; height: 48px; background: linear-gradient(135deg, var(--primary), #ff6b6b); border-radius: 12px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: 700; }
+.kong-item .title { font-size: 14px; font-weight: 600; color: var(--ink); }
+.kong-item .subtitle { font-size: 12px; color: var(--mute); margin-top: 4px; }
+
+/* Banner */
+.banner-section { padding: 32px 0; }
+.banner { background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); border-radius: var(--rounded-lg); padding: 64px 48px; text-align: center; color: var(--on-dark); position: relative; overflow: hidden; }
+.banner::before { content: ''; position: absolute; top: -50%; right: -20%; width: 400px; height: 400px; background: radial-gradient(circle, rgba(255,0,54,0.2), transparent 70%); }
+.banner h1 { font-size: 44px; font-weight: 700; letter-spacing: -0.8px; margin-bottom: 12px; position: relative; }
+.banner p { font-size: 16px; opacity: 0.7; margin-bottom: 32px; position: relative; }
+.search-box { max-width: 560px; margin: 0 auto; position: relative; }
+.search-box input { width: 100%; height: 48px; border-radius: var(--rounded-full); border: none; padding: 0 48px 0 20px; font-size: 16px; background: rgba(255,255,255,0.95); color: var(--ink); }
+.search-box button { position: absolute; right: 4px; top: 4px; height: 40px; padding: 0 20px; background: var(--primary); color: white; border: none; border-radius: var(--rounded-full); font-size: 14px; font-weight: 700; cursor: pointer; }
+
+/* Section */
+.section { padding: 48px 0; }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.section-header h2 { font-size: 28px; font-weight: 700; letter-spacing: -1.2px; color: var(--ink); }
+.section-header .more { font-size: 14px; font-weight: 600; color: var(--mute); text-decoration: none; }
+.section-header .more:hover { color: var(--primary); }
+
+/* Course Grid */
+.course-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.course-card { background: var(--surface-card); border-radius: var(--rounded-md); overflow: hidden; cursor: pointer; transition: transform .2s; }
+.course-card:hover { transform: translateY(-4px); }
+.course-card .thumb { width: 100%; aspect-ratio: 16/10; background: linear-gradient(135deg, #ddd, #eee); display: flex; align-items: center; justify-content: center; color: var(--ash); font-size: 14px; }
+.course-card .info { padding: 12px 16px; }
+.course-card .cat { font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+.course-card .title { font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px; }
+.course-card .meta { display: flex; justify-content: space-between; align-items: center; }
+.course-card .time { font-size: 12px; color: var(--mute); }
+.course-card .price { font-size: 14px; font-weight: 700; color: var(--primary); }
+
+/* Tab Nav */
+.tab-nav { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+.tab-nav .tab { padding: 8px 16px; border-radius: var(--rounded-full); background: var(--surface-card); font-size: 14px; font-weight: 700; color: var(--ink); border: none; cursor: pointer; }
+.tab-nav .tab.active { background: var(--ink); color: var(--on-dark); }
+
+/* VIP Section */
+.vip-section { padding: 64px 0; text-align: center; }
+.vip-card { max-width: 400px; margin: 0 auto; background: var(--canvas); border: 2px solid var(--primary); border-radius: var(--rounded-lg); padding: 48px 32px; position: relative; overflow: hidden; }
+.vip-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--primary); }
+.vip-card .badge { display: inline-block; background: var(--primary); color: white; padding: 4px 16px; border-radius: var(--rounded-full); font-size: 12px; font-weight: 700; margin-bottom: 24px; }
+.vip-card h3 { font-size: 28px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+.vip-card .price { font-size: 44px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+.vip-card .price span { font-size: 16px; font-weight: 400; }
+.vip-card .original { font-size: 14px; color: var(--ash); text-decoration: line-through; margin-bottom: 24px; }
+.vip-card .duration { font-size: 16px; color: var(--mute); margin-bottom: 24px; }
+.vip-card ul { list-style: none; text-align: left; margin-bottom: 32px; }
+.vip-card ul li { padding: 8px 0; font-size: 14px; color: var(--body); border-bottom: 1px solid var(--hairline); }
+.vip-card ul li::before { content: '✓'; color: var(--primary); font-weight: 700; margin-right: 8px; }
+.vip-card .btn-vip { display: block; width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: var(--rounded-md); font-size: 16px; font-weight: 700; cursor: pointer; }
+.vip-card .note { font-size: 12px; color: var(--mute); margin-top: 12px; }
+
+/* Footer */
+.footer { background: var(--surface-soft); padding: 32px 0; border-top: 1px solid var(--hairline); }
+.footer-content { display: flex; justify-content: space-between; align-items: center; }
+.footer-links { display: flex; gap: 16px; flex-wrap: wrap; }
+.footer-links a { font-size: 12px; color: var(--mute); text-decoration: none; }
+.footer-copy { font-size: 12px; color: var(--ash); }
+
+/* Responsive */
+@media (max-width: 1024px) { .course-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 768px) {
+  .course-grid { grid-template-columns: repeat(2, 1fr); }
+  .nav-main { display: none; }
+  .banner h1 { font-size: 28px; }
+  .banner { padding: 40px 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="container">
+    <div class="logo">知猿</div>
+    <ul class="nav-main">
+      <li><a href="index.html">首页</a></li>
+      <li><a href="courses.html">知猿课堂</a></li>
+      <li><a href="guestbook.html">留言反馈</a></li>
+      <li><a href="vip.html">成为会员</a></li>
+    </ul>
+    <div class="nav-right">
+      <span class="vip-icon">VIP</span>
+      <button class="btn-search">🔍</button>
+      <button class="btn-login" onclick="window.location='login.html'">登录</button>
+    </div>
+  </div>
+</header>
+
+<!-- 金刚区 -->
+<section class="kong-section">
+  <div class="kong-grid container">
+    <div class="kong-item"><div class="icon">AI</div><div class="title">AIGC课堂</div><div class="subtitle">AI绘画生成</div></div>
+    <div class="kong-item"><div class="icon">B</div><div class="title">Blender课堂</div><div class="subtitle">3D建模渲染</div></div>
+    <div class="kong-item"><div class="icon">C4</div><div class="title">C4D课程</div><div class="subtitle">三维动画</div></div>
+    <div class="kong-item"><div class="icon">PS</div><div class="title">手绘课程</div><div class="subtitle">插画绘画</div></div>
+    <div class="kong-item"><div class="icon">AE</div><div class="title">AE课程</div><div class="subtitle">动效合成</div></div>
+    <div class="kong-item"><div class="icon">UI</div><div class="title">UI课程</div><div class="subtitle">界面设计</div></div>
+    <div class="kong-item"><div class="icon">📷</div><div class="title">摄影课程</div><div class="subtitle">摄影后期</div></div>
+    <div class="kong-item"><div class="icon">🏠</div><div class="title">室内设计</div><div class="subtitle">空间规划</div></div>
+  </div>
+</section>
+
+<!-- Banner + Search -->
+<section class="banner-section">
+  <div class="container">
+    <div class="banner">
+      <h1>知猿课堂，学有所长</h1>
+      <p>以知为基，以猿为伴，打造优质网课资源课堂</p>
+      <div class="search-box">
+        <input type="text" placeholder="输入关键字搜索课程...">
+        <button>搜索</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 最新发布 -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>最新发布</h2>
+      <a href="courses.html" class="more">查看更多 →</a>
+    </div>
+    <div class="course-grid">
+      <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">手绘课程</div><div class="title">塵蒲2026唯美古风半厚涂第5期基础课</div><div class="meta"><span class="time">2小时前</span><span class="price">2 金币</span></div></div></div>
+      <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">AIGC课程</div><div class="title">Midjourney商业插画全流程实战2026</div><div class="meta"><span class="time">5小时前</span><span class="price">2 金币</span></div></div></div>
+      <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">Blender课程</div><div class="title">Blender 4.0写实场景全流程教学</div><div class="meta"><span class="time">1天前</span><span class="price">2 金币</span></div></div></div>
+      <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">C4D课程</div><div class="title">C4D电商产品渲染高级班第3期</div><div class="meta"><span class="time">1天前</span><span class="price">2 金币</span></div></div></div>
+      <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">手绘课程</div><div class="title">角色设计商业插画系统训练营</div><div class="meta"><span class="time">2天前</span><span class="price">2 金币</span></div></div></div>
+      <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">AE课程</div><div class="title">AE高级动效设计与MG动画实战</div><div class="meta"><span class="time">2天前</span><span class="price">2 金币</span></div></div></div>
+      <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">UI课程</div><div class="title">UI/UX产品设计全流程进阶课</div><div class="meta"><span class="time">3天前</span><span class="price">2 金币</span></div></div></div>
+      <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">平面设计</div><div class="title">品牌视觉设计与商业提案实战</div><div class="meta"><span class="time">3天前</span><span class="price">2 金币</span></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 知猿课堂 -->
+<section class="section" style="background: var(--surface-soft);">
+  <div class="container">
+    <div class="section-header">
+      <h2>知猿课堂</h2>
+      <a href="courses.html" class="more">查看更多 →</a>
+    </div>
+    <div class="tab-nav">
+      <button class="tab active">全部课堂</button>
+      <button class="tab">AIGC课堂</button>
+      <button class="tab">Blender课堂</button>
+      <button class="tab">C4D课程</button>
+      <button class="tab">手绘课程</button>
+      <button class="tab">AE课程</button>
+      <button class="tab">UI课程</button>
+    </div>
+    <div class="course-grid">
+      <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">AIGC课程</div><div class="title">Stable Diffusion商用级出图全攻略</div><div class="meta"><span class="time">1天前</span><span class="price">2 金币</span></div></div></div>
+      <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">Blender课程</div><div class="title">Blender程序化建模进阶教程</div><div class="meta"><span class="time">2天前</span><span class="price">2 金币</span></div></div></div>
+      <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">C4D课程</div><div class="title">C4D+OC渲染器产品级渲染</div><div class="meta"><span class="time">3天前</span><span class="price">2 金币</span></div></div></div>
+      <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">手绘课程</div><div class="title">日系色彩速涂团练第6期</div><div class="meta"><span class="time">3天前</span><span class="price">2 金币</span></div></div></div>
+      <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">AE课程</div><div class="title">AE表达式与脚本高级应用</div><div class="meta"><span class="time">4天前</span><span class="price">2 金币</span></div></div></div>
+      <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">摄影课程</div><div class="title">人像摄影与后期调色系统课</div><div class="meta"><span class="time">4天前</span><span class="price">2 金币</span></div></div></div>
+      <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">电商设计</div><div class="title">电商详情页设计与视觉营销</div><div class="meta"><span class="time">5天前</span><span class="price">2 金币</span></div></div></div>
+      <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">室内设计</div><div class="title">3Dmax室内全景效果图实战</div><div class="meta"><span class="time">5天前</span><span class="price">2 金币</span></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- VIP -->
+<section class="vip-section">
+  <div class="container">
+    <div class="section-header" style="justify-content: center;">
+      <h2>关于VIP</h2>
+    </div>
+    <div class="vip-card">
+      <span class="badge">推荐</span>
+      <h3>终身VIP</h3>
+      <div class="price">99 <span>金币</span></div>
+      <div class="original">原价 699 金币</div>
+      <div class="duration">永久有效</div>
+      <ul>
+        <li>全站课程免费下载</li>
+        <li>持续每天更新资源</li>
+        <li>专属客服支持</li>
+      </ul>
+      <button class="btn-vip">立即升级</button>
+      <div class="note">75% 的人选择该套餐</div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-content">
+      <div class="footer-links">
+        <a href="#">AIGC</a><a href="#">Blender</a><a href="#">C4D</a><a href="#">AE</a>
+        <a href="#">UI</a><a href="#">手绘</a><a href="#">摄影</a><a href="#">室内设计</a>
+        <a href="#">平面设计</a><a href="#">电商设计</a><a href="#">3Dmax</a><a href="#">zbrush</a>
+      </div>
+      <div class="footer-copy">© 2026 知猿 zioran.com</div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

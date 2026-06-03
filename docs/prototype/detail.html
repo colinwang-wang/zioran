@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知猿 - 课程详情</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root { --primary: #ff0036; --ink: #000; --body: #33332e; --mute: #62625b; --ash: #91918c; --hairline: #dadad3; --canvas: #fff; --surface-soft: #fbfbf9; --surface-card: #f6f6f3; --on-primary: #fff; --on-dark: #fff; --rounded-md: 16px; --rounded-lg: 32px; --rounded-full: 9999px; }
+body { font-family: Inter, -apple-system, sans-serif; color: var(--body); background: var(--canvas); line-height: 1.4; }
+.container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+.header { height: 64px; background: var(--canvas); border-bottom: 1px solid var(--hairline); position: sticky; top: 0; z-index: 100; display: flex; align-items: center; }
+.header .container { display: flex; align-items: center; width: 100%; }
+.logo { font-size: 22px; font-weight: 700; color: var(--primary); margin-right: 32px; text-decoration: none; }
+.nav-main { display: flex; gap: 24px; list-style: none; }
+.nav-main a { text-decoration: none; color: var(--ink); font-size: 16px; font-weight: 600; }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.btn-login { background: var(--primary); color: var(--on-primary); border: none; padding: 8px 20px; border-radius: var(--rounded-md); font-size: 14px; font-weight: 700; cursor: pointer; }
+.breadcrumb { padding: 20px 0; font-size: 14px; color: var(--mute); }
+.breadcrumb a { color: var(--mute); text-decoration: none; }
+
+/* Layout */
+.detail-layout { display: grid; grid-template-columns: 1fr 320px; gap: 32px; padding-bottom: 64px; }
+
+/* Main content */
+.article h1 { font-size: 28px; font-weight: 700; letter-spacing: -1.2px; color: var(--ink); margin-bottom: 8px; }
+.article .subtitle { font-size: 16px; color: var(--mute); margin-bottom: 16px; }
+.article-meta { display: flex; gap: 16px; font-size: 14px; color: var(--mute); margin-bottom: 32px; padding-bottom: 16px; border-bottom: 1px solid var(--hairline); }
+.preview-images { margin-bottom: 32px; }
+.preview-images .img-placeholder { width: 100%; aspect-ratio: 16/9; background: linear-gradient(135deg, #e8e8e8, #f5f5f5); border-radius: var(--rounded-md); margin-bottom: 16px; display: flex; align-items: center; justify-content: center; color: var(--ash); font-size: 16px; }
+
+/* Download Box */
+.download-box { background: var(--surface-card); border-radius: var(--rounded-md); padding: 24px; margin-bottom: 32px; }
+.download-box .title { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 16px; }
+.download-box .price-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.download-box .price-val { font-size: 24px; font-weight: 700; color: var(--primary); }
+.download-box .price-unit { font-size: 14px; color: var(--mute); }
+.download-box .vip-free { font-size: 14px; color: var(--mute); background: #fff0f3; padding: 6px 12px; border-radius: var(--rounded-full); display: inline-block; margin-bottom: 16px; }
+.download-box .btn-buy { display: block; width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: var(--rounded-md); font-size: 16px; font-weight: 700; cursor: pointer; }
+.download-box .tip { font-size: 12px; color: var(--ash); margin-top: 12px; }
+
+/* Actions */
+.article-actions { display: flex; gap: 16px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--hairline); }
+.action-btn { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--rounded-full); background: var(--surface-card); border: none; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--ink); }
+
+/* Tags */
+.article-tags { margin-bottom: 24px; }
+.article-tags .tag { display: inline-block; padding: 6px 12px; background: var(--surface-card); border-radius: var(--rounded-full); font-size: 12px; font-weight: 600; color: var(--mute); margin-right: 8px; margin-bottom: 8px; text-decoration: none; }
+
+/* Nav */
+.article-nav { display: flex; justify-content: space-between; padding: 16px 0; margin-bottom: 32px; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); font-size: 14px; }
+.article-nav a { color: var(--mute); text-decoration: none; }
+.article-nav a:hover { color: var(--primary); }
+
+/* Related */
+.related h3 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+.related-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+.related-card { background: var(--surface-card); border-radius: var(--rounded-md); overflow: hidden; }
+.related-card .thumb { width: 100%; aspect-ratio: 16/10; background: #eee; display: flex; align-items: center; justify-content: center; color: var(--ash); font-size: 12px; }
+.related-card .info { padding: 10px 12px; }
+.related-card .title { font-size: 13px; font-weight: 600; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Comments */
+.comments h3 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+.comment-input { display: flex; gap: 12px; margin-bottom: 24px; }
+.comment-input textarea { flex: 1; height: 80px; border: 1px solid var(--hairline); border-radius: var(--rounded-md); padding: 12px; font-size: 14px; resize: none; font-family: inherit; }
+.comment-input button { align-self: flex-end; padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: var(--rounded-md); font-size: 14px; font-weight: 700; cursor: pointer; }
+.comment-empty { font-size: 14px; color: var(--ash); text-align: center; padding: 32px; }
+
+/* Sidebar */
+.sidebar-widget { background: var(--surface-card); border-radius: var(--rounded-md); padding: 24px; margin-bottom: 16px; }
+.sidebar-widget .price-display { font-size: 32px; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
+.sidebar-widget .price-label { font-size: 14px; color: var(--mute); margin-bottom: 16px; }
+.sidebar-widget .vip-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--hairline); margin-bottom: 12px; }
+.sidebar-widget .vip-row .left { font-size: 14px; font-weight: 600; }
+.sidebar-widget .vip-row .right { font-size: 14px; color: var(--primary); font-weight: 700; }
+.sidebar-widget .vip-link { display: block; text-align: center; font-size: 12px; color: var(--mute); text-decoration: underline; margin-bottom: 16px; }
+.sidebar-widget .btn-sidebar { display: block; width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: var(--rounded-md); font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 12px; }
+.sidebar-widget .support { font-size: 12px; color: var(--ash); text-align: center; }
+.sidebar-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.sidebar-tags a { padding: 6px 12px; background: var(--canvas); border-radius: var(--rounded-full); font-size: 12px; color: var(--mute); text-decoration: none; border: 1px solid var(--hairline); }
+.sidebar-tags a:hover { border-color: var(--primary); color: var(--primary); }
+
+.footer { background: var(--surface-soft); padding: 32px 0; border-top: 1px solid var(--hairline); text-align: center; font-size: 12px; color: var(--ash); }
+@media (max-width: 1024px) { .detail-layout { grid-template-columns: 1fr; } .related-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+
+<header class="header"><div class="container"><a class="logo" href="index.html">知猿</a><ul class="nav-main"><li><a href="index.html">首页</a></li><li><a href="courses.html">知猿课堂</a></li><li><a href="guestbook.html">留言反馈</a></li><li><a href="vip.html">成为会员</a></li></ul><div class="nav-right"><button class="btn-login">登录</button></div></div></header>
+
+<div class="container">
+  <div class="breadcrumb"><a href="index.html">首页</a> &gt; <a href="courses.html">知猿课堂</a> &gt; <a href="#">手绘课程</a> &gt; <span>正文</span></div>
+
+  <div class="detail-layout">
+    <main class="article">
+      <h1>塵蒲2026唯美古风半厚涂第5期基础课</h1>
+      <p class="subtitle">【画质高清有课件笔刷】系统学习古风半厚涂绘画技法</p>
+      <div class="article-meta">
+        <span>📅 2026-06-01</span>
+        <span>📂 手绘课程</span>
+      </div>
+
+      <div class="preview-images">
+        <div class="img-placeholder">课程预览图 1</div>
+        <div class="img-placeholder">课程预览图 2</div>
+        <div class="img-placeholder">课程预览图 3</div>
+      </div>
+
+      <div class="download-box">
+        <div class="title">资源下载</div>
+        <div class="price-row">
+          <span class="price-val">2</span>
+          <span class="price-unit">金币</span>
+        </div>
+        <div class="vip-free">终身VIP免费</div>
+        <button class="btn-buy">立即购买</button>
+        <div class="tip">客服QQ: 3460825861 · 下载链接失效请找客服补链</div>
+      </div>
+
+      <div class="article-actions">
+        <button class="action-btn">♡ 收藏 53</button>
+        <button class="action-btn">↗ 分享</button>
+      </div>
+
+      <div class="article-tags">
+        <a class="tag" href="#">PS课程</a>
+        <a class="tag" href="#">手绘教程</a>
+        <a class="tag" href="#">古风插画</a>
+        <a class="tag" href="#">厚涂</a>
+      </div>
+
+      <div class="article-nav">
+        <a href="#">← 上一篇：姜一齐的速写训练营第2期</a>
+        <a href="#">下一篇：Luffypig人像漫改系统训练班 →</a>
+      </div>
+
+      <div class="related">
+        <h3>猜你喜欢</h3>
+        <div class="related-grid">
+          <div class="related-card"><div class="thumb">封面</div><div class="info"><div class="title">八岐大狗PRO人物立绘班</div></div></div>
+          <div class="related-card"><div class="thumb">封面</div><div class="info"><div class="title">日系角色色彩速涂团练</div></div></div>
+          <div class="related-card"><div class="thumb">封面</div><div class="info"><div class="title">古风场景概念设计进阶</div></div></div>
+        </div>
+      </div>
+
+      <div class="comments">
+        <h3>评论 0</h3>
+        <div class="comment-input">
+          <textarea placeholder="输入评论内容..."></textarea>
+          <button>发表评论</button>
+        </div>
+        <div class="comment-empty">暂无评论，快来抢沙发吧~</div>
+      </div>
+    </main>
+
+    <aside>
+      <div class="sidebar-widget">
+        <div class="price-display">2 金币</div>
+        <div class="price-label">普通价格</div>
+        <div class="vip-row">
+          <span class="left">终身VIP免费</span>
+          <span class="right">0 金币</span>
+        </div>
+        <a class="vip-link" href="vip.html">升级终身VIP →</a>
+        <button class="btn-sidebar">立即购买</button>
+        <div class="support">客服QQ: 3460825861<br>下载链接失效请找客服补链</div>
+      </div>
+
+      <div class="sidebar-widget">
+        <h4 style="font-size:16px;font-weight:600;margin-bottom:12px;">热门标签</h4>
+        <div class="sidebar-tags">
+          <a href="#">手绘</a><a href="#">PS</a><a href="#">C4D</a><a href="#">平面</a>
+          <a href="#">Blender</a><a href="#">zbrush</a><a href="#">AE</a><a href="#">电商</a>
+          <a href="#">UI</a><a href="#">3dmax</a>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<footer class="footer">© 2026 知猿 zioran.com</footer>
+</body>
+</html>

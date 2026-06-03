@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知猿 - 课程列表</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root { --primary: #ff0036; --ink: #000; --body: #33332e; --mute: #62625b; --ash: #91918c; --hairline: #dadad3; --canvas: #fff; --surface-soft: #fbfbf9; --surface-card: #f6f6f3; --on-primary: #fff; --on-dark: #fff; --rounded-md: 16px; --rounded-full: 9999px; }
+body { font-family: Inter, -apple-system, sans-serif; color: var(--body); background: var(--canvas); line-height: 1.4; }
+.container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+.header { height: 64px; background: var(--canvas); border-bottom: 1px solid var(--hairline); position: sticky; top: 0; z-index: 100; display: flex; align-items: center; }
+.header .container { display: flex; align-items: center; width: 100%; }
+.logo { font-size: 22px; font-weight: 700; color: var(--primary); margin-right: 32px; text-decoration: none; }
+.nav-main { display: flex; gap: 24px; list-style: none; }
+.nav-main a { text-decoration: none; color: var(--ink); font-size: 16px; font-weight: 600; }
+.nav-main a.active { color: var(--primary); }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.btn-login { background: var(--primary); color: var(--on-primary); border: none; padding: 8px 20px; border-radius: var(--rounded-md); font-size: 14px; font-weight: 700; cursor: pointer; }
+
+/* Breadcrumb */
+.breadcrumb { padding: 20px 0; font-size: 14px; color: var(--mute); }
+.breadcrumb a { color: var(--mute); text-decoration: none; }
+.breadcrumb a:hover { color: var(--primary); }
+
+/* Filter */
+.filter-strip { display: flex; gap: 8px; margin-bottom: 32px; flex-wrap: wrap; }
+.filter-chip { padding: 8px 16px; border-radius: var(--rounded-full); background: var(--surface-card); font-size: 14px; font-weight: 700; color: var(--ink); border: none; cursor: pointer; }
+.filter-chip.active { background: var(--ink); color: var(--on-dark); }
+
+/* Grid */
+.course-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 48px; }
+.course-card { background: var(--surface-card); border-radius: var(--rounded-md); overflow: hidden; cursor: pointer; transition: transform .2s; }
+.course-card:hover { transform: translateY(-4px); }
+.course-card .thumb { width: 100%; aspect-ratio: 16/10; background: linear-gradient(135deg, #ddd, #eee); display: flex; align-items: center; justify-content: center; color: var(--ash); font-size: 14px; }
+.course-card .info { padding: 12px 16px; }
+.course-card .cat { font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+.course-card .title { font-size: 14px; font-weight: 600; color: var(--ink); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px; }
+.course-card .meta { display: flex; justify-content: space-between; }
+.course-card .time { font-size: 12px; color: var(--mute); }
+.course-card .price { font-size: 14px; font-weight: 700; color: var(--primary); }
+
+/* Pagination */
+.pagination { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 32px 0; }
+.pagination a, .pagination span { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 40px; padding: 0 12px; border-radius: var(--rounded-md); font-size: 14px; font-weight: 600; text-decoration: none; color: var(--ink); background: var(--surface-card); }
+.pagination .active { background: var(--primary); color: white; }
+.pagination .disabled { color: var(--ash); cursor: not-allowed; }
+.pagination input { width: 56px; height: 40px; border: 1px solid var(--hairline); border-radius: var(--rounded-md); text-align: center; font-size: 14px; }
+.pagination .jump-btn { background: var(--surface-card); border: none; padding: 0 12px; height: 40px; border-radius: var(--rounded-md); font-size: 14px; font-weight: 600; cursor: pointer; }
+
+.footer { background: var(--surface-soft); padding: 32px 0; border-top: 1px solid var(--hairline); text-align: center; font-size: 12px; color: var(--ash); }
+@media (max-width: 1024px) { .course-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 768px) { .course-grid { grid-template-columns: repeat(2, 1fr); } .nav-main { display: none; } }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="container">
+    <a class="logo" href="index.html">知猿</a>
+    <ul class="nav-main">
+      <li><a href="index.html">首页</a></li>
+      <li><a href="courses.html" class="active">知猿课堂</a></li>
+      <li><a href="guestbook.html">留言反馈</a></li>
+      <li><a href="vip.html">成为会员</a></li>
+    </ul>
+    <div class="nav-right">
+      <button class="btn-login" onclick="window.location='login.html'">登录</button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="breadcrumb">
+    <a href="index.html">首页</a> &gt; <span>知猿课堂</span>
+  </div>
+
+  <div class="filter-strip">
+    <button class="filter-chip active">全部</button>
+    <button class="filter-chip">AIGC课堂</button>
+    <button class="filter-chip">Blender课堂</button>
+    <button class="filter-chip">C4D课程</button>
+    <button class="filter-chip">手绘课程</button>
+    <button class="filter-chip">AE课程</button>
+    <button class="filter-chip">UI课程</button>
+    <button class="filter-chip">摄影课程</button>
+    <button class="filter-chip">室内设计</button>
+    <button class="filter-chip">平面设计</button>
+    <button class="filter-chip">电商设计</button>
+  </div>
+
+  <div class="course-grid">
+    <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">手绘课程</div><div class="title">塵蒲2026唯美古风半厚涂第5期基础课</div><div class="meta"><span class="time">2小时前</span><span class="price">2 金币</span></div></div></div>
+    <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">AIGC课程</div><div class="title">Midjourney商业插画全流程实战2026</div><div class="meta"><span class="time">5小时前</span><span class="price">2 金币</span></div></div></div>
+    <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">Blender课程</div><div class="title">Blender 4.0写实场景全流程教学</div><div class="meta"><span class="time">1天前</span><span class="price">2 金币</span></div></div></div>
+    <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">C4D课程</div><div class="title">C4D电商产品渲染高级班第3期</div><div class="meta"><span class="time">1天前</span><span class="price">2 金币</span></div></div></div>
+    <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">手绘课程</div><div class="title">角色设计商业插画系统训练营</div><div class="meta"><span class="time">2天前</span><span class="price">2 金币</span></div></div></div>
+    <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">AE课程</div><div class="title">AE高级动效设计与MG动画实战</div><div class="meta"><span class="time">2天前</span><span class="price">2 金币</span></div></div></div>
+    <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">UI课程</div><div class="title">UI/UX产品设计全流程进阶课</div><div class="meta"><span class="time">3天前</span><span class="price">2 金币</span></div></div></div>
+    <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">平面设计</div><div class="title">品牌视觉设计与商业提案实战</div><div class="meta"><span class="time">3天前</span><span class="price">2 金币</span></div></div></div>
+    <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">摄影课程</div><div class="title">人像摄影与后期调色系统课</div><div class="meta"><span class="time">4天前</span><span class="price">2 金币</span></div></div></div>
+    <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">电商设计</div><div class="title">电商详情页设计与视觉营销</div><div class="meta"><span class="time">4天前</span><span class="price">2 金币</span></div></div></div>
+    <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">室内设计</div><div class="title">3Dmax室内全景效果图实战</div><div class="meta"><span class="time">5天前</span><span class="price">2 金币</span></div></div></div>
+    <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">AIGC课程</div><div class="title">ComfyUI工作流进阶与商业应用</div><div class="meta"><span class="time">5天前</span><span class="price">2 金币</span></div></div></div>
+    <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">Blender课程</div><div class="title">Blender角色建模与绑定全流程</div><div class="meta"><span class="time">6天前</span><span class="price">2 金币</span></div></div></div>
+    <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">C4D课程</div><div class="title">Redshift渲染器系统教学</div><div class="meta"><span class="time">6天前</span><span class="price">2 金币</span></div></div></div>
+    <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">手绘课程</div><div class="title">厚涂人物头像精品课第2期</div><div class="meta"><span class="time">1周前</span><span class="price">2 金币</span></div></div></div>
+    <div class="course-card"><div class="thumb">课程封面</div><div class="info"><div class="cat">AE课程</div><div class="title">AE粒子特效与高级合成</div><div class="meta"><span class="time">1周前</span><span class="price">2 金币</span></div></div></div>
+  </div>
+
+  <div class="pagination">
+    <span class="disabled">上一页</span>
+    <span class="active">1</span>
+    <a href="#">2</a>
+    <a href="#">3</a>
+    <span>...</span>
+    <a href="#">203</a>
+    <a href="#">下一页</a>
+    <input type="number" min="1" placeholder="页码">
+    <button class="jump-btn">跳转</button>
+  </div>
+</div>
+
+<footer class="footer">© 2026 知猿 zioran.com</footer>
+</body>
+</html>
