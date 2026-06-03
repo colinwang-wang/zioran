@@ -144,6 +144,27 @@ func (s *AuthService) SetCaptcha(key, code string) {
 	s.captchas.Store(key, code)
 }
 
+func (s *AuthService) AdminLogin(ctx context.Context, req *model.AdminLoginRequest) (*model.AdminLoginResponse, error) {
+	user, err := s.userRepo.FindByUsername(ctx, req.Username)
+	if err != nil {
+		return nil, errcode.New(40001, "用户名或密码错误")
+	}
+	if user.Role != "admin" {
+		return nil, errcode.New(40001, "用户名或密码错误")
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+		return nil, errcode.New(40001, "用户名或密码错误")
+	}
+	token, err := middleware.GenerateToken(user.ID, s.jwtSecret, s.jwtExpire)
+	if err != nil {
+		return nil, errcode.ErrInternal
+	}
+	return &model.AdminLoginResponse{
+		Token: token,
+		Admin: model.AdminUserInfo{ID: user.ID, Username: user.Username, Role: user.Role},
+	}, nil
+}
+
 func maskUserResponse(user *model.User) model.UserResponse {
 	phone := user.Phone
 	if len(phone) >= 11 {

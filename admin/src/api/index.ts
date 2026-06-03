@@ -1,8 +1,8 @@
 import request from '@/utils/request'
 import type { ApiResponse, PageResponse, LoginParams, LoginResult, Course, Category, Tag, User, Order, Guestbook, Comment, NavItem, Banner, DashboardStats, ChartData } from '@/types'
 
-// POST /api/v1/auth/login
-export const login = (data: LoginParams) => request.post<unknown, ApiResponse<LoginResult>>('/auth/login', data)
+// POST /api/v1/admin/login
+export const login = (data: LoginParams) => request.post<unknown, ApiResponse<LoginResult>>('/admin/login', data)
 
 // GET /api/v1/admin/dashboard/stats
 export const getDashboardStats = () => request.get<unknown, ApiResponse<DashboardStats>>('/admin/dashboard/stats')

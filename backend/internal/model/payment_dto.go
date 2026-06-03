@@ -149,12 +149,14 @@ type AdminCommentStatusRequest struct {
 }
 
 type DashboardStats struct {
-	TotalUsers    int64 `json:"total_users"`
-	TotalCourses  int64 `json:"total_courses"`
-	TotalOrders   int64 `json:"total_orders"`
-	TotalRevenue  int64 `json:"total_revenue"`
-	TodayUsers    int64 `json:"today_users"`
-	TodayOrders   int64 `json:"today_orders"`
+	TotalUsers     int64   `json:"totalUsers"`
+	TotalCourses   int64   `json:"totalCourses"`
+	TotalOrders    int64   `json:"totalOrders"`
+	TodayRevenue   int64   `json:"todayRevenue"`
+	UserGrowth     float64 `json:"userGrowth"`
+	CourseGrowth   float64 `json:"courseGrowth"`
+	OrderGrowth    float64 `json:"orderGrowth"`
+	RevenueGrowth  float64 `json:"revenueGrowth"`
 }
 
 type RechargeResponse struct {
@@ -163,14 +165,14 @@ type RechargeResponse struct {
 	PayURL  string `json:"pay_url"`
 }
 
-type ChartPoint struct {
-	Date  string `json:"date"`
-	Value int64  `json:"value"`
+type ChartDataset struct {
+	Label string  `json:"label"`
+	Data  []int64 `json:"data"`
 }
 
 type DashboardChartsResponse struct {
-	Users  []ChartPoint `json:"users"`
-	Orders []ChartPoint `json:"orders"`
+	Labels   []string       `json:"labels"`
+	Datasets []ChartDataset `json:"datasets"`
 }
 
 type AdminCourseBatchRequest struct {

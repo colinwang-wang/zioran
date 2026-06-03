@@ -38,3 +38,21 @@ type UserResponse struct {
 	Avatar   string `json:"avatar"`
 	IsVip    bool   `json:"is_vip"`
 }
+
+// Admin login DTOs
+
+type AdminLoginRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+type AdminLoginResponse struct {
+	Token string         `json:"token"`
+	Admin AdminUserInfo  `json:"admin"`
+}
+
+type AdminUserInfo struct {
+	ID       int64  `json:"id"`
+	Username string `json:"username"`
+	Role     string `json:"role"`
+}

@@ -90,8 +90,8 @@ func (h *CommunityHandler) GuestbookDelete(c *gin.Context) {
 // Comments
 
 func (h *CommunityHandler) CommentList(c *gin.Context) {
-	targetType := c.Query("targetType")
-	targetID, _ := strconv.ParseInt(c.Query("targetId"), 10, 64)
+	targetType := c.Query("target_type")
+	targetID, _ := strconv.ParseInt(c.Query("target_id"), 10, 64)
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
 	if targetType == "" || targetID == 0 {

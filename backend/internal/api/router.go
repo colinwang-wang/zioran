@@ -12,6 +12,7 @@ func SetupRouter(
 	payHandler *PaymentHandler,
 	commHandler *CommunityHandler,
 	adminPayHandler *AdminPaymentHandler,
+	uploadHandler *UploadHandler,
 	jwtSecret string,
 ) *gin.Engine {
 	r := gin.New()
@@ -53,6 +54,9 @@ func SetupRouter(
 		authed := v1.Group("")
 		authed.Use(middleware.JWTAuth(jwtSecret))
 		{
+			// Upload
+			authed.POST("/upload/image", uploadHandler.ImageUpload)
+
 			// User profile
 			authed.GET("/user/profile", authHandler.Profile)
 			authed.PUT("/user/password", payHandler.ChangePassword)
@@ -89,6 +93,9 @@ func SetupRouter(
 			authed.DELETE("/comments/:id", commHandler.CommentDelete)
 		}
 
+		// Admin login (no JWT required)
+		v1.POST("/admin/login", authHandler.AdminLogin)
+
 		// Admin routes
 		admin := v1.Group("/admin")
 		admin.Use(middleware.JWTAuth(jwtSecret))
@@ -116,6 +123,7 @@ func SetupRouter(
 
 			// Order management
 			admin.GET("/orders", adminPayHandler.OrderList)
+			admin.GET("/orders/:id", adminPayHandler.OrderDetail)
 			admin.POST("/orders/:id/refund", adminPayHandler.OrderRefund)
 
 			// User management

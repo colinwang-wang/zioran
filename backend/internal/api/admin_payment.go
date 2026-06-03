@@ -50,6 +50,24 @@ func (h *AdminPaymentHandler) OrderRefund(c *gin.Context) {
 	response.Success(c, nil)
 }
 
+func (h *AdminPaymentHandler) OrderDetail(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, errcode.ErrParam)
+		return
+	}
+	order, svcErr := h.paySvc.AdminGetOrder(c.Request.Context(), id)
+	if svcErr != nil {
+		if e, ok := svcErr.(*errcode.Error); ok {
+			response.Error(c, e)
+			return
+		}
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
+	response.Success(c, order)
+}
+
 // Users
 
 func (h *AdminPaymentHandler) UserList(c *gin.Context) {

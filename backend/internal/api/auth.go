@@ -95,3 +95,21 @@ func (h *AuthHandler) Profile(c *gin.Context) {
 	}
 	response.Success(c, result)
 }
+
+func (h *AuthHandler) AdminLogin(c *gin.Context) {
+	var req model.AdminLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, errcode.ErrParam)
+		return
+	}
+	result, err := h.authSvc.AdminLogin(c.Request.Context(), &req)
+	if err != nil {
+		if e, ok := err.(*errcode.Error); ok {
+			response.Error(c, e)
+			return
+		}
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
+	response.Success(c, result)
+}

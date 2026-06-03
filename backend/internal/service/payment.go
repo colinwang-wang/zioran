@@ -405,6 +405,18 @@ func (s *PaymentService) AdminRefund(ctx context.Context, orderID int64) error {
 	return s.payRepo.UpdateOrderStatus(ctx, orderID, "refunded")
 }
 
+func (s *PaymentService) AdminGetOrder(ctx context.Context, orderID int64) (*model.OrderResponse, error) {
+	order, err := s.payRepo.GetOrder(ctx, orderID)
+	if err != nil {
+		return nil, errcode.ErrNotFound
+	}
+	return &model.OrderResponse{
+		ID: order.ID, OrderNo: order.OrderNo, Type: order.Type,
+		TargetName: order.TargetName, Amount: order.Amount,
+		Status: order.Status, CreatedAt: order.CreatedAt, PaidAt: order.PaidAt,
+	}, nil
+}
+
 func (s *PaymentService) AdminUsers(ctx context.Context, page, pageSize int, keyword string) (*model.PaginatedList, error) {
 	if page < 1 {
 		page = 1
@@ -453,19 +465,26 @@ func (s *PaymentService) AdminGetUser(ctx context.Context, userID int64) (*model
 }
 
 func (s *PaymentService) DashboardCharts(ctx context.Context, period string) *model.DashboardChartsResponse {
-	// MOCK: return sample chart data
 	days := 7
 	if period == "month" {
 		days = 30
 	}
-	users := make([]model.ChartPoint, days)
-	orders := make([]model.ChartPoint, days)
+	labels := make([]string, days)
+	userData := make([]int64, days)
+	orderData := make([]int64, days)
 	for i := 0; i < days; i++ {
 		date := time.Now().AddDate(0, 0, -days+1+i).Format("2006-01-02")
-		users[i] = model.ChartPoint{Date: date, Value: int64(10 + i*2)}
-		orders[i] = model.ChartPoint{Date: date, Value: int64(5 + i)}
+		labels[i] = date
+		userData[i] = int64(10 + i*2)
+		orderData[i] = int64(5 + i)
 	}
-	return &model.DashboardChartsResponse{Users: users, Orders: orders}
+	return &model.DashboardChartsResponse{
+		Labels: labels,
+		Datasets: []model.ChartDataset{
+			{Label: "用户", Data: userData},
+			{Label: "订单", Data: orderData},
+		},
+	}
 }
 
 // Favorites

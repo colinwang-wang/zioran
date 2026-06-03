@@ -258,14 +258,45 @@ func (r *PaymentRepository) DashboardStats(ctx context.Context) (*model.Dashboar
 	r.db.WithContext(ctx).Model(&model.Course{}).Count(&stats.TotalCourses)
 	r.db.WithContext(ctx).Model(&model.Order{}).Count(&stats.TotalOrders)
 
-	var revenue *int64
-	r.db.WithContext(ctx).Model(&model.Order{}).Where("status = ?", "paid").Select("COALESCE(SUM(amount), 0)").Scan(&revenue)
-	if revenue != nil {
-		stats.TotalRevenue = *revenue
+	var todayRevenue *int64
+	today := time.Now().Format("2006-01-02")
+	r.db.WithContext(ctx).Model(&model.Order{}).Where("status = ? AND DATE(created_at) = ?", "paid", today).
+		Select("COALESCE(SUM(amount), 0)").Scan(&todayRevenue)
+	if todayRevenue != nil {
+		stats.TodayRevenue = *todayRevenue
 	}
 
-	today := time.Now().Format("2006-01-02")
-	r.db.WithContext(ctx).Model(&model.User{}).Where("DATE(created_at) = ?", today).Count(&stats.TodayUsers)
-	r.db.WithContext(ctx).Model(&model.Order{}).Where("DATE(created_at) = ?", today).Count(&stats.TodayOrders)
+	// Growth rates (compare today vs yesterday counts)
+	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+	var todayUsers, yesterdayUsers int64
+	r.db.WithContext(ctx).Model(&model.User{}).Where("DATE(created_at) = ?", today).Count(&todayUsers)
+	r.db.WithContext(ctx).Model(&model.User{}).Where("DATE(created_at) = ?", yesterday).Count(&yesterdayUsers)
+	stats.UserGrowth = calcGrowth(todayUsers, yesterdayUsers)
+
+	var todayOrders, yesterdayOrders int64
+	r.db.WithContext(ctx).Model(&model.Order{}).Where("DATE(created_at) = ?", today).Count(&todayOrders)
+	r.db.WithContext(ctx).Model(&model.Order{}).Where("DATE(created_at) = ?", yesterday).Count(&yesterdayOrders)
+	stats.OrderGrowth = calcGrowth(todayOrders, yesterdayOrders)
+
+	var todayCourses, yesterdayCourses int64
+	r.db.WithContext(ctx).Model(&model.Course{}).Where("DATE(created_at) = ?", today).Count(&todayCourses)
+	r.db.WithContext(ctx).Model(&model.Course{}).Where("DATE(created_at) = ?", yesterday).Count(&yesterdayCourses)
+	stats.CourseGrowth = calcGrowth(todayCourses, yesterdayCourses)
+
+	var yesterdayRevenue int64
+	r.db.WithContext(ctx).Model(&model.Order{}).Where("status = ? AND DATE(created_at) = ?", "paid", yesterday).
+		Select("COALESCE(SUM(amount), 0)").Scan(&yesterdayRevenue)
+	stats.RevenueGrowth = calcGrowth(stats.TodayRevenue, yesterdayRevenue)
+
 	return &stats, nil
+}
+
+func calcGrowth(current, previous int64) float64 {
+	if previous == 0 {
+		if current > 0 {
+			return 100
+		}
+		return 0
+	}
+	return float64(current-previous) / float64(previous) * 100
 }

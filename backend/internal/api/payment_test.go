@@ -51,7 +51,7 @@ func setupPhase34Router(t *testing.T) (*gorm.DB, *httptest.Server, string) {
 	commHandler := api.NewCommunityHandler(commSvc)
 	adminPayHandler := api.NewAdminPaymentHandler(paySvc, commSvc)
 
-	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, testJWTSecret)
+	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, api.NewUploadHandler(t.TempDir()), testJWTSecret)
 	ts := httptest.NewServer(r)
 
 	// Create test user
@@ -329,7 +329,7 @@ func Test_Comment_CRUD(t *testing.T) {
 	assert.Equal(t, 0, result.Code)
 
 	// List
-	_, listResult := getJSON(fmt.Sprintf("%s/api/v1/comments?targetType=course&targetId=%d", ts.URL, course.ID), "")
+	_, listResult := getJSON(fmt.Sprintf("%s/api/v1/comments?target_type=course&target_id=%d", ts.URL, course.ID), "")
 	assert.Equal(t, 0, listResult.Code)
 
 	// Delete
