@@ -184,6 +184,41 @@ func (h *AdminHandler) CategoryDelete(c *gin.Context) {
 	response.Success(c, nil)
 }
 
+func (h *AdminHandler) CategoryUpdateStatus(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		response.Error(c, errcode.ErrParam)
+		return
+	}
+	var req model.AdminCategoryStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, errcode.ErrParam)
+		return
+	}
+	if svcErr := h.courseSvc.AdminCategoryUpdateStatus(c.Request.Context(), id, req.IsActive); svcErr != nil {
+		if e, ok := svcErr.(*errcode.Error); ok {
+			response.Error(c, e)
+			return
+		}
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
+	response.Success(c, nil)
+}
+
+func (h *AdminHandler) CourseBatch(c *gin.Context) {
+	var req model.AdminCourseBatchRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, errcode.ErrParam)
+		return
+	}
+	if svcErr := h.courseSvc.AdminCourseBatch(c.Request.Context(), &req); svcErr != nil {
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
+	response.Success(c, nil)
+}
+
 // Tags
 
 func (h *AdminHandler) TagList(c *gin.Context) {

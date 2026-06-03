@@ -322,6 +322,29 @@ func (s *CourseService) AdminCategoryDelete(ctx context.Context, id int) error {
 	return s.catRepo.Delete(ctx, id)
 }
 
+func (s *CourseService) AdminCategoryUpdateStatus(ctx context.Context, id int, isActive bool) error {
+	cat, err := s.catRepo.FindByID(ctx, id)
+	if err != nil {
+		return errcode.ErrNotFound
+	}
+	cat.IsActive = isActive
+	return s.catRepo.Update(ctx, cat)
+}
+
+func (s *CourseService) AdminCourseBatch(ctx context.Context, req *model.AdminCourseBatchRequest) error {
+	for _, id := range req.IDs {
+		switch req.Action {
+		case "publish":
+			s.courseRepo.UpdateStatus(ctx, id, "published")
+		case "offline":
+			s.courseRepo.UpdateStatus(ctx, id, "draft")
+		case "delete":
+			s.courseRepo.Delete(ctx, id)
+		}
+	}
+	return nil
+}
+
 // Admin Tag methods
 
 func (s *CourseService) AdminTagList(ctx context.Context) ([]model.Tag, error) {

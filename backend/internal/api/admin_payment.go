@@ -115,6 +115,30 @@ func (h *AdminPaymentHandler) DashboardStats(c *gin.Context) {
 	response.Success(c, result)
 }
 
+func (h *AdminPaymentHandler) DashboardCharts(c *gin.Context) {
+	period := c.DefaultQuery("period", "week")
+	result := h.paySvc.DashboardCharts(c.Request.Context(), period)
+	response.Success(c, result)
+}
+
+func (h *AdminPaymentHandler) UserDetail(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		response.Error(c, errcode.ErrParam)
+		return
+	}
+	user, svcErr := h.paySvc.AdminGetUser(c.Request.Context(), id)
+	if svcErr != nil {
+		if e, ok := svcErr.(*errcode.Error); ok {
+			response.Error(c, e)
+			return
+		}
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
+	response.Success(c, user)
+}
+
 // Guestbook admin
 
 func (h *AdminPaymentHandler) GuestbookList(c *gin.Context) {

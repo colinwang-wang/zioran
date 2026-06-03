@@ -49,7 +49,7 @@ func (s *PaymentService) GetTransactions(ctx context.Context, userID int64, page
 	return &model.PaginatedList{Items: txs, Total: total, Page: page, PageSize: pageSize, TotalPages: totalPages}, nil
 }
 
-func (s *PaymentService) Recharge(ctx context.Context, userID int64, req *model.RechargeRequest) (*model.OrderResponse, error) {
+func (s *PaymentService) Recharge(ctx context.Context, userID int64, req *model.RechargeRequest) (*model.RechargeResponse, error) {
 	// Create coin order
 	order := &model.Order{
 		OrderNo:    generateOrderNo(),
@@ -64,21 +64,14 @@ func (s *PaymentService) Recharge(ctx context.Context, userID int64, req *model.
 		return nil, errcode.ErrInternal
 	}
 
-	// MOCK: simulate immediate payment callback
-	if err := s.payRepo.UpdateOrderStatus(ctx, order.ID, "paid"); err != nil {
-		return nil, errcode.ErrInternal
-	}
-	if err := s.payRepo.Recharge(ctx, userID, req.Amount, order.ID); err != nil {
-		return nil, errcode.ErrInternal
-	}
-	order.Status = "paid"
-	now := time.Now()
-	order.PaidAt = &now
+	// MOCK: simulate payment callback (real env should wait for payment gateway callback)
+	s.payRepo.UpdateOrderStatus(ctx, order.ID, "paid")
+	s.payRepo.Recharge(ctx, userID, req.Amount, order.ID)
 
-	return &model.OrderResponse{
-		ID: order.ID, OrderNo: order.OrderNo, Type: order.Type,
-		TargetName: order.TargetName, Amount: order.Amount,
-		Status: order.Status, CreatedAt: order.CreatedAt, PaidAt: order.PaidAt,
+	return &model.RechargeResponse{
+		OrderID: order.ID,
+		OrderNo: order.OrderNo,
+		PayURL:  "mock://pay",
 	}, nil
 }
 
@@ -449,6 +442,30 @@ func (s *PaymentService) AdminRecharge(ctx context.Context, userID int64, req *m
 
 func (s *PaymentService) DashboardStats(ctx context.Context) (*model.DashboardStats, error) {
 	return s.payRepo.DashboardStats(ctx)
+}
+
+func (s *PaymentService) AdminGetUser(ctx context.Context, userID int64) (*model.User, error) {
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, errcode.ErrNotFound
+	}
+	return user, nil
+}
+
+func (s *PaymentService) DashboardCharts(ctx context.Context, period string) *model.DashboardChartsResponse {
+	// MOCK: return sample chart data
+	days := 7
+	if period == "month" {
+		days = 30
+	}
+	users := make([]model.ChartPoint, days)
+	orders := make([]model.ChartPoint, days)
+	for i := 0; i < days; i++ {
+		date := time.Now().AddDate(0, 0, -days+1+i).Format("2006-01-02")
+		users[i] = model.ChartPoint{Date: date, Value: int64(10 + i*2)}
+		orders[i] = model.ChartPoint{Date: date, Value: int64(5 + i)}
+	}
+	return &model.DashboardChartsResponse{Users: users, Orders: orders}
 }
 
 // Favorites

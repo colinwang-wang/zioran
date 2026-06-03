@@ -10,7 +10,11 @@ export default function DataBoard() {
   const [period, setPeriod] = useState('month')
 
   useEffect(() => { getDashboardStats().then(res => setStats(res.data)) }, [])
-  useEffect(() => { getDashboardCharts(period).then(res => setChartData(res.data)) }, [period])
+  useEffect(() => {
+    getDashboardCharts(period).then(res => setChartData(res.data)).catch(() => {
+      setChartData({ labels: ['1月','2月','3月','4月','5月','6月'], datasets: [{ label: '示例数据（接口暂不可用）', data: [30, 50, 40, 70, 60, 80] }] })
+    })
+  }, [period])
 
   const statCards = stats ? [
     { title: '总用户数', value: stats.totalUsers, icon: <UserOutlined />, growth: stats.userGrowth },

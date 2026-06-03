@@ -99,12 +99,14 @@ func SetupRouter(
 			admin.PUT("/courses/:id", adminHandler.CourseUpdate)
 			admin.DELETE("/courses/:id", adminHandler.CourseDelete)
 			admin.PUT("/courses/:id/status", adminHandler.CourseUpdateStatus)
+			admin.POST("/courses/batch", adminHandler.CourseBatch)
 
 			// Category management
 			admin.GET("/categories", adminHandler.CategoryList)
 			admin.POST("/categories", adminHandler.CategoryCreate)
 			admin.PUT("/categories/:id", adminHandler.CategoryUpdate)
 			admin.DELETE("/categories/:id", adminHandler.CategoryDelete)
+			admin.PUT("/categories/:id/status", adminHandler.CategoryUpdateStatus)
 
 			// Tag management
 			admin.GET("/tags", adminHandler.TagList)
@@ -118,6 +120,7 @@ func SetupRouter(
 
 			// User management
 			admin.GET("/users", adminPayHandler.UserList)
+			admin.GET("/users/:id", adminPayHandler.UserDetail)
 			admin.PUT("/users/:id/status", adminPayHandler.UserUpdateStatus)
 			admin.POST("/users/:id/recharge", adminPayHandler.UserRecharge)
 
@@ -146,6 +149,7 @@ func SetupRouter(
 
 			// Dashboard
 			admin.GET("/dashboard/stats", adminPayHandler.DashboardStats)
+			admin.GET("/dashboard/charts", adminPayHandler.DashboardCharts)
 		}
 	}
 

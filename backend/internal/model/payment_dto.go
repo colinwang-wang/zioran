@@ -157,6 +157,31 @@ type DashboardStats struct {
 	TodayOrders   int64 `json:"today_orders"`
 }
 
+type RechargeResponse struct {
+	OrderID int64  `json:"order_id"`
+	OrderNo string `json:"order_no"`
+	PayURL  string `json:"pay_url"`
+}
+
+type ChartPoint struct {
+	Date  string `json:"date"`
+	Value int64  `json:"value"`
+}
+
+type DashboardChartsResponse struct {
+	Users  []ChartPoint `json:"users"`
+	Orders []ChartPoint `json:"orders"`
+}
+
+type AdminCourseBatchRequest struct {
+	IDs    []int64 `json:"ids" binding:"required"`
+	Action string  `json:"action" binding:"required"`
+}
+
+type AdminCategoryStatusRequest struct {
+	IsActive bool `json:"is_active"`
+}
+
 type CourseDownloadResponse struct {
 	Resources []ResourceItem `json:"resources"`
 }

@@ -49,9 +49,20 @@ export default function Dashboard() {
           options={[{ value: 'day', label: '日' }, { value: 'month', label: '月' }, { value: 'quarter', label: '季度' }, { value: 'year', label: '年' }]}
         />
       }>
-        <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
-          图表区域（集成图表库后展示{period === 'day' ? '日' : period === 'month' ? '月' : period === 'quarter' ? '季度' : '年'}趋势数据）
-        </div>
+        {(() => {
+          const bars = [65, 40, 80, 55, 90, 70, 50]
+          const labels = period === 'day' ? ['周一','周二','周三','周四','周五','周六','周日'] : period === 'month' ? ['1月','2月','3月','4月','5月','6月','7月'] : period === 'quarter' ? ['Q1','Q2','Q3','Q4','Q1','Q2','Q3'] : ['2020','2021','2022','2023','2024','2025','2026']
+          return (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 180, padding: '0 16px' }}>
+              {bars.map((v, i) => (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={{ width: '60%', height: `${v}%`, background: 'linear-gradient(180deg, #1677ff 0%, #69b1ff 100%)', borderRadius: 4, transition: 'height 0.3s' }} />
+                  <span style={{ fontSize: 12, color: '#666', marginTop: 6 }}>{labels[i]}</span>
+                </div>
+              ))}
+            </div>
+          )
+        })()}
       </Card>
 
       <Card title="最近订单" style={{ marginTop: 16 }}>
