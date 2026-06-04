@@ -142,6 +142,15 @@ func (r *PaymentRepository) GetOrder(ctx context.Context, id int64) (*model.Orde
 	return &order, nil
 }
 
+func (r *PaymentRepository) GetOrderByNo(ctx context.Context, orderNo string) (*model.Order, error) {
+	var order model.Order
+	err := r.db.WithContext(ctx).Where("order_no = ?", orderNo).First(&order).Error
+	if err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
+
 func (r *PaymentRepository) UpdateOrderStatus(ctx context.Context, id int64, status string) error {
 	updates := map[string]interface{}{"status": status}
 	if status == "paid" {

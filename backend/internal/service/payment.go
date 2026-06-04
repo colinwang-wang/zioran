@@ -8,6 +8,7 @@ import (
 	"github.com/zioran/backend/internal/model"
 	"github.com/zioran/backend/internal/repository"
 	"github.com/zioran/backend/pkg/errcode"
+	"github.com/zioran/backend/pkg/payment"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -15,10 +16,12 @@ type PaymentService struct {
 	payRepo    *repository.PaymentRepository
 	courseRepo *repository.CourseRepository
 	userRepo   *repository.UserRepository
+	wechatPay  *payment.WechatPay
+	alipay     *payment.AlipayClient
 }
 
-func NewPaymentService(payRepo *repository.PaymentRepository, courseRepo *repository.CourseRepository, userRepo *repository.UserRepository) *PaymentService {
-	return &PaymentService{payRepo: payRepo, courseRepo: courseRepo, userRepo: userRepo}
+func NewPaymentService(payRepo *repository.PaymentRepository, courseRepo *repository.CourseRepository, userRepo *repository.UserRepository, wechatPay *payment.WechatPay, alipay *payment.AlipayClient) *PaymentService {
+	return &PaymentService{payRepo: payRepo, courseRepo: courseRepo, userRepo: userRepo, wechatPay: wechatPay, alipay: alipay}
 }
 
 // Coins
@@ -64,14 +67,45 @@ func (s *PaymentService) Recharge(ctx context.Context, userID int64, req *model.
 		return nil, errcode.ErrInternal
 	}
 
-	// MOCK: simulate payment callback (real env should wait for payment gateway callback)
-	s.payRepo.UpdateOrderStatus(ctx, order.ID, "paid")
-	s.payRepo.Recharge(ctx, userID, req.Amount, order.ID)
+	var payURL string
+	autoComplete := false
+	switch req.PayMethod {
+	case "wechat":
+		if s.wechatPay.Cfg.Enabled {
+			url, err := s.wechatPay.CreateNativeOrder(order.OrderNo, req.Amount, order.TargetName)
+			if err != nil {
+				return nil, errcode.ErrInternal
+			}
+			payURL = url
+		} else {
+			payURL = "mock://wechat_pay/" + order.OrderNo
+			autoComplete = true
+		}
+	case "alipay":
+		if s.alipay.Cfg.Enabled {
+			url, err := s.alipay.CreatePagePay(order.OrderNo, req.Amount, order.TargetName)
+			if err != nil {
+				return nil, errcode.ErrInternal
+			}
+			payURL = url
+		} else {
+			payURL = "mock://alipay/" + order.OrderNo
+			autoComplete = true
+		}
+	default:
+		payURL = "mock://pay"
+		autoComplete = true
+	}
+
+	if autoComplete {
+		s.payRepo.UpdateOrderStatus(ctx, order.ID, "paid")
+		s.payRepo.Recharge(ctx, userID, req.Amount, order.ID)
+	}
 
 	return &model.RechargeResponse{
 		OrderID: order.ID,
 		OrderNo: order.OrderNo,
-		PayURL:  "mock://pay",
+		PayURL:  payURL,
 	}, nil
 }
 
@@ -501,6 +535,46 @@ func (s *PaymentService) RemoveFavorite(ctx context.Context, userID, courseID in
 
 func generateOrderNo() string {
 	return fmt.Sprintf("ORD%d", time.Now().UnixNano())
+}
+
+// WechatNotifyCallback processes WeChat payment notification.
+func (s *PaymentService) WechatNotifyCallback(ctx context.Context, body []byte, signature string) error {
+	orderNo, err := s.wechatPay.VerifyNotify(body, signature)
+	if err != nil {
+		return err
+	}
+	if orderNo == "" {
+		return nil
+	}
+	order, err := s.payRepo.GetOrderByNo(ctx, orderNo)
+	if err != nil || order.Status != "pending" {
+		return nil
+	}
+	s.payRepo.UpdateOrderStatus(ctx, order.ID, "paid")
+	if order.Type == "coin" {
+		s.payRepo.Recharge(ctx, order.UserID, order.Amount, order.ID)
+	}
+	return nil
+}
+
+// AlipayNotifyCallback processes Alipay payment notification.
+func (s *PaymentService) AlipayNotifyCallback(ctx context.Context, params map[string]string) error {
+	orderNo, err := s.alipay.VerifyNotify(params)
+	if err != nil {
+		return err
+	}
+	if orderNo == "" {
+		return nil
+	}
+	order, err := s.payRepo.GetOrderByNo(ctx, orderNo)
+	if err != nil || order.Status != "pending" {
+		return nil
+	}
+	s.payRepo.UpdateOrderStatus(ctx, order.ID, "paid")
+	if order.Type == "coin" {
+		s.payRepo.Recharge(ctx, order.UserID, order.Amount, order.ID)
+	}
+	return nil
 }
 
 func intPtr(v int) *int { return &v }

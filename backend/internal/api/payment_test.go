@@ -15,6 +15,9 @@ import (
 	"github.com/zioran/backend/internal/model"
 	"github.com/zioran/backend/internal/repository"
 	"github.com/zioran/backend/internal/service"
+	"github.com/zioran/backend/pkg/oauth"
+	"github.com/zioran/backend/pkg/payment"
+	"github.com/zioran/backend/pkg/sms"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -42,9 +45,9 @@ func setupPhase34Router(t *testing.T) (*gorm.DB, *httptest.Server, string) {
 	commRepo := repository.NewCommunityRepository(db)
 	ticketRepo := repository.NewTicketRepository(db)
 
-	authSvc := service.NewAuthService(userRepo, testJWTSecret, 72*time.Hour)
+	authSvc := service.NewAuthService(userRepo, testJWTSecret, 72*time.Hour, &sms.MockSender{})
 	courseSvc := service.NewCourseService(courseRepo, catRepo, tagRepo, favRepo)
-	paySvc := service.NewPaymentService(payRepo, courseRepo, userRepo)
+	paySvc := service.NewPaymentService(payRepo, courseRepo, userRepo, payment.NewWechatPay(payment.WechatPayConfig{}), payment.NewAlipayClient(payment.AlipayConfig{}))
 	commSvc := service.NewCommunityService(commRepo)
 	ticketSvc := service.NewTicketService(ticketRepo, userRepo)
 
@@ -54,7 +57,7 @@ func setupPhase34Router(t *testing.T) (*gorm.DB, *httptest.Server, string) {
 	payHandler := api.NewPaymentHandler(paySvc)
 	commHandler := api.NewCommunityHandler(commSvc)
 	adminPayHandler := api.NewAdminPaymentHandler(paySvc, commSvc)
-	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, testJWTSecret, 72*time.Hour, t.TempDir())
+	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, paySvc, oauth.NewWechatOAuth(oauth.WechatOAuthConfig{}), testJWTSecret, 72*time.Hour, t.TempDir())
 
 	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, api.NewUploadHandler(t.TempDir()), ticketHandler, testJWTSecret)
 	ts := httptest.NewServer(r)

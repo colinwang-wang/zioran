@@ -4,11 +4,47 @@ database:
   host: 127.0.0.1
   port: 3306
   user: root
-  password: your_password_here
+  password: root123456
   dbname: zioran
 redis:
   host: 127.0.0.1
   port: 6379
 jwt:
-  secret: change-this-to-a-secure-random-string
+  secret: zioran-jwt-secret-change-me
   expire: 72h
+
+sms:
+  provider: mock  # mock | aliyun | tencent
+  aliyun:
+    access_key_id: ""
+    access_key_secret: ""
+    sign_name: "知猿"
+    template_code: "SMS_123456"
+  tencent:
+    secret_id: ""
+    secret_key: ""
+    app_id: ""
+    sign_name: "知猿"
+    template_id: ""
+
+payment:
+  wechat:
+    enabled: false
+    app_id: ""
+    mch_id: ""
+    api_key: ""
+    notify_url: "https://api.zioran.com/api/v1/pay/notify/wechat"
+    cert_path: ""
+  alipay:
+    enabled: false
+    app_id: ""
+    private_key: ""
+    alipay_public_key: ""
+    notify_url: "https://api.zioran.com/api/v1/pay/notify/alipay"
+
+oauth:
+  wechat:
+    enabled: false
+    app_id: ""
+    app_secret: ""
+    redirect_uri: "https://api.zioran.com/api/v1/auth/oauth/wechat/callback"

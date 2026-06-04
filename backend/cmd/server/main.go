@@ -8,6 +8,9 @@ import (
 	"github.com/zioran/backend/internal/repository"
 	"github.com/zioran/backend/internal/service"
 	"github.com/zioran/backend/pkg/config"
+	"github.com/zioran/backend/pkg/oauth"
+	"github.com/zioran/backend/pkg/payment"
+	"github.com/zioran/backend/pkg/sms"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -25,6 +28,12 @@ func main() {
 		log.Fatalf("connect db: %v", err)
 	}
 
+	// External services
+	smsSender := sms.NewSender(cfg.SMS)
+	wechatPay := payment.NewWechatPay(cfg.Payment.Wechat)
+	alipayClient := payment.NewAlipayClient(cfg.Payment.Alipay)
+	wechatOAuth := oauth.NewWechatOAuth(cfg.OAuth.Wechat)
+
 	// Repositories
 	userRepo := repository.NewUserRepository(db)
 	courseRepo := repository.NewCourseRepository(db)
@@ -36,9 +45,9 @@ func main() {
 	ticketRepo := repository.NewTicketRepository(db)
 
 	// Services
-	authSvc := service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.Expire)
+	authSvc := service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.Expire, smsSender)
 	courseSvc := service.NewCourseService(courseRepo, catRepo, tagRepo, favRepo)
-	paySvc := service.NewPaymentService(payRepo, courseRepo, userRepo)
+	paySvc := service.NewPaymentService(payRepo, courseRepo, userRepo, wechatPay, alipayClient)
 	commSvc := service.NewCommunityService(commRepo)
 	ticketSvc := service.NewTicketService(ticketRepo, userRepo)
 
@@ -50,7 +59,7 @@ func main() {
 	commHandler := api.NewCommunityHandler(commSvc)
 	adminPayHandler := api.NewAdminPaymentHandler(paySvc, commSvc)
 	uploadHandler := api.NewUploadHandler("./uploads")
-	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, cfg.JWT.Secret, cfg.JWT.Expire, "./uploads")
+	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, paySvc, wechatOAuth, cfg.JWT.Secret, cfg.JWT.Expire, "./uploads")
 
 	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, uploadHandler, ticketHandler, cfg.JWT.Secret)
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)

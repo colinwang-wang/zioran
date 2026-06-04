@@ -302,4 +302,29 @@ func (s *TicketService) ForgotPassword(ctx context.Context, phone, newPassword s
 	return s.userRepo.UpdatePassword(ctx, user.ID, string(hash))
 }
 
+// FindOrCreateByWechat finds a user by wechat openid or creates one.
+func (s *TicketService) FindOrCreateByWechat(ctx context.Context, openID, nickname, avatar string) (*model.User, error) {
+	user, err := s.userRepo.FindByWechatOpenID(ctx, openID)
+	if err == nil {
+		return user, nil
+	}
+	// Create new user
+	user = &model.User{
+		Username:     "wx_" + openID[:8],
+		Phone:        "wx_" + openID, // placeholder, not a real phone
+		PasswordHash: "-",
+		AvatarURL:    avatar,
+		Role:         "user",
+		Status:       "active",
+		WechatOpenID: openID,
+	}
+	if nickname != "" {
+		user.Username = nickname
+	}
+	if err := s.userRepo.Create(ctx, user); err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
 // Refresh token - validated in handler using middleware.GenerateToken directly

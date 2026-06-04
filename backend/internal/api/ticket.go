@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -12,19 +13,22 @@ import (
 	"github.com/zioran/backend/internal/model"
 	"github.com/zioran/backend/internal/service"
 	"github.com/zioran/backend/pkg/errcode"
+	"github.com/zioran/backend/pkg/oauth"
 	"github.com/zioran/backend/pkg/response"
 )
 
 type TicketHandler struct {
-	ticketSvc *service.TicketService
-	authSvc   *service.AuthService
-	jwtSecret string
-	jwtExpire time.Duration
-	uploadDir string
+	ticketSvc   *service.TicketService
+	authSvc     *service.AuthService
+	paySvc      *service.PaymentService
+	wechatOAuth *oauth.WechatOAuth
+	jwtSecret   string
+	jwtExpire   time.Duration
+	uploadDir   string
 }
 
-func NewTicketHandler(ticketSvc *service.TicketService, authSvc *service.AuthService, jwtSecret string, jwtExpire time.Duration, uploadDir string) *TicketHandler {
-	return &TicketHandler{ticketSvc: ticketSvc, authSvc: authSvc, jwtSecret: jwtSecret, jwtExpire: jwtExpire, uploadDir: uploadDir}
+func NewTicketHandler(ticketSvc *service.TicketService, authSvc *service.AuthService, paySvc *service.PaymentService, wechatOAuth *oauth.WechatOAuth, jwtSecret string, jwtExpire time.Duration, uploadDir string) *TicketHandler {
+	return &TicketHandler{ticketSvc: ticketSvc, authSvc: authSvc, paySvc: paySvc, wechatOAuth: wechatOAuth, jwtSecret: jwtSecret, jwtExpire: jwtExpire, uploadDir: uploadDir}
 }
 
 // === Auth extensions ===
@@ -391,45 +395,72 @@ func (h *TicketHandler) AdminCommentReply(c *gin.Context) {
 	response.Success(c, nil)
 }
 
-// === Payment notify (MOCK) ===
+// === Payment notify ===
 
-// MOCK: 待接入真实服务
 func (h *TicketHandler) WechatNotify(c *gin.Context) {
-	// MOCK: 待接入真实服务 — 直接标记订单已支付
-	var body struct {
-		OrderID int64 `json:"order_id"`
-	}
-	if err := c.ShouldBindJSON(&body); err != nil {
-		response.Success(c, gin.H{"status": "ok", "mock": true})
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(200, gin.H{"code": "FAIL", "message": "read body failed"})
 		return
 	}
-	response.Success(c, gin.H{"status": "ok", "mock": true})
+	signature := c.GetHeader("Wechatpay-Signature")
+	if svcErr := h.paySvc.WechatNotifyCallback(c.Request.Context(), body, signature); svcErr != nil {
+		c.JSON(200, gin.H{"code": "FAIL", "message": svcErr.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"code": "SUCCESS", "message": "ok"})
 }
 
-// MOCK: 待接入真实服务
 func (h *TicketHandler) AlipayNotify(c *gin.Context) {
-	// MOCK: 待接入真实服务 — 直接标记订单已支付
-	response.Success(c, gin.H{"status": "ok", "mock": true})
+	c.Request.ParseForm()
+	params := make(map[string]string)
+	for k, v := range c.Request.PostForm {
+		if len(v) > 0 {
+			params[k] = v[0]
+		}
+	}
+	if svcErr := h.paySvc.AlipayNotifyCallback(c.Request.Context(), params); svcErr != nil {
+		c.String(200, "fail")
+		return
+	}
+	c.String(200, "success")
 }
 
-// === OAuth (MOCK) ===
+// === OAuth ===
 
-// MOCK: 待接入真实服务
 func (h *TicketHandler) OAuthWechat(c *gin.Context) {
-	// MOCK: 待接入真实服务 — 返回模拟授权URL
-	response.Success(c, gin.H{
-		"auth_url": "https://open.weixin.qq.com/connect/oauth2/authorize?appid=MOCK_APPID&redirect_uri=MOCK_REDIRECT&response_type=code&scope=snsapi_userinfo",
-		"mock":     true,
-	})
+	state := c.DefaultQuery("state", "login")
+	authURL := h.wechatOAuth.GetAuthURL(state)
+	response.Success(c, gin.H{"auth_url": authURL})
 }
 
-// MOCK: 待接入真实服务
 func (h *TicketHandler) OAuthWechatCallback(c *gin.Context) {
-	// MOCK: 待接入真实服务 — 自动创建用户并返回token
+	var req struct {
+		Code string `json:"code" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, errcode.ErrParam)
+		return
+	}
+	wxUser, err := h.wechatOAuth.GetUserInfo(req.Code)
+	if err != nil {
+		response.Error(c, errcode.New(40001, "微信授权失败"))
+		return
+	}
+	// Find or create user by wechat openid
+	user, svcErr := h.ticketSvc.FindOrCreateByWechat(c.Request.Context(), wxUser.OpenID, wxUser.Nickname, wxUser.Avatar)
+	if svcErr != nil {
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
+	token, tokenErr := middleware.GenerateToken(user.ID, h.jwtSecret, h.jwtExpire)
+	if tokenErr != nil {
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
 	response.Success(c, gin.H{
-		"token": "mock_wechat_token",
-		"user":  gin.H{"id": 0, "username": "wx_mock_user", "phone": "", "avatar": "", "is_vip": false},
-		"mock":  true,
+		"token": token,
+		"user": gin.H{"id": user.ID, "username": user.Username, "phone": user.Phone, "avatar": user.AvatarURL, "is_vip": user.Role == "vip"},
 	})
 }
 

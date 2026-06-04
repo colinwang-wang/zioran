@@ -49,3 +49,12 @@ func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*
 func (r *UserRepository) UpdatePassword(ctx context.Context, userID int64, hash string) error {
 	return r.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", userID).Update("password_hash", hash).Error
 }
+
+func (r *UserRepository) FindByWechatOpenID(ctx context.Context, openID string) (*model.User, error) {
+	var user model.User
+	err := r.db.WithContext(ctx).Where("wechat_openid = ?", openID).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}

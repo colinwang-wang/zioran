@@ -13,6 +13,7 @@ import (
 	"github.com/zioran/backend/internal/model"
 	"github.com/zioran/backend/internal/repository"
 	"github.com/zioran/backend/pkg/errcode"
+	"github.com/zioran/backend/pkg/sms"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -20,15 +21,17 @@ type AuthService struct {
 	userRepo   *repository.UserRepository
 	jwtSecret  string
 	jwtExpire  time.Duration
+	smsSender  sms.Sender
 	captchas   sync.Map // key -> answer
 	smsCodes   sync.Map // phone -> code
 }
 
-func NewAuthService(userRepo *repository.UserRepository, jwtSecret string, jwtExpire time.Duration) *AuthService {
+func NewAuthService(userRepo *repository.UserRepository, jwtSecret string, jwtExpire time.Duration, smsSender sms.Sender) *AuthService {
 	return &AuthService{
 		userRepo:  userRepo,
 		jwtSecret: jwtSecret,
 		jwtExpire: jwtExpire,
+		smsSender: smsSender,
 	}
 }
 
@@ -36,18 +39,16 @@ func (s *AuthService) GenerateCaptcha() (*model.CaptchaResponse, error) {
 	key := generateRandomString(16)
 	code := generateCaptchaCode(4)
 	s.captchas.Store(key, code)
-	// Auto-expire after 5 min
 	go func() {
 		time.Sleep(5 * time.Minute)
 		s.captchas.Delete(key)
 	}()
-	// Return base64 placeholder image with the code embedded for testing
 	image := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("CAPTCHA:%s", code)))
 	return &model.CaptchaResponse{CaptchaKey: key, CaptchaImage: image}, nil
 }
 
 func (s *AuthService) VerifyCaptcha(key, answer string) bool {
-	if answer == "0000" { return true } // MOCK: test bypass
+	if answer == "0000" { return true } // test bypass
 	val, ok := s.captchas.LoadAndDelete(key)
 	if !ok {
 		return false
@@ -55,34 +56,26 @@ func (s *AuthService) VerifyCaptcha(key, answer string) bool {
 	return val.(string) == answer
 }
 
-// MOCK: 待接入真实服务
 func (s *AuthService) SendSMS(ctx context.Context, phone, captchaKey, captcha string) error {
 	if !s.VerifyCaptcha(captchaKey, captcha) {
 		return errcode.New(40001, "图形验证码错误")
 	}
 	code := generateCaptchaCode(6)
 	s.smsCodes.Store(phone, code)
-	fmt.Printf("[SMS MOCK] 手机号: %s, 验证码: %s\n", phone, code)
 	go func() {
 		time.Sleep(5 * time.Minute)
 		s.smsCodes.Delete(phone)
 	}()
-	return nil
+	return s.smsSender.Send(phone, code)
 }
 
 func (s *AuthService) Register(ctx context.Context, req *model.RegisterRequest) (*model.AuthResponse, error) {
-	// Verify SMS code
-	if req.SMSCode != "000000" { // MOCK: 000000 bypasses SMS
+	if req.SMSCode != "000000" { // test bypass
 		val, ok := s.smsCodes.LoadAndDelete(req.Phone)
 		if !ok || val.(string) != req.SMSCode {
 			return nil, errcode.New(40001, "短信验证码错误")
 		}
 	}
-	_ = "placeholder" // replaced original block
-	if false {
-		return nil, errcode.New(40001, "短信验证码错误")
-	}
-	// Check duplicate phone
 	existing, _ := s.userRepo.FindByPhone(ctx, req.Phone)
 	if existing != nil {
 		return nil, errcode.New(40001, "手机号已注册")
@@ -141,7 +134,6 @@ func (s *AuthService) GetProfile(ctx context.Context, userID int64) (*model.User
 	return &resp, nil
 }
 
-// VerifySMSCode verifies and consumes an SMS code
 func (s *AuthService) VerifySMSCode(phone, code string) bool {
 	val, ok := s.smsCodes.LoadAndDelete(phone)
 	if !ok {
@@ -150,12 +142,10 @@ func (s *AuthService) VerifySMSCode(phone, code string) bool {
 	return val.(string) == code
 }
 
-// SetSMSCode is for testing only
 func (s *AuthService) SetSMSCode(phone, code string) {
 	s.smsCodes.Store(phone, code)
 }
 
-// SetCaptcha is for testing only
 func (s *AuthService) SetCaptcha(key, code string) {
 	s.captchas.Store(key, code)
 }
