@@ -116,7 +116,7 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
                 )}
               </div>
             )}
-            <p className="text-xs text-mute mt-3">如遇问题请联系客服</p>
+            <p className="text-xs text-mute mt-3">提示：如遇到下载链接错误、失效等情况，可以直接在个人中心&gt;提交工单说明情况等待补发链接。</p>
           </div>
 
           {/* Actions */}
@@ -172,7 +172,7 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
               ) : (
                 <button onClick={handlePurchase} className="mt-2 block w-full py-3 bg-primary text-white text-sm font-bold rounded-card">立即购买</button>
               )}
-              <p className="text-xs text-mute mt-3 text-center">如遇问题请联系客服</p>
+              <p className="text-xs text-mute mt-3 text-center">提示：如遇到下载链接错误、失效等情况，可以直接在个人中心&gt;提交工单说明情况等待补发链接。</p>
             </div>
 
             {/* Hot tags */}

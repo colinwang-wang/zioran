@@ -53,7 +53,16 @@ export default function HomeClient({ navItems, banners, latest, categories }: Pr
       {/* Banner + 搜索（合并为一个深色区域） */}
       <section className="py-8">
         <div className="max-w-[1280px] mx-auto px-6">
-          <div className="relative rounded-[32px] overflow-hidden bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460] py-16 px-8 text-center text-white">
+          <div className="relative rounded-[32px] overflow-hidden py-16 px-8 text-center text-white">
+            {/* 背景：优先显示Banner图片，否则默认渐变 */}
+            {banners.length > 0 && banners[0].image_url ? (
+              <div className="absolute inset-0">
+                <img src={banners[0].image_url} alt="" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/50" />
+              </div>
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460]" />
+            )}
             {/* 装饰光效 */}
             <div className="absolute top-[-50%] right-[-10%] w-[400px] h-[400px] bg-[radial-gradient(circle,rgba(255,0,54,0.15),transparent_70%)]" />
             <h1 className="text-3xl md:text-[44px] font-bold tracking-tight relative">知猿课堂，学有所长</h1>
@@ -107,11 +116,7 @@ export default function HomeClient({ navItems, banners, latest, categories }: Pr
             <div className="text-[44px] font-bold text-[#ff0036] mt-2">99 <span className="text-base font-normal text-[#62625b]">金币</span></div>
             <div className="text-sm text-[#91918c] line-through mt-1">原价 699 金币</div>
             <div className="text-base text-[#62625b] mt-4 pb-4 border-b border-[#dadad3]">永久有效</div>
-            <ul className="mt-6 text-sm text-[#33332e] space-y-3 text-left">
-              <li className="flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-[#fff0f3] text-[#ff0036] flex items-center justify-center text-xs font-bold">✓</span>全站课程免费下载</li>
-              <li className="flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-[#fff0f3] text-[#ff0036] flex items-center justify-center text-xs font-bold">✓</span>持续每天更新资源</li>
-              <li className="flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-[#fff0f3] text-[#ff0036] flex items-center justify-center text-xs font-bold">✓</span>专属客服支持</li>
-            </ul>
+            <p className="mt-6 text-sm text-[#62625b] text-center">持续更新课堂资源，终身会员永久有效</p>
             <Link href="/vip" className="mt-8 block w-full py-3.5 bg-[#ff0036] text-white text-sm font-bold rounded-[16px] hover:bg-[#e6002f] text-center transition">立即升级</Link>
             <p className="text-xs text-[#91918c] mt-4">75% 的人选择该套餐</p>
           </div>
