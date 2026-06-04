@@ -192,7 +192,7 @@ export interface TicketReply {
 export interface Ticket {
   id: number;
   user_id: number;
-  subject: string;
+  title: string;
   content: string;
   status: string;
   created_at: string;

@@ -167,7 +167,7 @@ DELETE /api/v1/guestbook/:id           # 删除自己的留言
 
 ```
 GET    /api/v1/comments                # 评论列表
-       Query: targetType, targetId, page, pageSize
+       Query: target_type, target_id, page, pageSize
 POST   /api/v1/comments                # 发表评论
 DELETE /api/v1/comments/:id            # 删除自己的评论
 ```

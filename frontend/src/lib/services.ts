@@ -70,6 +70,8 @@ export const recharge = (data: { amount: number; pay_method: string }) => api.po
 // Course actions
 export const likeCourse = (id: number) => api.post(`/courses/${id}/like`);
 export const downloadCourse = (id: number) => api.post(`/courses/${id}/download`);
+export const purchaseCourse = (courseId: number) =>
+  api.post('/orders', { type: 'course', target_id: courseId });
 
 // Orders
 export const createOrder = (data: { type: string; target_id?: number; amount?: number }) =>
@@ -82,7 +84,7 @@ export const forgotPassword = (data: { phone: string; sms_code: string; new_pass
 // Tickets
 export const getTickets = (params?: { page?: number }) =>
   api.get<PaginatedList<Ticket>>('/tickets', { params }).then(r => r.data);
-export const createTicket = (data: { subject: string; content: string }) =>
+export const createTicket = (data: { title: string; content: string }) =>
   api.post('/tickets', data);
 export const getTicketDetail = (id: number) =>
   api.get<Ticket>(`/tickets/${id}`).then(r => r.data);

@@ -8,7 +8,7 @@ export default function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selected, setSelected] = useState<Ticket | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [subject, setSubject] = useState('');
+  const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [replyContent, setReplyContent] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,9 +21,9 @@ export default function TicketsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!subject || !content) return;
+    if (!title || !content) return;
     setLoading(true);
-    try { await createTicket({ subject, content }); setSubject(''); setContent(''); setShowForm(false); loadTickets(); } catch { /* ignore */ }
+    try { await createTicket({ title, content }); setTitle(''); setContent(''); setShowForm(false); loadTickets(); } catch { /* ignore */ }
     setLoading(false);
   };
 
@@ -44,7 +44,7 @@ export default function TicketsPage() {
       <div>
         <button onClick={() => setSelected(null)} className="text-sm text-primary mb-4">← 返回列表</button>
         <div className="bg-canvas rounded-lg border border-hairline p-6">
-          <h2 className="font-bold text-ink">{selected.subject}</h2>
+          <h2 className="font-bold text-ink">{selected.title}</h2>
           <p className="text-xs text-mute mt-1">状态: {selected.status} · {selected.created_at}</p>
           <p className="mt-3 text-sm text-ink">{selected.content}</p>
         </div>
@@ -76,7 +76,7 @@ export default function TicketsPage() {
       </div>
       {showForm && (
         <form onSubmit={handleCreate} className="mb-6 p-4 bg-canvas rounded-lg border border-hairline space-y-3">
-          <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="工单主题" className="w-full px-4 py-2 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="工单主题" className="w-full px-4 py-2 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
           <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="详细描述您的问题..." rows={4} className="w-full px-4 py-2 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none resize-none" />
           <button type="submit" disabled={loading} className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-card disabled:opacity-50">提交</button>
         </form>
@@ -88,7 +88,7 @@ export default function TicketsPage() {
           {tickets.map((t) => (
             <div key={t.id} onClick={() => handleSelect(t.id)} className="p-4 bg-canvas rounded-lg border border-hairline cursor-pointer hover:border-primary">
               <div className="flex justify-between items-center">
-                <h3 className="font-semibold text-sm text-ink">{t.subject}</h3>
+                <h3 className="font-semibold text-sm text-ink">{t.title}</h3>
                 <span className={`text-xs px-2 py-0.5 rounded ${t.status === 'closed' ? 'bg-gray-100 text-mute' : 'bg-green-100 text-green-700'}`}>{t.status === 'closed' ? '已关闭' : '进行中'}</span>
               </div>
               <p className="text-xs text-mute mt-1">{t.created_at}</p>

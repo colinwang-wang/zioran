@@ -112,7 +112,7 @@ export const uploadImage = (file: File) => {
 export const getTickets = (params: Record<string, unknown>) => request.get<unknown, PageResponse<Ticket>>('/admin/tickets', { params })
 export const getTicket = (id: number) => request.get<unknown, ApiResponse<TicketDetail>>(`/admin/tickets/${id}`)
 export const replyTicket = (id: number, content: string) => request.post<unknown, ApiResponse<null>>(`/admin/tickets/${id}/reply`, { content })
-export const updateTicketStatus = (id: number, status: string) => request.put<unknown, ApiResponse<null>>(`/admin/tickets/${id}`, { status })
+export const updateTicketStatus = (id: number, status: string) => request.put<unknown, ApiResponse<null>>(`/admin/tickets/${id}/status`, { status })
 
 // 系统设置
 export const getSettings = () => request.get<unknown, ApiResponse<Settings>>('/admin/settings')

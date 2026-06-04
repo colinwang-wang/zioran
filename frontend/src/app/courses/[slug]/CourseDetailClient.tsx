@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { likeCourse, downloadCourse, addFavorite, removeFavorite, createComment } from '@/lib/services';
+import { likeCourse, downloadCourse, purchaseCourse, addFavorite, removeFavorite, createComment } from '@/lib/services';
 import CourseCard from '@/components/CourseCard';
 import CommentSection from './CommentSection';
 import type { CourseDetail } from '@/types';
@@ -31,21 +31,34 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
     } catch { /* ignore */ }
   };
 
-  const handleDownload = async () => {
+  const [purchased, setPurchased] = useState(course.user_access?.has_purchased || false);
+
+  const handlePurchase = async () => {
     if (!isLoggedIn) { window.location.href = '/login'; return; }
     try {
-      await downloadCourse(course.id);
-      // Show resources
-      if (course.resources.length > 0) {
-        alert(`下载链接:\n${course.resources.map(r => `${r.name}: ${r.url}${r.password ? ` 密码:${r.password}` : ''}`).join('\n')}`);
-      }
+      await purchaseCourse(course.id);
+      setPurchased(true);
+      alert('购买成功！');
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || '购买失败';
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || '购买失败，余额不足请先充值';
       alert(msg);
     }
   };
 
-  const canDownload = course.user_access?.can_download || false;
+  const handleDownload = async () => {
+    if (!isLoggedIn) { window.location.href = '/login'; return; }
+    try {
+      await downloadCourse(course.id);
+      if (course.resources.length > 0) {
+        alert(`下载链接:\n${course.resources.map(r => `${r.name}: ${r.url}${r.password ? ` 密码:${r.password}` : ''}`).join('\n')}`);
+      }
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || '下载失败';
+      alert(msg);
+    }
+  };
+
+  const canDownload = course.user_access?.can_download || purchased;
   const isVip = course.user_access?.is_vip || false;
 
   return (
@@ -93,7 +106,7 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
               </button>
             ) : (
               <div className="flex gap-3 mt-4">
-                <button onClick={handleDownload} className="px-6 py-3 bg-primary text-white text-sm font-bold rounded-card hover:bg-primary-pressed">
+                <button onClick={handlePurchase} className="px-6 py-3 bg-primary text-white text-sm font-bold rounded-card hover:bg-primary-pressed">
                   立即购买
                 </button>
                 {!isVip && (
@@ -157,7 +170,7 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
               {canDownload ? (
                 <button onClick={handleDownload} className="mt-2 block w-full py-3 bg-primary text-white text-sm font-bold rounded-card">立即下载</button>
               ) : (
-                <button onClick={handleDownload} className="mt-2 block w-full py-3 bg-primary text-white text-sm font-bold rounded-card">立即购买</button>
+                <button onClick={handlePurchase} className="mt-2 block w-full py-3 bg-primary text-white text-sm font-bold rounded-card">立即购买</button>
               )}
               <p className="text-xs text-mute mt-3 text-center">如遇问题请联系客服</p>
             </div>
