@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"fmt"
+		"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -43,8 +43,20 @@ func (s *AuthService) GenerateCaptcha() (*model.CaptchaResponse, error) {
 		time.Sleep(5 * time.Minute)
 		s.captchas.Delete(key)
 	}()
-	image := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("CAPTCHA:%s", code)))
+	svg := generateCaptchaSVG(code)
+	image := "data:image/svg+xml;base64," + base64.StdEncoding.EncodeToString([]byte(svg))
 	return &model.CaptchaResponse{CaptchaKey: key, CaptchaImage: image}, nil
+}
+
+func generateCaptchaSVG(code string) string {
+	colors := []string{"#e60023", "#333", "#0066cc", "#009933"}
+	svg := `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40"><rect width="120" height="40" fill="#f5f5f5" rx="4"/>`
+	for i, c := range code {
+		x := 15 + i*25
+		svg += fmt.Sprintf(`<text x="%d" y="28" font-size="22" font-family="Arial" fill="%s" transform="rotate(%d %d 20)">%c</text>`, x, colors[i%4], i*7-10, x, c)
+	}
+	svg += `<line x1="10" y1="15" x2="110" y2="25" stroke="#ddd"/><line x1="20" y1="32" x2="100" y2="8" stroke="#eee"/></svg>`
+	return svg
 }
 
 func (s *AuthService) VerifyCaptcha(key, answer string) bool {
