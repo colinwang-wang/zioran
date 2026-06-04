@@ -3,16 +3,17 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-import { likeCourse, downloadCourse, purchaseCourse, addFavorite, removeFavorite, createComment } from '@/lib/services';
+import { likeCourse, downloadCourse, purchaseCourse, addFavorite, removeFavorite } from '@/lib/services';
 import CourseCard from '@/components/CourseCard';
 import CommentSection from './CommentSection';
-import type { CourseDetail } from '@/types';
+import type { CourseDetail, ResourceItem } from '@/types';
 
 export default function CourseDetailClient({ course }: { course: CourseDetail }) {
-  const { isLoggedIn, user } = useAuth();
+  const { isLoggedIn } = useAuth();
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(course.like_count);
   const [favorited, setFavorited] = useState(course.user_access?.is_favorited || false);
+  const [resources, setResources] = useState<ResourceItem[]>(course.resources || []);
 
   const handleLike = async () => {
     if (!isLoggedIn) { window.location.href = '/login'; return; }
@@ -48,9 +49,12 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
   const handleDownload = async () => {
     if (!isLoggedIn) { window.location.href = '/login'; return; }
     try {
-      await downloadCourse(course.id);
-      if (course.resources.length > 0) {
-        alert(`下载链接:\n${course.resources.map(r => `${r.name}: ${r.url}${r.password ? ` 密码:${r.password}` : ''}`).join('\n')}`);
+      const res = await downloadCourse(course.id);
+      setResources(res.resources || []);
+      if (res.resources.length > 0) {
+        alert(`下载链接:\n${res.resources.map(r => `${r.name}: ${r.url}${r.password ? ` 密码:${r.password}` : ''}`).join('\n')}`);
+      } else {
+        alert('暂无可用资源，请联系管理员');
       }
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || '下载失败';
@@ -67,7 +71,7 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
       <div className="text-sm text-mute mb-6">
         <Link href="/" className="hover:text-primary">首页</Link> &gt;{' '}
         <Link href="/courses" className="hover:text-primary">知猿课堂</Link> &gt;{' '}
-        {course.category && <><Link href={`/courses?categoryId=${course.category.id}`} className="hover:text-primary">{course.category.name}</Link> &gt; </>}
+        {course.category && <><Link href={`/courses/category/${course.category.slug}`} className="hover:text-primary">{course.category.name}</Link> &gt; </>}
         <span>正文</span>
       </div>
 
@@ -117,6 +121,16 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
               </div>
             )}
             <p className="text-xs text-mute mt-3">提示：如遇到下载链接错误、失效等情况，可以直接在个人中心&gt;提交工单说明情况等待补发链接。</p>
+            {resources.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {resources.map((r) => (
+                  <div key={r.id} className="rounded-card bg-canvas border border-hairline p-3 text-sm">
+                    <a href={r.url} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">{r.name}</a>
+                    {r.password && <span className="ml-2 text-mute">提取码: {r.password}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Actions */}
@@ -133,7 +147,7 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
           {course.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-4">
               {course.tags.map((tag) => (
-                <Link key={tag.id} href={`/courses?tagId=${tag.id}`} className="px-3 py-1 bg-surface rounded-full text-xs text-mute hover:text-primary">
+                <Link key={tag.id} href={`/courses/tag/${tag.slug}`} className="px-3 py-1 bg-surface rounded-full text-xs text-mute hover:text-primary">
                   {tag.name}
                 </Link>
               ))}
@@ -181,7 +195,7 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
                 <h4 className="text-sm font-bold mb-3">热门标签</h4>
                 <div className="flex flex-wrap gap-2">
                   {course.tags.map((tag) => (
-                    <Link key={tag.id} href={`/courses?tagId=${tag.id}`} className="px-3 py-1 bg-canvas rounded-full text-xs text-mute hover:text-primary border border-hairline">
+                    <Link key={tag.id} href={`/courses/tag/${tag.slug}`} className="px-3 py-1 bg-canvas rounded-full text-xs text-mute hover:text-primary border border-hairline">
                       {tag.name}
                     </Link>
                   ))}

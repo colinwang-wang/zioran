@@ -2,7 +2,9 @@ package sms
 
 import (
 	"crypto/hmac"
+	"crypto/sha1"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -22,15 +24,15 @@ type Sender interface {
 
 // SMSConfig holds provider selection and credentials.
 type SMSConfig struct {
-	Provider string       `yaml:"provider"` // mock | aliyun | tencent
-	Aliyun   AliyunConfig `yaml:"aliyun"`
+	Provider string        `yaml:"provider"` // mock | aliyun | tencent
+	Aliyun   AliyunConfig  `yaml:"aliyun"`
 	Tencent  TencentConfig `yaml:"tencent"`
 }
 
 type AliyunConfig struct {
 	AccessKeyID     string `yaml:"access_key_id"`
 	AccessKeySecret string `yaml:"access_key_secret"`
-	SignName         string `yaml:"sign_name"`
+	SignName        string `yaml:"sign_name"`
 	TemplateCode    string `yaml:"template_code"`
 }
 
@@ -96,9 +98,9 @@ func (s *AliyunSender) Send(phone, code string) error {
 		query.WriteString(url.QueryEscape(k) + "=" + url.QueryEscape(params[k]))
 	}
 	stringToSign := "GET&" + url.QueryEscape("/") + "&" + url.QueryEscape(query.String())
-	mac := hmac.New(sha256.New, []byte(s.cfg.AccessKeySecret+"&"))
+	mac := hmac.New(sha1.New, []byte(s.cfg.AccessKeySecret+"&"))
 	mac.Write([]byte(stringToSign))
-	sig := url.QueryEscape(hex.EncodeToString(mac.Sum(nil)))
+	sig := url.QueryEscape(base64.StdEncoding.EncodeToString(mac.Sum(nil)))
 
 	reqURL := "https://dysmsapi.aliyuncs.com/?" + query.String() + "&Signature=" + sig
 	resp, err := http.Get(reqURL)

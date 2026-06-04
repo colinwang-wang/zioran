@@ -7,7 +7,12 @@ async function getData(slug: string) {
     const tagsRes = await fetch(`${baseUrl}/tags`, { next: { revalidate: 300 } });
     const tags = tagsRes.ok ? await tagsRes.json().then(r => r.data || []) : [];
     const tag = tags.find((t: { slug: string }) => t.slug === slug);
-    const tagId = tag?.id || '';
+    if (!tag) {
+      const categoriesRes = await fetch(`${baseUrl}/categories`, { next: { revalidate: 300 } });
+      const categories = categoriesRes.ok ? await categoriesRes.json().then(r => r.data || []) : [];
+      return { courses: { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 }, categories, tagId: null };
+    }
+    const tagId = tag.id;
     const [coursesRes, categoriesRes] = await Promise.all([
       fetch(`${baseUrl}/courses?page=1&pageSize=16&tagId=${tagId}`, { next: { revalidate: 60 } }),
       fetch(`${baseUrl}/categories`, { next: { revalidate: 300 } }),
@@ -16,9 +21,9 @@ async function getData(slug: string) {
       coursesRes.ok ? coursesRes.json().then(r => r.data || { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 }) : { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 },
       categoriesRes.ok ? categoriesRes.json().then(r => r.data || []) : [],
     ]);
-    return { courses, categories };
+    return { courses, categories, tagId };
   } catch {
-    return { courses: { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 }, categories: [] };
+    return { courses: { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 }, categories: [], tagId: null };
   }
 }
 
@@ -27,7 +32,7 @@ export default async function TagPage({ params }: { params: Promise<{ slug: stri
   const data = await getData(slug);
   return (
     <Suspense fallback={<div className="max-w-container mx-auto px-4 py-8">加载中...</div>}>
-      <CoursesClient initialCourses={data.courses} categories={data.categories} />
+      <CoursesClient initialCourses={data.courses} categories={data.categories} initialTagId={data.tagId} />
     </Suspense>
   );
 }

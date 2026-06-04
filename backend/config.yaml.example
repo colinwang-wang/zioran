@@ -30,13 +30,17 @@ sms:
 payment:
   wechat:
     enabled: false
+    mock_auto_complete: false
     app_id: ""
     mch_id: ""
     api_key: ""
     notify_url: "https://api.zioran.com/api/v1/pay/notify/wechat"
+    serial_no: ""
+    private_key_path: ""
     cert_path: ""
   alipay:
     enabled: false
+    mock_auto_complete: false
     app_id: ""
     private_key: ""
     alipay_public_key: ""

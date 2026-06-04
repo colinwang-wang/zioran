@@ -77,9 +77,11 @@ func (s *PaymentService) Recharge(ctx context.Context, userID int64, req *model.
 				return nil, errcode.ErrInternal
 			}
 			payURL = url
-		} else {
+		} else if s.wechatPay.Cfg.MockAutoComplete {
 			payURL = "mock://wechat_pay/" + order.OrderNo
 			autoComplete = true
+		} else {
+			return nil, errcode.New(40001, "微信支付未启用")
 		}
 	case "alipay":
 		if s.alipay.Cfg.Enabled {
@@ -88,13 +90,14 @@ func (s *PaymentService) Recharge(ctx context.Context, userID int64, req *model.
 				return nil, errcode.ErrInternal
 			}
 			payURL = url
-		} else {
+		} else if s.alipay.Cfg.MockAutoComplete {
 			payURL = "mock://alipay/" + order.OrderNo
 			autoComplete = true
+		} else {
+			return nil, errcode.New(40001, "支付宝未启用")
 		}
 	default:
-		payURL = "mock://pay"
-		autoComplete = true
+		return nil, errcode.New(40001, "不支持的支付方式")
 	}
 
 	if autoComplete {

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { register, getCaptcha, sendSMS } from '@/lib/services';
+import { register, getCaptcha, sendSMS, getWechatAuthURL } from '@/lib/services';
 
 export default function RegisterPage() {
   const { setAuth } = useAuth();
@@ -59,6 +59,15 @@ export default function RegisterPage() {
     setLoading(false);
   };
 
+  const handleWechatLogin = async () => {
+    try {
+      const authURL = await getWechatAuthURL();
+      window.location.href = authURL;
+    } catch {
+      setError('微信登录暂不可用');
+    }
+  };
+
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <div className="w-full max-w-sm bg-canvas rounded-lg p-8 border border-hairline shadow-sm">
@@ -93,7 +102,7 @@ export default function RegisterPage() {
         </div>
         <div className="mt-6 border-t border-hairline pt-4 text-center">
           <p className="text-xs text-mute mb-3">社交账号快速登录</p>
-          <button className="px-4 py-2 bg-[#07c160] text-white text-xs font-bold rounded-card">微信登录</button>
+          <button type="button" onClick={handleWechatLogin} className="px-4 py-2 bg-[#07c160] text-white text-xs font-bold rounded-card">微信登录</button>
         </div>
       </div>
     </div>

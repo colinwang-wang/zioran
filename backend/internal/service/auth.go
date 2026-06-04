@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-		"fmt"
+	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -18,12 +18,12 @@ import (
 )
 
 type AuthService struct {
-	userRepo   *repository.UserRepository
-	jwtSecret  string
-	jwtExpire  time.Duration
-	smsSender  sms.Sender
-	captchas   sync.Map // key -> answer
-	smsCodes   sync.Map // phone -> code
+	userRepo  *repository.UserRepository
+	jwtSecret string
+	jwtExpire time.Duration
+	smsSender sms.Sender
+	captchas  sync.Map // key -> answer
+	smsCodes  sync.Map // phone -> code
 }
 
 func NewAuthService(userRepo *repository.UserRepository, jwtSecret string, jwtExpire time.Duration, smsSender sms.Sender) *AuthService {
@@ -60,7 +60,6 @@ func generateCaptchaSVG(code string) string {
 }
 
 func (s *AuthService) VerifyCaptcha(key, answer string) bool {
-	if answer == "0000" { return true } // test bypass
 	val, ok := s.captchas.LoadAndDelete(key)
 	if !ok {
 		return false
@@ -82,11 +81,9 @@ func (s *AuthService) SendSMS(ctx context.Context, phone, captchaKey, captcha st
 }
 
 func (s *AuthService) Register(ctx context.Context, req *model.RegisterRequest) (*model.AuthResponse, error) {
-	if req.SMSCode != "000000" { // test bypass
-		val, ok := s.smsCodes.LoadAndDelete(req.Phone)
-		if !ok || val.(string) != req.SMSCode {
-			return nil, errcode.New(40001, "短信验证码错误")
-		}
+	val, ok := s.smsCodes.LoadAndDelete(req.Phone)
+	if !ok || val.(string) != req.SMSCode {
+		return nil, errcode.New(40001, "短信验证码错误")
 	}
 	existing, _ := s.userRepo.FindByPhone(ctx, req.Phone)
 	if existing != nil {

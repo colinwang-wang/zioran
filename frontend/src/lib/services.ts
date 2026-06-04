@@ -1,9 +1,10 @@
 import api from '@/lib/api';
 import type {
   AuthResponse, CaptchaResponse, CategoryBrief, CoinBalance,
+  CourseDownloadResponse,
   CommentItem, CourseDetail, CourseListItem, DownloadItem,
   FavoriteItem, GuestbookItem, NavItem, Banner, OrderItem,
-  PaginatedList, TagBrief, Ticket, VipPackage, VipStatus, UserResponse,
+  PaginatedList, RechargeResponse, TagBrief, Ticket, VipPackage, VipStatus, UserResponse,
 } from '@/types';
 
 // Auth
@@ -14,11 +15,13 @@ export const register = (data: { phone: string; sms_code: string; password: stri
   api.post<AuthResponse>('/auth/register', data).then(r => r.data);
 export const login = (data: { phone: string; password: string; captcha: string; captcha_key: string }) =>
   api.post<AuthResponse>('/auth/login', data).then(r => r.data);
+export const getWechatAuthURL = () =>
+  api.get<{ auth_url: string }>('/auth/oauth/wechat', { params: { state: 'login' } }).then(r => r.data.auth_url);
 
 // Courses
 export const getLatestCourses = () =>
   api.get<CourseListItem[]>('/courses/latest').then(r => r.data);
-export const getCourses = (params: { page?: number; pageSize?: number; categoryId?: number; sort?: string }) =>
+export const getCourses = (params: { page?: number; pageSize?: number; categoryId?: number; tagId?: number; sort?: string }) =>
   api.get<PaginatedList<CourseListItem>>('/courses', { params }).then(r => r.data);
 export const getCourseDetail = (slug: string) =>
   api.get<CourseDetail>(`/courses/${slug}`).then(r => r.data);
@@ -65,11 +68,13 @@ export const removeFavorite = (courseId: number) => api.delete(`/user/favorites/
 
 // Coins
 export const getCoinBalance = () => api.get<CoinBalance>('/coins/balance').then(r => r.data);
-export const recharge = (data: { amount: number; pay_method: string }) => api.post('/coins/recharge', data);
+export const recharge = (data: { amount: number; pay_method: string }) =>
+  api.post<RechargeResponse>('/coins/recharge', data).then(r => r.data);
 
 // Course actions
 export const likeCourse = (id: number) => api.post(`/courses/${id}/like`);
-export const downloadCourse = (id: number) => api.post(`/courses/${id}/download`);
+export const downloadCourse = (id: number) =>
+  api.post<CourseDownloadResponse>(`/courses/${id}/download`).then(r => r.data);
 export const purchaseCourse = (courseId: number) =>
   api.post('/orders', { type: 'course', target_id: courseId });
 

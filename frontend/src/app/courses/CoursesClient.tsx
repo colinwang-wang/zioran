@@ -10,26 +10,29 @@ import type { PaginatedList, CourseListItem, CategoryBrief } from '@/types';
 interface Props {
   initialCourses: PaginatedList<CourseListItem>;
   categories: CategoryBrief[];
+  initialCategoryId?: number | null;
+  initialTagId?: number | null;
 }
 
-export default function CoursesClient({ initialCourses, categories }: Props) {
+export default function CoursesClient({ initialCourses, categories, initialCategoryId = null, initialTagId = null }: Props) {
   const searchParams = useSearchParams();
   const queryFromUrl = searchParams.get('q') || '';
   const catFromUrl = searchParams.get('categoryId');
 
   const [data, setData] = useState(initialCourses);
   const [page, setPage] = useState(initialCourses.page);
-  const [activeCategory, setActiveCategory] = useState<number | null>(catFromUrl ? Number(catFromUrl) : null);
+  const [activeCategory, setActiveCategory] = useState<number | null>(catFromUrl ? Number(catFromUrl) : initialCategoryId);
+  const [activeTagId, setActiveTagId] = useState<number | null>(initialTagId);
   const [loading, setLoading] = useState(false);
 
-  const fetchData = async (p: number, catId: number | null) => {
+  const fetchData = async (p: number, catId: number | null, tagId: number | null = activeTagId) => {
     setLoading(true);
     try {
       if (queryFromUrl) {
         const res = await searchCourses({ q: queryFromUrl, page: p, pageSize: 16 });
         setData(res);
       } else {
-        const res = await getCourses({ page: p, pageSize: 16, categoryId: catId || undefined });
+        const res = await getCourses({ page: p, pageSize: 16, categoryId: catId || undefined, tagId: catId ? undefined : tagId || undefined });
         setData(res);
       }
       setPage(p);
@@ -39,7 +42,8 @@ export default function CoursesClient({ initialCourses, categories }: Props) {
 
   const handleCategoryChange = (catId: number | null) => {
     setActiveCategory(catId);
-    fetchData(1, catId);
+    setActiveTagId(null);
+    fetchData(1, catId, null);
   };
 
   return (

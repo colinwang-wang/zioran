@@ -23,6 +23,10 @@ import (
 )
 
 func setupPhase34Router(t *testing.T) (*gorm.DB, *httptest.Server, string) {
+	return setupPhase34RouterWithMockPayment(t, true)
+}
+
+func setupPhase34RouterWithMockPayment(t *testing.T, mockAutoComplete bool) (*gorm.DB, *httptest.Server, string) {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	assert.NoError(t, err)
 	assert.NoError(t, db.AutoMigrate(
@@ -47,7 +51,13 @@ func setupPhase34Router(t *testing.T) (*gorm.DB, *httptest.Server, string) {
 
 	authSvc := service.NewAuthService(userRepo, testJWTSecret, 72*time.Hour, &sms.MockSender{})
 	courseSvc := service.NewCourseService(courseRepo, catRepo, tagRepo, favRepo)
-	paySvc := service.NewPaymentService(payRepo, courseRepo, userRepo, payment.NewWechatPay(payment.WechatPayConfig{}), payment.NewAlipayClient(payment.AlipayConfig{}))
+	paySvc := service.NewPaymentService(
+		payRepo,
+		courseRepo,
+		userRepo,
+		payment.NewWechatPay(payment.WechatPayConfig{MockAutoComplete: mockAutoComplete}),
+		payment.NewAlipayClient(payment.AlipayConfig{MockAutoComplete: mockAutoComplete}),
+	)
 	commSvc := service.NewCommunityService(commRepo)
 	ticketSvc := service.NewTicketService(ticketRepo, userRepo)
 
@@ -142,6 +152,21 @@ func Test_Recharge_充值成功(t *testing.T) {
 	var bal model.CoinBalanceResponse
 	json.Unmarshal(balResult.Data, &bal)
 	assert.Equal(t, 100, bal.Balance)
+}
+
+func Test_Recharge_DisabledPaymentDoesNotCreditBalance(t *testing.T) {
+	_, ts, token := setupPhase34RouterWithMockPayment(t, false)
+	defer ts.Close()
+
+	result := authedPost(ts.URL+"/api/v1/coins/recharge", token, map[string]interface{}{
+		"amount": 100, "pay_method": "wechat",
+	})
+	assert.NotEqual(t, 0, result.Code)
+
+	balResult := authedGet(ts.URL+"/api/v1/coins/balance", token)
+	var bal model.CoinBalanceResponse
+	json.Unmarshal(balResult.Data, &bal)
+	assert.Equal(t, 0, bal.Balance)
 }
 
 func Test_CoinTransactions_有记录(t *testing.T) {

@@ -136,6 +136,16 @@ export interface CoinBalance {
   total_spent: number;
 }
 
+export interface RechargeResponse {
+  order_id: number;
+  order_no: string;
+  pay_url: string;
+}
+
+export interface CourseDownloadResponse {
+  resources: ResourceItem[];
+}
+
 export interface VipStatus {
   is_vip: boolean;
   expires_at: string | null;

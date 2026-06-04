@@ -17,11 +17,12 @@ import (
 
 // AlipayConfig holds Alipay configuration.
 type AlipayConfig struct {
-	Enabled         bool   `yaml:"enabled"`
-	AppID           string `yaml:"app_id"`
-	PrivateKey      string `yaml:"private_key"`
-	AlipayPublicKey string `yaml:"alipay_public_key"`
-	NotifyURL       string `yaml:"notify_url"`
+	Enabled          bool   `yaml:"enabled"`
+	MockAutoComplete bool   `yaml:"mock_auto_complete"`
+	AppID            string `yaml:"app_id"`
+	PrivateKey       string `yaml:"private_key"`
+	AlipayPublicKey  string `yaml:"alipay_public_key"`
+	NotifyURL        string `yaml:"notify_url"`
 }
 
 // AlipayClient implements Alipay PC page payment.
@@ -36,7 +37,7 @@ func NewAlipayClient(cfg AlipayConfig) *AlipayClient {
 // CreatePagePay creates a PC page payment URL.
 func (a *AlipayClient) CreatePagePay(orderNo string, amount int, subject string) (payURL string, err error) {
 	if !a.Cfg.Enabled {
-		return "mock://alipay/" + orderNo, nil
+		return "", fmt.Errorf("alipay: disabled")
 	}
 
 	params := map[string]string{
