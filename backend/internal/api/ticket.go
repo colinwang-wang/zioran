@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,6 +15,7 @@ import (
 	"github.com/zioran/backend/internal/service"
 	"github.com/zioran/backend/pkg/errcode"
 	"github.com/zioran/backend/pkg/oauth"
+	"github.com/zioran/backend/pkg/payment"
 	"github.com/zioran/backend/pkg/response"
 )
 
@@ -411,8 +413,13 @@ func (h *TicketHandler) WechatNotify(c *gin.Context) {
 		c.JSON(200, gin.H{"code": "FAIL", "message": "read body failed"})
 		return
 	}
-	signature := c.GetHeader("Wechatpay-Signature")
-	if svcErr := h.paySvc.WechatNotifyCallback(c.Request.Context(), body, signature); svcErr != nil {
+	headers := payment.WechatNotifyHeaders{
+		Signature: c.GetHeader("Wechatpay-Signature"),
+		Timestamp: c.GetHeader("Wechatpay-Timestamp"),
+		Nonce:     c.GetHeader("Wechatpay-Nonce"),
+		Serial:    c.GetHeader("Wechatpay-Serial"),
+	}
+	if svcErr := h.paySvc.WechatNotifyCallback(c.Request.Context(), body, headers); svcErr != nil {
 		c.JSON(200, gin.H{"code": "FAIL", "message": svcErr.Error()})
 		return
 	}
@@ -443,33 +450,52 @@ func (h *TicketHandler) OAuthWechat(c *gin.Context) {
 }
 
 func (h *TicketHandler) OAuthWechatCallback(c *gin.Context) {
-	var req struct {
-		Code string `json:"code" binding:"required"`
+	code := c.Query("code")
+	if c.Request.Method == http.MethodGet {
+		if code == "" {
+			response.Error(c, errcode.ErrParam)
+			return
+		}
+		if callbackURL := h.wechatOAuth.GetFrontendCallbackURL(code, c.Query("state")); callbackURL != "" {
+			c.Redirect(http.StatusFound, callbackURL)
+			return
+		}
+	} else {
+		var req struct {
+			Code string `json:"code" binding:"required"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			response.Error(c, errcode.ErrParam)
+			return
+		}
+		code = req.Code
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, errcode.ErrParam)
-		return
-	}
-	wxUser, err := h.wechatOAuth.GetUserInfo(req.Code)
+	result, err := h.completeWechatLogin(c, code)
 	if err != nil {
-		response.Error(c, errcode.New(40001, "微信授权失败"))
+		response.Error(c, err)
 		return
+	}
+	response.Success(c, result)
+}
+
+func (h *TicketHandler) completeWechatLogin(c *gin.Context, code string) (gin.H, *errcode.Error) {
+	wxUser, err := h.wechatOAuth.GetUserInfo(code)
+	if err != nil {
+		return nil, errcode.New(40001, "微信授权失败")
 	}
 	// Find or create user by wechat openid
 	user, svcErr := h.ticketSvc.FindOrCreateByWechat(c.Request.Context(), wxUser.OpenID, wxUser.Nickname, wxUser.Avatar)
 	if svcErr != nil {
-		response.Error(c, errcode.ErrInternal)
-		return
+		return nil, errcode.ErrInternal
 	}
 	token, tokenErr := middleware.GenerateToken(user.ID, h.jwtSecret, h.jwtExpire)
 	if tokenErr != nil {
-		response.Error(c, errcode.ErrInternal)
-		return
+		return nil, errcode.ErrInternal
 	}
-	response.Success(c, gin.H{
+	return gin.H{
 		"token": token,
 		"user":  gin.H{"id": user.ID, "username": user.Username, "phone": user.Phone, "avatar": user.AvatarURL, "is_vip": user.Role == "vip"},
-	})
+	}, nil
 }
 
 // === Batch upload ===

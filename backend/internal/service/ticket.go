@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 
 	"github.com/zioran/backend/internal/model"
 	"github.com/zioran/backend/internal/repository"
@@ -350,22 +352,43 @@ func (s *TicketService) FindOrCreateByWechat(ctx context.Context, openID, nickna
 		return user, nil
 	}
 	// Create new user
+	openIDHash := shortSHA1(openID, 17)
 	user = &model.User{
-		Username:     "wx_" + openID[:8],
-		Phone:        "wx_" + openID, // placeholder, not a real phone
+		Username:     buildWechatUsername(nickname, openIDHash[:8]),
+		Phone:        "wx_" + openIDHash,
 		PasswordHash: "-",
 		AvatarURL:    avatar,
 		Role:         "user",
 		Status:       "active",
 		WechatOpenID: openID,
 	}
-	if nickname != "" {
-		user.Username = nickname
-	}
 	if err := s.userRepo.Create(ctx, user); err != nil {
 		return nil, err
 	}
 	return user, nil
+}
+
+func buildWechatUsername(nickname, suffix string) string {
+	if nickname == "" {
+		return "wx_" + suffix
+	}
+	const maxUsernameRunes = 50
+	const suffixRunes = 9
+	nameRunes := []rune(nickname)
+	limit := maxUsernameRunes - suffixRunes
+	if len(nameRunes) > limit {
+		nameRunes = nameRunes[:limit]
+	}
+	return string(nameRunes) + "_" + suffix
+}
+
+func shortSHA1(value string, size int) string {
+	sum := sha1.Sum([]byte(value))
+	encoded := hex.EncodeToString(sum[:])
+	if size > len(encoded) {
+		size = len(encoded)
+	}
+	return encoded[:size]
 }
 
 // Refresh token - validated in handler using middleware.GenerateToken directly

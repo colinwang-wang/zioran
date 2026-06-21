@@ -365,6 +365,20 @@ func Test_Comment_CRUD(t *testing.T) {
 	_, listResult := getJSON(fmt.Sprintf("%s/api/v1/comments?target_type=course&target_id=%d", ts.URL, course.ID), "")
 	assert.Equal(t, 0, listResult.Code)
 
+	// User comment list
+	userComments := authedGet(ts.URL+"/api/v1/user/comments", token)
+	assert.Equal(t, 0, userComments.Code)
+	var page struct {
+		Items []model.CommentResponse `json:"items"`
+		Total int64                   `json:"total"`
+	}
+	json.Unmarshal(userComments.Data, &page)
+	assert.Equal(t, int64(1), page.Total)
+	if assert.Len(t, page.Items, 1) {
+		assert.Equal(t, "course", page.Items[0].TargetType)
+		assert.Equal(t, course.ID, page.Items[0].TargetID)
+	}
+
 	// Delete
 	delResult := authedDelete(ts.URL+"/api/v1/comments/1", token)
 	assert.Equal(t, 0, delResult.Code)

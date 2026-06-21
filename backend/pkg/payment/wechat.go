@@ -13,6 +13,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"os"
 	"strings"
@@ -30,11 +31,20 @@ type WechatPayConfig struct {
 	SerialNo         string `yaml:"serial_no"`
 	PrivateKeyPath   string `yaml:"private_key_path"`
 	CertPath         string `yaml:"cert_path"`
+	PublicKeyPath    string `yaml:"public_key_path"`
+	PublicKeyID      string `yaml:"public_key_id"`
 }
 
 // WechatPay implements WeChat Pay V3 Native payment.
 type WechatPay struct {
 	Cfg WechatPayConfig
+}
+
+type WechatNotifyHeaders struct {
+	Signature string
+	Timestamp string
+	Nonce     string
+	Serial    string
 }
 
 func NewWechatPay(cfg WechatPayConfig) *WechatPay {
@@ -60,8 +70,12 @@ func (w *WechatPay) CreateNativeOrder(orderNo string, amount int, description st
 	}
 	body, _ := json.Marshal(payload)
 
-	req, _ := http.NewRequest("POST", "https://api.mch.weixin.qq.com/v3/pay/transactions/native", strings.NewReader(string(body)))
+	req, err := http.NewRequest("POST", "https://api.mch.weixin.qq.com/v3/pay/transactions/native", strings.NewReader(string(body)))
+	if err != nil {
+		return "", fmt.Errorf("wechat pay: build request: %w", err)
+	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
 	auth, err := w.buildAuth("POST", "/v3/pay/transactions/native", string(body))
 	if err != nil {
 		return "", err
@@ -82,12 +96,17 @@ func (w *WechatPay) CreateNativeOrder(orderNo string, amount int, description st
 	var result struct {
 		CodeURL string `json:"code_url"`
 	}
-	json.Unmarshal(respBody, &result)
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return "", fmt.Errorf("wechat pay: invalid response")
+	}
+	if result.CodeURL == "" {
+		return "", fmt.Errorf("wechat pay: empty code_url")
+	}
 	return result.CodeURL, nil
 }
 
 // VerifyNotify verifies WeChat Pay callback and extracts order number.
-func (w *WechatPay) VerifyNotify(body []byte, signature string) (orderNo string, err error) {
+func (w *WechatPay) VerifyNotify(body []byte, headers WechatNotifyHeaders) (orderNo string, err error) {
 	if !w.Cfg.Enabled {
 		// Mock: try to parse order_id from body
 		var mock struct {
@@ -95,6 +114,10 @@ func (w *WechatPay) VerifyNotify(body []byte, signature string) (orderNo string,
 		}
 		json.Unmarshal(body, &mock)
 		return mock.OrderNo, nil
+	}
+
+	if err := w.verifyNotifySignature(body, headers); err != nil {
+		return "", err
 	}
 
 	// Parse notification
@@ -119,11 +142,57 @@ func (w *WechatPay) VerifyNotify(body []byte, signature string) (orderNo string,
 		OutTradeNo string `json:"out_trade_no"`
 		TradeState string `json:"trade_state"`
 	}
-	json.Unmarshal(plaintext, &order)
+	if err := json.Unmarshal(plaintext, &order); err != nil {
+		return "", fmt.Errorf("wechat notify: invalid resource")
+	}
 	if order.TradeState != "SUCCESS" {
 		return "", fmt.Errorf("wechat notify: trade_state=%s", order.TradeState)
 	}
+	if order.OutTradeNo == "" {
+		return "", fmt.Errorf("wechat notify: empty out_trade_no")
+	}
 	return order.OutTradeNo, nil
+}
+
+func (w *WechatPay) verifyNotifySignature(body []byte, headers WechatNotifyHeaders) error {
+	if headers.Signature == "" || headers.Timestamp == "" || headers.Nonce == "" {
+		return fmt.Errorf("wechat notify: missing signature headers")
+	}
+	publicKey, err := w.loadNotifyPublicKey(headers.Serial)
+	if err != nil {
+		return err
+	}
+	message := headers.Timestamp + "\n" + headers.Nonce + "\n" + string(body) + "\n"
+	sigBytes, err := base64.StdEncoding.DecodeString(headers.Signature)
+	if err != nil {
+		return fmt.Errorf("wechat notify: invalid signature")
+	}
+	h := sha256.Sum256([]byte(message))
+	if err := rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, h[:], sigBytes); err != nil {
+		return fmt.Errorf("wechat notify: verify signature: %w", err)
+	}
+	return nil
+}
+
+func (w *WechatPay) loadNotifyPublicKey(headerSerial string) (*rsa.PublicKey, error) {
+	if w.Cfg.PublicKeyPath != "" {
+		if w.Cfg.PublicKeyID != "" && headerSerial != "" && w.Cfg.PublicKeyID != headerSerial {
+			return nil, fmt.Errorf("wechat notify: public key id mismatch")
+		}
+		return loadWechatPublicKey(w.Cfg.PublicKeyPath)
+	}
+	cert, err := loadWechatPlatformCert(w.Cfg.CertPath)
+	if err != nil {
+		return nil, err
+	}
+	if headerSerial != "" && !serialEqual(cert.SerialNumber, headerSerial) {
+		return nil, fmt.Errorf("wechat notify: serial mismatch")
+	}
+	pub, ok := cert.PublicKey.(*rsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("wechat notify: platform cert is not RSA")
+	}
+	return pub, nil
 }
 
 func (w *WechatPay) buildAuth(method, path, body string) (string, error) {
@@ -173,13 +242,55 @@ func loadWechatPrivateKey(path string) (*rsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
+func loadWechatPlatformCert(path string) (*x509.Certificate, error) {
+	if path == "" {
+		return nil, fmt.Errorf("wechat notify: cert_path is required")
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("wechat notify: read platform cert: %w", err)
+	}
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return nil, fmt.Errorf("wechat notify: invalid platform cert pem")
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("wechat notify: parse platform cert: %w", err)
+	}
+	return cert, nil
+}
+
+func loadWechatPublicKey(path string) (*rsa.PublicKey, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("wechat notify: read public key: %w", err)
+	}
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return nil, fmt.Errorf("wechat notify: invalid public key pem")
+	}
+	parsed, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("wechat notify: parse public key: %w", err)
+	}
+	publicKey, ok := parsed.(*rsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("wechat notify: public key is not RSA")
+	}
+	return publicKey, nil
+}
+
+func serialEqual(certSerial *big.Int, headerSerial string) bool {
+	certValue := strings.TrimLeft(strings.ToUpper(certSerial.Text(16)), "0")
+	headerValue := strings.TrimLeft(strings.ToUpper(headerSerial), "0")
+	return certValue == headerValue
+}
+
 func decryptAESGCM(apiKey, nonce, ciphertext, associatedData string) ([]byte, error) {
 	key := []byte(apiKey)
-	if len(key) > 32 {
-		key = key[:32]
-	}
-	for len(key) < 32 {
-		key = append(key, 0)
+	if len(key) != 32 {
+		return nil, fmt.Errorf("api_v3_key must be 32 bytes")
 	}
 	block, err := aes.NewCipher(key)
 	if err != nil {

@@ -7,25 +7,34 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 const tabs = [
-  { href: '/user', label: '我的资料' },
-  { href: '/user/orders', label: '我的订单' },
+  { href: '/user/recharge', label: '在线充值' },
+  { href: '/vip', label: '升级VIP' },
+  { href: '/user/transactions', label: '充值记录' },
+  { href: '/user/orders', label: '购买资源' },
   { href: '/user/downloads', label: '我的下载' },
+  { href: '/user', label: '我的资料' },
+  { href: '/user/comments', label: '我的评论' },
   { href: '/user/favorites', label: '我的收藏' },
+  { href: '/user/tickets/new', label: '提交工单' },
   { href: '/user/tickets', label: '我的工单' },
-  { href: '/user/recharge', label: '充值' },
   { href: '/user/settings', label: '账号设置' },
 ];
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isReady, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoggedIn) router.push('/login');
-  }, [isLoggedIn, router]);
+    if (isReady && !isLoggedIn) router.push('/login');
+  }, [isReady, isLoggedIn, router]);
 
-  if (!isLoggedIn) return null;
+  if (!isReady || !isLoggedIn) return null;
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
 
   return (
     <div className="max-w-container mx-auto px-4 py-8">
@@ -38,6 +47,9 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 {tab.label}
               </Link>
             ))}
+            <button type="button" onClick={handleLogout} className="px-4 py-2 rounded-card text-sm font-semibold whitespace-nowrap bg-surface text-ink hover:bg-secondary-bg text-left">
+              安全退出
+            </button>
           </nav>
         </aside>
         <div className="flex-1 min-w-0">{children}</div>

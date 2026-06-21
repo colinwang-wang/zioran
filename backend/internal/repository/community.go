@@ -128,6 +128,15 @@ func (r *CommunityRepository) AdminCommentList(ctx context.Context, page, pageSi
 	return items, total, err
 }
 
+func (r *CommunityRepository) UserCommentList(ctx context.Context, userID int64, page, pageSize int) ([]model.Comment, int64, error) {
+	var items []model.Comment
+	var total int64
+	query := r.db.WithContext(ctx).Model(&model.Comment{}).Where("user_id = ?", userID)
+	query.Count(&total)
+	err := query.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&items).Error
+	return items, total, err
+}
+
 func (r *CommunityRepository) CommentUpdateStatus(ctx context.Context, id int64, status string) error {
 	return r.db.WithContext(ctx).Model(&model.Comment{}).Where("id = ?", id).Update("status", status).Error
 }

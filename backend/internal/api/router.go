@@ -29,8 +29,9 @@ func SetupRouter(
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/forgot-password", ticketHandler.ForgotPassword)
-			// OAuth (MOCK: 待接入真实服务)
+			// OAuth
 			auth.GET("/oauth/wechat", ticketHandler.OAuthWechat)
+			auth.GET("/oauth/wechat/callback", ticketHandler.OAuthWechatCallback)
 			auth.POST("/oauth/wechat/callback", ticketHandler.OAuthWechatCallback)
 		}
 
@@ -80,6 +81,7 @@ func SetupRouter(
 			authed.GET("/user/favorites", payHandler.UserFavorites)
 			authed.POST("/user/favorites", payHandler.AddFavorite)
 			authed.DELETE("/user/favorites/:courseId", payHandler.RemoveFavorite)
+			authed.GET("/user/comments", commHandler.UserCommentList)
 
 			// Courses (authed)
 			authed.POST("/courses/:id/like", courseHandler.Like)

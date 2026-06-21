@@ -1,6 +1,7 @@
 import api from '@/lib/api';
 import type {
   AuthResponse, CaptchaResponse, CategoryBrief, CoinBalance,
+  CoinTransaction,
   CourseDownloadResponse,
   CommentItem, CourseDetail, CourseListItem, DownloadItem,
   FavoriteItem, GuestbookItem, NavItem, Banner, OrderItem,
@@ -15,8 +16,10 @@ export const register = (data: { phone: string; sms_code: string; password: stri
   api.post<AuthResponse>('/auth/register', data).then(r => r.data);
 export const login = (data: { phone: string; password: string; captcha: string; captcha_key: string }) =>
   api.post<AuthResponse>('/auth/login', data).then(r => r.data);
-export const getWechatAuthURL = () =>
-  api.get<{ auth_url: string }>('/auth/oauth/wechat', { params: { state: 'login' } }).then(r => r.data.auth_url);
+export const getWechatAuthURL = (state = 'login') =>
+  api.get<{ auth_url: string }>('/auth/oauth/wechat', { params: { state } }).then(r => r.data.auth_url);
+export const wechatLoginCallback = (code: string) =>
+  api.post<AuthResponse>('/auth/oauth/wechat/callback', { code }).then(r => r.data);
 
 // Courses
 export const getLatestCourses = () =>
@@ -68,6 +71,8 @@ export const removeFavorite = (courseId: number) => api.delete(`/user/favorites/
 
 // Coins
 export const getCoinBalance = () => api.get<CoinBalance>('/coins/balance').then(r => r.data);
+export const getCoinTransactions = (params?: { page?: number; pageSize?: number }) =>
+  api.get<PaginatedList<CoinTransaction>>('/coins/transactions', { params }).then(r => r.data);
 export const recharge = (data: { amount: number; pay_method: string }) =>
   api.post<RechargeResponse>('/coins/recharge', data).then(r => r.data);
 
@@ -95,3 +100,7 @@ export const getTicketDetail = (id: number) =>
   api.get<Ticket>(`/tickets/${id}`).then(r => r.data);
 export const replyTicket = (id: number, content: string) =>
   api.post(`/tickets/${id}/reply`, { content });
+
+// User comments
+export const getUserComments = (params?: { page?: number; pageSize?: number }) =>
+  api.get<PaginatedList<CommentItem>>('/user/comments', { params }).then(r => r.data);

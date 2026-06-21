@@ -13,7 +13,7 @@ export default function OrdersPage() {
 
   return (
     <div>
-      <h2 className="text-lg font-bold mb-4">我的订单</h2>
+      <h2 className="text-lg font-bold mb-4">购买资源</h2>
       <div className="space-y-3">
         {data.items.map((o) => (
           <div key={o.id} className="p-4 bg-surface rounded-card flex items-center justify-between">
@@ -27,7 +27,7 @@ export default function OrdersPage() {
             </div>
           </div>
         ))}
-        {data.items.length === 0 && <p className="text-sm text-mute text-center py-8">暂无订单</p>}
+        {data.items.length === 0 && <p className="text-sm text-mute text-center py-8">暂无购买记录</p>}
       </div>
       <Pagination page={data.page} totalPages={data.totalPages} onChange={fetchData} />
     </div>

@@ -81,14 +81,17 @@ type CommentCreateRequest struct {
 }
 
 type CommentResponse struct {
-	ID        int64             `json:"id"`
-	UserID    int64             `json:"user_id"`
-	Username  string            `json:"username"`
-	Avatar    string            `json:"avatar"`
-	Content   string            `json:"content"`
-	ParentID  *int64            `json:"parent_id"`
-	CreatedAt time.Time         `json:"created_at"`
-	Children  []CommentResponse `json:"children,omitempty"`
+	ID         int64             `json:"id"`
+	UserID     int64             `json:"user_id"`
+	Username   string            `json:"username"`
+	Avatar     string            `json:"avatar"`
+	TargetType string            `json:"target_type"`
+	TargetID   int64             `json:"target_id"`
+	Content    string            `json:"content"`
+	ParentID   *int64            `json:"parent_id"`
+	Status     string            `json:"status"`
+	CreatedAt  time.Time         `json:"created_at"`
+	Children   []CommentResponse `json:"children,omitempty"`
 }
 
 // Home Config DTOs

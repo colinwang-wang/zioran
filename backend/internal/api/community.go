@@ -139,6 +139,18 @@ func (h *CommunityHandler) CommentDelete(c *gin.Context) {
 	response.Success(c, nil)
 }
 
+func (h *CommunityHandler) UserCommentList(c *gin.Context) {
+	userID := c.GetInt64("user_id")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+	result, err := h.commSvc.UserCommentList(c.Request.Context(), userID, page, pageSize)
+	if err != nil {
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
+	response.Success(c, result)
+}
+
 // Home config (public)
 
 func (h *CommunityHandler) NavItems(c *gin.Context) {

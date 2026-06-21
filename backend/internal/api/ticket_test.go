@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -451,9 +452,21 @@ func TestOAuthMock(t *testing.T) {
 	// Get wechat auth URL
 	resp := doGet(baseURL+"/api/v1/auth/oauth/wechat", "")
 	assert.Equal(t, 0, resp.Code)
+	var authPayload map[string]string
+	assert.NoError(t, json.Unmarshal(resp.Data, &authPayload))
+	authURL, err := url.Parse(authPayload["auth_url"])
+	assert.NoError(t, err)
+	assert.Equal(t, "/connect/qrconnect", authURL.Path)
+	assert.Equal(t, "snsapi_login", authURL.Query().Get("scope"))
 
 	// Wechat callback
 	resp = doPost(baseURL+"/api/v1/auth/oauth/wechat/callback", "", map[string]string{"code": "test"})
+	assert.Equal(t, 0, resp.Code)
+	var loginPayload map[string]interface{}
+	assert.NoError(t, json.Unmarshal(resp.Data, &loginPayload))
+	assert.NotEmpty(t, loginPayload["token"])
+
+	resp = doGet(baseURL+"/api/v1/auth/oauth/wechat/callback?code=test&state=login", "")
 	assert.Equal(t, 0, resp.Code)
 }
 

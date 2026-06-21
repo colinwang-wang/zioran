@@ -127,6 +127,28 @@ func (s *CommunityService) CommentDelete(ctx context.Context, userID, id int64, 
 	return s.repo.CommentDelete(ctx, id)
 }
 
+func (s *CommunityService) UserCommentList(ctx context.Context, userID int64, page, pageSize int) (*model.PaginatedList, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+	items, total, err := s.repo.UserCommentList(ctx, userID, page, pageSize)
+	if err != nil {
+		return nil, errcode.ErrInternal
+	}
+	results := make([]model.CommentResponse, len(items))
+	for i, c := range items {
+		results[i] = toCommentResponse(&c)
+	}
+	totalPages := int(total) / pageSize
+	if int(total)%pageSize > 0 {
+		totalPages++
+	}
+	return &model.PaginatedList{Items: results, Total: total, Page: page, PageSize: pageSize, TotalPages: totalPages}, nil
+}
+
 // Home config
 
 func (s *CommunityService) NavItems(ctx context.Context) ([]model.NavItem, error) {
@@ -289,8 +311,8 @@ func (s *CommunityService) AdminBannerDelete(ctx context.Context, id int) error 
 
 func toCommentResponse(c *model.Comment) model.CommentResponse {
 	resp := model.CommentResponse{
-		ID: c.ID, UserID: c.UserID, Content: c.Content,
-		ParentID: c.ParentID, CreatedAt: c.CreatedAt,
+		ID: c.ID, UserID: c.UserID, TargetType: c.TargetType, TargetID: c.TargetID,
+		Content: c.Content, ParentID: c.ParentID, Status: c.Status, CreatedAt: c.CreatedAt,
 	}
 	if c.User != nil {
 		resp.Username = c.User.Username

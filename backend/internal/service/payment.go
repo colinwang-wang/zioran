@@ -53,6 +53,10 @@ func (s *PaymentService) GetTransactions(ctx context.Context, userID int64, page
 }
 
 func (s *PaymentService) Recharge(ctx context.Context, userID int64, req *model.RechargeRequest) (*model.RechargeResponse, error) {
+	if req.Amount <= 0 {
+		return nil, errcode.New(40001, "充值金额必须大于0")
+	}
+
 	// Create coin order
 	order := &model.Order{
 		OrderNo:    generateOrderNo(),
@@ -547,8 +551,8 @@ func generateOrderNo() string {
 }
 
 // WechatNotifyCallback processes WeChat payment notification.
-func (s *PaymentService) WechatNotifyCallback(ctx context.Context, body []byte, signature string) error {
-	orderNo, err := s.wechatPay.VerifyNotify(body, signature)
+func (s *PaymentService) WechatNotifyCallback(ctx context.Context, body []byte, headers payment.WechatNotifyHeaders) error {
+	orderNo, err := s.wechatPay.VerifyNotify(body, headers)
 	if err != nil {
 		return err
 	}

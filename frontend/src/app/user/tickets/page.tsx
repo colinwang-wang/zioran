@@ -1,15 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getTickets, createTicket, getTicketDetail, replyTicket } from '@/lib/services';
+import Link from 'next/link';
+import { getTickets, getTicketDetail, replyTicket } from '@/lib/services';
 import type { Ticket } from '@/types';
 
 export default function TicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selected, setSelected] = useState<Ticket | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
   const [replyContent, setReplyContent] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -18,14 +16,6 @@ export default function TicketsPage() {
   };
 
   useEffect(() => { loadTickets(); }, []);
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title || !content) return;
-    setLoading(true);
-    try { await createTicket({ title, content }); setTitle(''); setContent(''); setShowForm(false); loadTickets(); } catch { /* ignore */ }
-    setLoading(false);
-  };
 
   const handleSelect = async (id: number) => {
     try { const t = await getTicketDetail(id); setSelected(t); } catch { /* ignore */ }
@@ -70,17 +60,10 @@ export default function TicketsPage() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="font-bold text-ink">我的工单</h2>
-        <button onClick={() => setShowForm(!showForm)} className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-card">
-          {showForm ? '取消' : '提交工单'}
-        </button>
+        <Link href="/user/tickets/new" className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-card">
+          提交工单
+        </Link>
       </div>
-      {showForm && (
-        <form onSubmit={handleCreate} className="mb-6 p-4 bg-canvas rounded-lg border border-hairline space-y-3">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="工单主题" className="w-full px-4 py-2 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
-          <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="详细描述您的问题..." rows={4} className="w-full px-4 py-2 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none resize-none" />
-          <button type="submit" disabled={loading} className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-card disabled:opacity-50">提交</button>
-        </form>
-      )}
       {tickets.length === 0 ? (
         <p className="text-sm text-mute text-center py-8">暂无工单</p>
       ) : (

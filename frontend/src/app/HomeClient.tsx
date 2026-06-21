@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import CourseCard from '@/components/CourseCard';
+import VipCard from '@/components/VipCard';
 import { getCourses } from '@/lib/services';
 import type { NavItem, Banner, CourseListItem, CategoryBrief } from '@/types';
 
@@ -109,17 +110,7 @@ export default function HomeClient({ navItems, banners, latest, categories }: Pr
       <section className="py-16">
         <div className="max-w-[1280px] mx-auto px-6 text-center">
           <h2 className="text-xl font-bold text-[#000] mb-8">关于VIP</h2>
-          <div className="max-w-[400px] mx-auto bg-white rounded-[32px] p-10 border-2 border-[#ff0036] relative shadow-[0_20px_60px_rgba(255,0,54,0.08)]">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-[#ff0036] rounded-t-[32px]" />
-            <span className="inline-block bg-[#ff0036] text-white px-4 py-1 rounded-full text-xs font-bold mb-6">推荐</span>
-            <h3 className="text-2xl font-bold text-[#000]">终身VIP</h3>
-            <div className="text-[44px] font-bold text-[#ff0036] mt-2">99 <span className="text-base font-normal text-[#62625b]">金币</span></div>
-            <div className="text-sm text-[#91918c] line-through mt-1">原价 699 金币</div>
-            <div className="text-base text-[#62625b] mt-4 pb-4 border-b border-[#dadad3]">永久有效</div>
-            <p className="mt-6 text-sm text-[#62625b] text-center">持续更新课堂资源，终身会员永久有效</p>
-            <Link href="/vip" className="mt-8 block w-full py-3.5 bg-[#ff0036] text-white text-sm font-bold rounded-[16px] hover:bg-[#e6002f] text-center transition">立即升级</Link>
-            <p className="text-xs text-[#91918c] mt-4">75% 的人选择该套餐</p>
-          </div>
+          <VipCard actionHref="/vip" />
         </div>
       </section>
     </div>

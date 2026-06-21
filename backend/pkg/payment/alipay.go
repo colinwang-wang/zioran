@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"net/url"
@@ -23,6 +24,7 @@ type AlipayConfig struct {
 	PrivateKey       string `yaml:"private_key"`
 	AlipayPublicKey  string `yaml:"alipay_public_key"`
 	NotifyURL        string `yaml:"notify_url"`
+	ReturnURL        string `yaml:"return_url"`
 }
 
 // AlipayClient implements Alipay PC page payment.
@@ -40,6 +42,16 @@ func (a *AlipayClient) CreatePagePay(orderNo string, amount int, subject string)
 		return "", fmt.Errorf("alipay: disabled")
 	}
 
+	bizContent, err := json.Marshal(map[string]string{
+		"out_trade_no": orderNo,
+		"total_amount": fmt.Sprintf("%.2f", float64(amount)/100),
+		"subject":      subject,
+		"product_code": "FAST_INSTANT_TRADE_PAY",
+	})
+	if err != nil {
+		return "", fmt.Errorf("alipay biz_content: %w", err)
+	}
+
 	params := map[string]string{
 		"app_id":      a.Cfg.AppID,
 		"method":      "alipay.trade.page.pay",
@@ -48,8 +60,10 @@ func (a *AlipayClient) CreatePagePay(orderNo string, amount int, subject string)
 		"timestamp":   time.Now().Format("2006-01-02 15:04:05"),
 		"version":     "1.0",
 		"notify_url":  a.Cfg.NotifyURL,
-		"return_url":  a.Cfg.NotifyURL,
-		"biz_content": fmt.Sprintf(`{"out_trade_no":"%s","total_amount":"%.2f","subject":"%s","product_code":"FAST_INSTANT_TRADE_PAY"}`, orderNo, float64(amount)/100, subject),
+		"biz_content": string(bizContent),
+	}
+	if a.Cfg.ReturnURL != "" {
+		params["return_url"] = a.Cfg.ReturnURL
 	}
 
 	sign, err := a.signParams(params)
@@ -58,14 +72,11 @@ func (a *AlipayClient) CreatePagePay(orderNo string, amount int, subject string)
 	}
 	params["sign"] = sign
 
-	var query strings.Builder
+	query := url.Values{}
 	for k, v := range params {
-		if query.Len() > 0 {
-			query.WriteByte('&')
-		}
-		query.WriteString(k + "=" + url.QueryEscape(v))
+		query.Set(k, v)
 	}
-	return "https://openapi.alipay.com/gateway.do?" + query.String(), nil
+	return "https://openapi.alipay.com/gateway.do?" + query.Encode(), nil
 }
 
 // VerifyNotify verifies Alipay async notification and returns order number.
@@ -117,22 +128,13 @@ func (a *AlipayClient) signParams(params map[string]string) (string, error) {
 		buf.WriteString(k + "=" + params[k])
 	}
 
-	block, _ := pem.Decode([]byte(formatPrivateKey(a.Cfg.PrivateKey)))
-	if block == nil {
-		return "", fmt.Errorf("invalid private key")
-	}
-	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	key, err := parseAlipayPrivateKey(a.Cfg.PrivateKey)
 	if err != nil {
-		// Try PKCS1
-		key2, err2 := x509.ParsePKCS1PrivateKey(block.Bytes)
-		if err2 != nil {
-			return "", fmt.Errorf("parse private key: %w", err)
-		}
-		key = key2
+		return "", err
 	}
 
 	h := sha256.Sum256([]byte(buf.String()))
-	sig, err := rsa.SignPKCS1v15(rand.Reader, key.(*rsa.PrivateKey), crypto.SHA256, h[:])
+	sig, err := rsa.SignPKCS1v15(rand.Reader, key, crypto.SHA256, h[:])
 	if err != nil {
 		return "", err
 	}
@@ -156,11 +158,39 @@ func (a *AlipayClient) verifySign(content, sign string) error {
 	return rsa.VerifyPKCS1v15(pub.(*rsa.PublicKey), crypto.SHA256, h[:], sigBytes)
 }
 
-func formatPrivateKey(key string) string {
+func parseAlipayPrivateKey(key string) (*rsa.PrivateKey, error) {
+	var candidates []string
 	if strings.Contains(key, "BEGIN") {
-		return key
+		candidates = append(candidates, key)
+	} else {
+		candidates = append(candidates,
+			"-----BEGIN PRIVATE KEY-----\n"+key+"\n-----END PRIVATE KEY-----",
+			"-----BEGIN RSA PRIVATE KEY-----\n"+key+"\n-----END RSA PRIVATE KEY-----",
+		)
 	}
-	return "-----BEGIN RSA PRIVATE KEY-----\n" + key + "\n-----END RSA PRIVATE KEY-----"
+	var lastErr error
+	for _, candidate := range candidates {
+		block, _ := pem.Decode([]byte(candidate))
+		if block == nil {
+			lastErr = fmt.Errorf("invalid private key")
+			continue
+		}
+		parsed, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if err == nil {
+			privateKey, ok := parsed.(*rsa.PrivateKey)
+			if !ok {
+				return nil, fmt.Errorf("private key is not RSA")
+			}
+			return privateKey, nil
+		}
+		lastErr = err
+		privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+		if err == nil {
+			return privateKey, nil
+		}
+		lastErr = err
+	}
+	return nil, fmt.Errorf("parse private key: %w", lastErr)
 }
 
 func formatPublicKey(key string) string {

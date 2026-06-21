@@ -124,8 +124,11 @@ export interface CommentItem {
   user_id: number;
   username: string;
   avatar: string;
+  target_type: string;
+  target_id: number;
   content: string;
   parent_id: number | null;
+  status: string;
   created_at: string;
   children?: CommentItem[];
 }
@@ -134,6 +137,17 @@ export interface CoinBalance {
   balance: number;
   total_earned: number;
   total_spent: number;
+}
+
+export interface CoinTransaction {
+  id: number;
+  user_id: number;
+  type: string;
+  amount: number;
+  balance_after: number;
+  description: string;
+  order_id: number | null;
+  created_at: string;
 }
 
 export interface RechargeResponse {

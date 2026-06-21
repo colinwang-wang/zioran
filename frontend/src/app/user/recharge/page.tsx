@@ -32,7 +32,7 @@ export default function RechargePage() {
 
   return (
     <div>
-      <h2 className="text-lg font-bold mb-4">充值</h2>
+      <h2 className="text-lg font-bold mb-4">在线充值</h2>
       <div className="grid grid-cols-3 gap-3 mb-6">
         {amounts.map((a) => (
           <button key={a} onClick={() => setAmount(a)} className={`py-3 rounded-card text-sm font-bold ${amount === a ? 'bg-primary text-white' : 'bg-surface text-ink'}`}>{a} 金币</button>
