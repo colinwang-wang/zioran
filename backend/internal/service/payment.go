@@ -403,14 +403,14 @@ func (s *PaymentService) ChangePassword(ctx context.Context, userID int64, req *
 
 // Admin
 
-func (s *PaymentService) AdminOrders(ctx context.Context, page, pageSize int, status string) (*model.PaginatedList, error) {
+func (s *PaymentService) AdminOrders(ctx context.Context, page, pageSize int, filter model.AdminOrderFilter) (*model.PaginatedList, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	orders, total, err := s.payRepo.AdminOrders(ctx, page, pageSize, status)
+	orders, total, err := s.payRepo.AdminOrders(ctx, page, pageSize, filter)
 	if err != nil {
 		return nil, errcode.ErrInternal
 	}
@@ -501,7 +501,7 @@ func (s *PaymentService) AdminGetUser(ctx context.Context, userID int64) (*model
 	return user, nil
 }
 
-func (s *PaymentService) DashboardCharts(ctx context.Context, period string) *model.DashboardChartsResponse {
+func (s *PaymentService) DashboardCharts(ctx context.Context, period string) (*model.DashboardChartsResponse, error) {
 	days := 7
 	if period == "month" {
 		days = 30
@@ -510,10 +510,16 @@ func (s *PaymentService) DashboardCharts(ctx context.Context, period string) *mo
 	userData := make([]int64, days)
 	orderData := make([]int64, days)
 	for i := 0; i < days; i++ {
-		date := time.Now().AddDate(0, 0, -days+1+i).Format("2006-01-02")
-		labels[i] = date
-		userData[i] = int64(10 + i*2)
-		orderData[i] = int64(5 + i)
+		date := time.Now().AddDate(0, 0, -days+1+i)
+		start := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+		end := start.AddDate(0, 0, 1)
+		labels[i] = start.Format("2006-01-02")
+		users, orders, err := s.payRepo.DashboardDailyCounts(ctx, start, end)
+		if err != nil {
+			return nil, errcode.ErrInternal
+		}
+		userData[i] = users
+		orderData[i] = orders
 	}
 	return &model.DashboardChartsResponse{
 		Labels: labels,
@@ -521,7 +527,7 @@ func (s *PaymentService) DashboardCharts(ctx context.Context, period string) *mo
 			{Label: "用户", Data: userData},
 			{Label: "订单", Data: orderData},
 		},
-	}
+	}, nil
 }
 
 // Favorites

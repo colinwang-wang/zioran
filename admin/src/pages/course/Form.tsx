@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Form, Input, Button, Select, Card, Space, InputNumber, Upload, message } from 'antd'
 import { PlusOutlined, MinusCircleOutlined, UploadOutlined } from '@ant-design/icons'
-import { createCourse, updateCourse, getCourses, getCategories, getTags, uploadImage } from '@/api'
+import { createCourse, updateCourse, getCourse, getCategories, getTags, uploadImage } from '@/api'
 import type { Category, Tag } from '@/types'
 import type { UploadFile } from 'antd'
 
@@ -20,10 +20,10 @@ export default function CourseForm() {
     getCategories().then(res => setCategories(res.data))
     getTags().then(res => setTags(res.data))
     if (id) {
-      getCourses({ page: 1, pageSize: 1, id }).then(res => {
-        const course = res.data.items[0]
+      getCourse(Number(id)).then(res => {
+        const course = res.data
         if (course) {
-          form.setFieldsValue(course)
+          form.setFieldsValue({ ...course, tags: course.tags?.map(t => t.id) })
           if (course.coverImage) setCoverList([{ uid: '-1', name: 'cover', status: 'done', url: course.coverImage }])
           if (course.detailImages?.length) setDetailImages(course.detailImages.map((url, i) => ({ uid: String(i), name: `img${i}`, status: 'done', url })))
         }

@@ -1,6 +1,18 @@
 import axios from 'axios'
 import { message } from 'antd'
 
+const camelizeKey = (key: string) => key.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase())
+
+const camelize = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(camelize)
+  if (value && typeof value === 'object' && !(value instanceof File) && !(value instanceof FormData)) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, val]) => [camelizeKey(key), camelize(val)])
+    )
+  }
+  return value
+}
+
 // baseURL: http://localhost:8080/api/v1
 const request = axios.create({
   baseURL: '/api/v1',
@@ -14,8 +26,9 @@ request.interceptors.request.use((config) => {
 })
 
 request.interceptors.response.use(
-  (res) => {
-    const { code, message: msg } = res.data
+  (res): any => {
+    const responseData = camelize(res.data) as { code: number; message?: string }
+    const { code, message: msg } = responseData
     if (code !== 0) {
       message.error(msg || '请求失败')
       if (code >= 40100 && code < 40200) {
@@ -24,7 +37,7 @@ request.interceptors.response.use(
       }
       return Promise.reject(new Error(msg))
     }
-    return res.data
+    return responseData
   },
   (err) => {
     message.error(err.message || '网络异常')

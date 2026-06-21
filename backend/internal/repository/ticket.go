@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/zioran/backend/internal/model"
 	"gorm.io/gorm"
@@ -36,10 +37,13 @@ func (r *TicketRepository) ListByUser(ctx context.Context, userID int64, page, p
 	return items, total, err
 }
 
-func (r *TicketRepository) ListAll(ctx context.Context, page, pageSize int) ([]model.Ticket, int64, error) {
+func (r *TicketRepository) ListAll(ctx context.Context, page, pageSize int, status string) ([]model.Ticket, int64, error) {
 	var items []model.Ticket
 	var total int64
 	q := r.db.WithContext(ctx).Model(&model.Ticket{}).Preload("User")
+	if status != "" {
+		q = q.Where("status = ?", normalizeTicketStatus(status))
+	}
 	q.Count(&total)
 	err := q.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&items).Error
 	return items, total, err
@@ -112,10 +116,24 @@ func (r *TicketRepository) PaymentLogs(ctx context.Context, page, pageSize int) 
 
 func (r *TicketRepository) FinanceSummary(ctx context.Context) (*model.FinanceSummary, error) {
 	var todayRevenue, totalSettled, totalPending int64
-	r.db.WithContext(ctx).Model(&model.Order{}).Where("status = ? AND DATE(paid_at) = CURDATE()", "paid").Select("COALESCE(SUM(amount),0)").Scan(&todayRevenue)
+	todayStart := startOfToday()
+	tomorrowStart := todayStart.AddDate(0, 0, 1)
+	r.db.WithContext(ctx).Model(&model.Order{}).Where("status = ? AND paid_at >= ? AND paid_at < ?", "paid", todayStart, tomorrowStart).Select("COALESCE(SUM(amount),0)").Scan(&todayRevenue)
 	r.db.WithContext(ctx).Model(&model.Order{}).Where("status = ?", "paid").Select("COALESCE(SUM(amount),0)").Scan(&totalSettled)
 	r.db.WithContext(ctx).Model(&model.Order{}).Where("status = ?", "pending").Select("COALESCE(SUM(amount),0)").Scan(&totalPending)
 	return &model.FinanceSummary{TodayRevenue: todayRevenue, TotalSettled: totalSettled, TotalPending: totalPending}, nil
+}
+
+func (r *TicketRepository) FinanceWithdrawals(ctx context.Context, page, pageSize int, status string) ([]model.WithdrawalRequest, int64, error) {
+	var items []model.WithdrawalRequest
+	var total int64
+	q := r.db.WithContext(ctx).Model(&model.WithdrawalRequest{}).Preload("User")
+	if status != "" {
+		q = q.Where("status = ?", status)
+	}
+	q.Count(&total)
+	err := q.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&items).Error
+	return items, total, err
 }
 
 // Comments (for admin reply)
@@ -140,4 +158,16 @@ func (r *TicketRepository) GetOrder(ctx context.Context, id int64) (*model.Order
 
 func (r *TicketRepository) UpdateOrderStatus(ctx context.Context, id int64, status string) error {
 	return r.db.WithContext(ctx).Model(&model.Order{}).Where("id = ?", id).Update("status", status).Error
+}
+
+func normalizeTicketStatus(status string) string {
+	if status == "pending" {
+		return "open"
+	}
+	return status
+}
+
+func startOfToday() time.Time {
+	now := time.Now()
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Card, Col, Row, Statistic, Select } from 'antd'
+import { Card, Col, Row, Statistic, Select, Empty } from 'antd'
 import { UserOutlined, BookOutlined, ShoppingCartOutlined, DollarOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons'
 import { getDashboardStats, getDashboardCharts } from '@/api'
 import type { DashboardStats, ChartData } from '@/types'
@@ -11,9 +11,8 @@ export default function DataBoard() {
 
   useEffect(() => { getDashboardStats().then(res => setStats(res.data)) }, [])
   useEffect(() => {
-    getDashboardCharts(period).then(res => setChartData(res.data)).catch(() => {
-      setChartData({ labels: ['1月','2月','3月','4月','5月','6月'], datasets: [{ label: '示例数据（接口暂不可用）', data: [30, 50, 40, 70, 60, 80] }] })
-    })
+    setChartData(undefined)
+    getDashboardCharts(period).then(res => setChartData(res.data)).catch(() => setChartData({ labels: [], datasets: [] }))
   }, [period])
 
   const statCards = stats ? [
@@ -41,7 +40,7 @@ export default function DataBoard() {
           options={[{ value: 'day', label: '日' }, { value: 'month', label: '月' }, { value: 'quarter', label: '季度' }, { value: 'year', label: '年' }]} />
       }>
         <div style={{ minHeight: 300 }}>
-          {chartData ? (
+          {chartData?.datasets?.length ? (
             <div>
               {chartData.datasets?.map((ds, i) => (
                 <div key={i} style={{ marginBottom: 16 }}>
@@ -57,6 +56,8 @@ export default function DataBoard() {
                 </div>
               ))}
             </div>
+          ) : chartData ? (
+            <Empty description="暂无趋势数据" />
           ) : (
             <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>加载中...</div>
           )}

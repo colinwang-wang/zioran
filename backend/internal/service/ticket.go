@@ -40,6 +40,9 @@ func (s *TicketService) List(ctx context.Context, userID int64, page, pageSize i
 	if page < 1 {
 		page = 1
 	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
 	items, total, err := s.repo.ListByUser(ctx, userID, page, pageSize)
 	if err != nil {
 		return nil, errcode.ErrInternal
@@ -108,11 +111,14 @@ func (s *TicketService) Reply(ctx context.Context, userID int64, ticketID int64,
 
 // Admin ticket operations
 
-func (s *TicketService) AdminList(ctx context.Context, page, pageSize int) (*model.PaginatedList, error) {
+func (s *TicketService) AdminList(ctx context.Context, page, pageSize int, status string) (*model.PaginatedList, error) {
 	if page < 1 {
 		page = 1
 	}
-	items, total, err := s.repo.ListAll(ctx, page, pageSize)
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	items, total, err := s.repo.ListAll(ctx, page, pageSize, status)
 	if err != nil {
 		return nil, errcode.ErrInternal
 	}
@@ -222,11 +228,43 @@ func (s *TicketService) FinanceSummary(ctx context.Context) (*model.FinanceSumma
 	return s.repo.FinanceSummary(ctx)
 }
 
+func (s *TicketService) FinanceWithdrawals(ctx context.Context, page, pageSize int, status string) (*model.PaginatedList, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	items, total, err := s.repo.FinanceWithdrawals(ctx, page, pageSize, status)
+	if err != nil {
+		return nil, errcode.ErrInternal
+	}
+	results := make([]model.FinanceWithdrawalResponse, len(items))
+	for i, item := range items {
+		results[i] = model.FinanceWithdrawalResponse{
+			ID: item.ID, UserID: item.UserID, Amount: item.Amount,
+			AccountName: item.AccountName, AccountNo: item.AccountNo, BankName: item.BankName,
+			Status: item.Status, Remark: item.Remark, ProcessedAt: item.ProcessedAt, CreatedAt: item.CreatedAt,
+		}
+		if item.User != nil {
+			results[i].Username = item.User.Username
+		}
+	}
+	totalPages := int(total) / pageSize
+	if int(total)%pageSize > 0 {
+		totalPages++
+	}
+	return &model.PaginatedList{Items: results, Total: total, Page: page, PageSize: pageSize, TotalPages: totalPages}, nil
+}
+
 // Logs
 
 func (s *TicketService) OperationLogs(ctx context.Context, page, pageSize int) (*model.PaginatedList, error) {
 	if page < 1 {
 		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
 	}
 	items, total, err := s.repo.OperationLogs(ctx, page, pageSize)
 	if err != nil {
@@ -242,6 +280,9 @@ func (s *TicketService) OperationLogs(ctx context.Context, page, pageSize int) (
 func (s *TicketService) PaymentLogs(ctx context.Context, page, pageSize int) (*model.PaginatedList, error) {
 	if page < 1 {
 		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
 	}
 	items, total, err := s.repo.PaymentLogs(ctx, page, pageSize)
 	if err != nil {

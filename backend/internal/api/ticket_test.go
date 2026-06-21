@@ -33,7 +33,7 @@ func setupTicketTestRouter(t *testing.T) (*gorm.DB, *httptest.Server, *service.A
 		&model.Guestbook{}, &model.GuestbookLike{}, &model.Comment{},
 		&model.NavItem{}, &model.Banner{}, &model.UserDownload{},
 		&model.Ticket{}, &model.TicketReply{}, &model.Setting{},
-		&model.OperationLog{}, &model.PaymentLog{},
+		&model.OperationLog{}, &model.PaymentLog{}, &model.WithdrawalRequest{},
 	))
 
 	userRepo := repository.NewUserRepository(db)
@@ -72,7 +72,7 @@ func createTestUser(t *testing.T, db *gorm.DB) (int64, string) {
 	user := &model.User{
 		Username: "testuser", Phone: "13800000001",
 		PasswordHash: "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy", // "password"
-		Role: "user", Status: "active",
+		Role:         "user", Status: "active",
 	}
 	db.Create(user)
 	token, _ := middleware.GenerateToken(user.ID, testJWTSecret, 72*time.Hour)
@@ -83,7 +83,7 @@ func createTestAdmin(t *testing.T, db *gorm.DB) (int64, string) {
 	user := &model.User{
 		Username: "admin", Phone: "13800000002",
 		PasswordHash: "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy",
-		Role: "admin", Status: "active",
+		Role:         "admin", Status: "active",
 	}
 	db.Create(user)
 	token, _ := middleware.GenerateToken(user.ID, testJWTSecret, 72*time.Hour)
@@ -283,6 +283,28 @@ func TestAdminTicketOperations(t *testing.T) {
 	assert.Equal(t, 0, resp.Code)
 }
 
+func TestAdminTicketList_StatusFilter(t *testing.T) {
+	db, ts, _, baseURL := setupTicketTestRouter(t)
+	defer ts.Close()
+	userID, _ := createTestUser(t, db)
+	_, adminToken := createTestAdmin(t, db)
+
+	db.Create(&model.Ticket{UserID: userID, Title: "open ticket", Content: "a", Status: "open"})
+	db.Create(&model.Ticket{UserID: userID, Title: "closed ticket", Content: "b", Status: "closed"})
+
+	resp := doGet(baseURL+"/api/v1/admin/tickets?status=pending", adminToken)
+	assert.Equal(t, 0, resp.Code)
+	var page struct {
+		Items []model.TicketResponse `json:"items"`
+		Total int64                  `json:"total"`
+	}
+	json.Unmarshal(resp.Data, &page)
+	assert.Equal(t, int64(1), page.Total)
+	if assert.Len(t, page.Items, 1) {
+		assert.Equal(t, "open", page.Items[0].Status)
+	}
+}
+
 // === Test Settings ===
 
 func TestSettings(t *testing.T) {
@@ -342,13 +364,32 @@ func TestAdminAccountManagement(t *testing.T) {
 func TestFinanceEndpoints(t *testing.T) {
 	db, ts, _, baseURL := setupTicketTestRouter(t)
 	defer ts.Close()
+	userID, _ := createTestUser(t, db)
 	_, adminToken := createTestAdmin(t, db)
+	db.Create(&model.WithdrawalRequest{
+		UserID: userID, Amount: 100, AccountName: "tester", AccountNo: "NO1",
+		BankName: "bank", Status: "pending",
+	})
+	db.Create(&model.WithdrawalRequest{
+		UserID: userID, Amount: 200, AccountName: "tester", AccountNo: "NO2",
+		BankName: "bank", Status: "approved",
+	})
 
 	resp := doGet(baseURL+"/api/v1/admin/finance/summary", adminToken)
 	assert.Equal(t, 0, resp.Code)
 
-	resp = doGet(baseURL+"/api/v1/admin/finance/withdrawals", adminToken)
+	resp = doGet(baseURL+"/api/v1/admin/finance/withdrawals?status=pending", adminToken)
 	assert.Equal(t, 0, resp.Code)
+	var page struct {
+		Items []model.FinanceWithdrawalResponse `json:"items"`
+		Total int64                             `json:"total"`
+	}
+	json.Unmarshal(resp.Data, &page)
+	assert.Equal(t, int64(1), page.Total)
+	if assert.Len(t, page.Items, 1) {
+		assert.Equal(t, 100, page.Items[0].Amount)
+		assert.Equal(t, "testuser", page.Items[0].Username)
+	}
 }
 
 // === Test Logs ===

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Card, Col, Row, Statistic, Table, Select } from 'antd'
+import { Card, Col, Row, Statistic, Table, Select, Empty } from 'antd'
 import { UserOutlined, BookOutlined, ShoppingCartOutlined, DollarOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons'
-import { getDashboardStats, getOrders } from '@/api'
-import type { DashboardStats, Order } from '@/types'
+import { getDashboardStats, getDashboardCharts, getOrders } from '@/api'
+import type { DashboardStats, Order, ChartData } from '@/types'
 import dayjs from 'dayjs'
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats>()
+  const [chartData, setChartData] = useState<ChartData>()
   const [orders, setOrders] = useState<Order[]>([])
   const [period, setPeriod] = useState('day')
 
@@ -14,6 +15,10 @@ export default function Dashboard() {
     getDashboardStats().then(res => setStats(res.data))
     getOrders({ page: 1, pageSize: 5 }).then(res => setOrders(res.data.items))
   }, [])
+  useEffect(() => {
+    setChartData(undefined)
+    getDashboardCharts(period).then(res => setChartData(res.data)).catch(() => setChartData({ labels: [], datasets: [] }))
+  }, [period])
 
   const statCards = stats ? [
     { title: '总用户数', value: stats.totalUsers, icon: <UserOutlined />, growth: stats.userGrowth },
@@ -49,20 +54,20 @@ export default function Dashboard() {
           options={[{ value: 'day', label: '日' }, { value: 'month', label: '月' }, { value: 'quarter', label: '季度' }, { value: 'year', label: '年' }]}
         />
       }>
-        {(() => {
-          const bars = [65, 40, 80, 55, 90, 70, 50]
-          const labels = period === 'day' ? ['周一','周二','周三','周四','周五','周六','周日'] : period === 'month' ? ['1月','2月','3月','4月','5月','6月','7月'] : period === 'quarter' ? ['Q1','Q2','Q3','Q4','Q1','Q2','Q3'] : ['2020','2021','2022','2023','2024','2025','2026']
-          return (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 180, padding: '0 16px' }}>
-              {bars.map((v, i) => (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={{ width: '60%', height: `${v}%`, background: 'linear-gradient(180deg, #1677ff 0%, #69b1ff 100%)', borderRadius: 4, transition: 'height 0.3s' }} />
-                  <span style={{ fontSize: 12, color: '#666', marginTop: 6 }}>{labels[i]}</span>
+        {chartData?.datasets?.length ? (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 180, padding: '0 16px' }}>
+            {chartData.labels.map((label, i) => {
+              const total = chartData.datasets.reduce((sum, ds) => sum + (ds.data[i] || 0), 0)
+              const max = Math.max(1, ...chartData.labels.map((_, index) => chartData.datasets.reduce((sum, ds) => sum + (ds.data[index] || 0), 0)))
+              return (
+                <div key={label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={{ width: '60%', height: `${Math.max(4, (total / max) * 100)}%`, background: 'linear-gradient(180deg, #1677ff 0%, #69b1ff 100%)', borderRadius: 4, transition: 'height 0.3s' }} />
+                  <span style={{ fontSize: 12, color: '#666', marginTop: 6 }}>{label}</span>
                 </div>
-              ))}
-            </div>
-          )
-        })()}
+              )
+            })}
+          </div>
+        ) : <Empty description="暂无趋势数据" />}
       </Card>
 
       <Card title="最近订单" style={{ marginTop: 16 }}>

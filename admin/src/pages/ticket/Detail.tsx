@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Tag, List, Input, Button, Space, Select, message } from 'antd'
+import { Card, Descriptions, Tag, List, Input, Button, Space, Select, message, Spin } from 'antd'
 import { getTicket, replyTicket, updateTicketStatus } from '@/api'
 import type { TicketDetail as TicketDetailType } from '@/types'
 
@@ -38,7 +38,7 @@ export default function TicketDetail() {
     fetchTicket()
   }
 
-  if (!ticket) return null
+  if (!ticket) return <Spin style={{ display: 'block', marginTop: 100 }} />
 
   return (
     <Space direction="vertical" style={{ width: '100%' }} size="middle">

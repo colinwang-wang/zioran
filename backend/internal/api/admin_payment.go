@@ -1,7 +1,9 @@
 package api
 
 import (
+	"io"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zioran/backend/internal/model"
@@ -24,8 +26,12 @@ func NewAdminPaymentHandler(paySvc *service.PaymentService, commSvc *service.Com
 func (h *AdminPaymentHandler) OrderList(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
-	status := c.Query("status")
-	result, err := h.paySvc.AdminOrders(c.Request.Context(), page, pageSize, status)
+	filter, parseErr := parseAdminOrderFilter(c)
+	if parseErr != nil {
+		response.Error(c, errcode.ErrParam)
+		return
+	}
+	result, err := h.paySvc.AdminOrders(c.Request.Context(), page, pageSize, filter)
 	if err != nil {
 		response.Error(c, errcode.ErrInternal)
 		return
@@ -135,7 +141,11 @@ func (h *AdminPaymentHandler) DashboardStats(c *gin.Context) {
 
 func (h *AdminPaymentHandler) DashboardCharts(c *gin.Context) {
 	period := c.DefaultQuery("period", "week")
-	result := h.paySvc.DashboardCharts(c.Request.Context(), period)
+	result, err := h.paySvc.DashboardCharts(c.Request.Context(), period)
+	if err != nil {
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
 	response.Success(c, result)
 }
 
@@ -198,8 +208,16 @@ func (h *AdminPaymentHandler) GuestbookPin(c *gin.Context) {
 		response.Error(c, errcode.ErrParam)
 		return
 	}
-	// Toggle pin
-	if svcErr := h.commSvc.AdminGuestbookPin(c.Request.Context(), id, true); svcErr != nil {
+	var req model.AdminGuestbookPinRequest
+	if err := c.ShouldBindJSON(&req); err != nil && err != io.EOF {
+		response.Error(c, errcode.ErrParam)
+		return
+	}
+	pinned := true
+	if req.Pinned != nil {
+		pinned = *req.Pinned
+	}
+	if svcErr := h.commSvc.AdminGuestbookPin(c.Request.Context(), id, pinned); svcErr != nil {
 		if e, ok := svcErr.(*errcode.Error); ok {
 			response.Error(c, e)
 			return
@@ -208,6 +226,47 @@ func (h *AdminPaymentHandler) GuestbookPin(c *gin.Context) {
 		return
 	}
 	response.Success(c, nil)
+}
+
+func parseAdminOrderFilter(c *gin.Context) (model.AdminOrderFilter, error) {
+	filter := model.AdminOrderFilter{
+		Status: c.Query("status"),
+		Type:   c.Query("type"),
+	}
+	start := firstQuery(c, "startDate", "start_date", "from")
+	end := firstQuery(c, "endDate", "end_date", "to")
+	if start != "" {
+		t, err := parseQueryDate(start)
+		if err != nil {
+			return filter, err
+		}
+		filter.StartDate = &t
+	}
+	if end != "" {
+		t, err := parseQueryDate(end)
+		if err != nil {
+			return filter, err
+		}
+		exclusiveEnd := t.AddDate(0, 0, 1)
+		filter.EndDate = &exclusiveEnd
+	}
+	return filter, nil
+}
+
+func firstQuery(c *gin.Context, keys ...string) string {
+	for _, key := range keys {
+		if value := c.Query(key); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func parseQueryDate(value string) (time.Time, error) {
+	if t, err := time.ParseInLocation("2006-01-02", value, time.Local); err == nil {
+		return t, nil
+	}
+	return time.Parse(time.RFC3339, value)
 }
 
 func (h *AdminPaymentHandler) GuestbookDelete(c *gin.Context) {

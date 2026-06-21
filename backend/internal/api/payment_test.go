@@ -37,7 +37,7 @@ func setupPhase34RouterWithMockPayment(t *testing.T, mockAutoComplete bool) (*go
 		&model.Guestbook{}, &model.GuestbookLike{}, &model.Comment{},
 		&model.NavItem{}, &model.Banner{}, &model.UserDownload{},
 		&model.Ticket{}, &model.TicketReply{}, &model.Setting{},
-		&model.OperationLog{}, &model.PaymentLog{},
+		&model.OperationLog{}, &model.PaymentLog{}, &model.WithdrawalRequest{},
 	))
 
 	userRepo := repository.NewUserRepository(db)
@@ -439,6 +439,79 @@ func Test_AdminOrders(t *testing.T) {
 
 	result := authedGet(ts.URL+"/api/v1/admin/orders", token)
 	assert.Equal(t, 0, result.Code)
+}
+
+func Test_AdminOrders_FilterByTypeStatusAndDate(t *testing.T) {
+	db, ts, token := setupPhase34Router(t)
+	defer ts.Close()
+
+	user := &model.User{Username: "buyer", Phone: "13900000001", PasswordHash: "$2a$10$dummy", Role: "user", Status: "active"}
+	db.Create(user)
+	today := time.Now()
+	yesterday := today.AddDate(0, 0, -1)
+	db.Create(&model.Order{OrderNo: "ORD_FILTER_1", UserID: user.ID, Type: "course", TargetName: "course", Amount: 10, Status: "paid", CreatedAt: today})
+	db.Create(&model.Order{OrderNo: "ORD_FILTER_2", UserID: user.ID, Type: "vip", TargetName: "vip", Amount: 20, Status: "paid", CreatedAt: today})
+	db.Create(&model.Order{OrderNo: "ORD_FILTER_3", UserID: user.ID, Type: "course", TargetName: "old course", Amount: 30, Status: "pending", CreatedAt: yesterday})
+
+	result := authedGet(ts.URL+"/api/v1/admin/orders?type=course_purchase&status=paid&startDate="+today.Format("2006-01-02")+"&endDate="+today.Format("2006-01-02"), token)
+	assert.Equal(t, 0, result.Code)
+	var page struct {
+		Items []model.OrderResponse `json:"items"`
+		Total int64                 `json:"total"`
+	}
+	json.Unmarshal(result.Data, &page)
+	assert.Equal(t, int64(1), page.Total)
+	if assert.Len(t, page.Items, 1) {
+		assert.Equal(t, "ORD_FILTER_1", page.Items[0].OrderNo)
+	}
+}
+
+func Test_DashboardCharts_UsesDatabaseCounts(t *testing.T) {
+	db, ts, token := setupPhase34Router(t)
+	defer ts.Close()
+
+	result := authedGet(ts.URL+"/api/v1/admin/dashboard/charts?period=week", token)
+	assert.Equal(t, 0, result.Code)
+	var chart model.DashboardChartsResponse
+	json.Unmarshal(result.Data, &chart)
+	var orderSum int64
+	for _, dataset := range chart.Datasets {
+		if dataset.Label == "订单" {
+			for _, value := range dataset.Data {
+				orderSum += value
+			}
+		}
+	}
+	assert.Equal(t, int64(0), orderSum)
+
+	db.Create(&model.Order{OrderNo: "ORD_CHART_1", UserID: 1, Type: "coin", TargetName: "coin", Amount: 10, Status: "paid"})
+	result = authedGet(ts.URL+"/api/v1/admin/dashboard/charts?period=week", token)
+	assert.Equal(t, 0, result.Code)
+	json.Unmarshal(result.Data, &chart)
+	orderSum = 0
+	for _, dataset := range chart.Datasets {
+		if dataset.Label == "订单" {
+			for _, value := range dataset.Data {
+				orderSum += value
+			}
+		}
+	}
+	assert.Equal(t, int64(1), orderSum)
+}
+
+func Test_GuestbookPin_UsesRequestedPinnedValue(t *testing.T) {
+	db, ts, token := setupPhase34Router(t)
+	defer ts.Close()
+
+	entry := &model.Guestbook{UserID: 1, Content: "hello", Status: "visible", IsPinned: true}
+	db.Create(entry)
+
+	result := authedPut(ts.URL+fmt.Sprintf("/api/v1/admin/guestbook/%d/pin", entry.ID), token, map[string]bool{"pinned": false})
+	assert.Equal(t, 0, result.Code)
+
+	var updated model.Guestbook
+	db.First(&updated, entry.ID)
+	assert.False(t, updated.IsPinned)
 }
 
 func Test_AdminUsers(t *testing.T) {

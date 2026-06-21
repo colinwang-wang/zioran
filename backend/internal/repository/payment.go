@@ -169,12 +169,21 @@ func (r *PaymentRepository) UserOrders(ctx context.Context, userID int64, page, 
 	return orders, total, err
 }
 
-func (r *PaymentRepository) AdminOrders(ctx context.Context, page, pageSize int, status string) ([]model.Order, int64, error) {
+func (r *PaymentRepository) AdminOrders(ctx context.Context, page, pageSize int, filter model.AdminOrderFilter) ([]model.Order, int64, error) {
 	var orders []model.Order
 	var total int64
 	query := r.db.WithContext(ctx).Model(&model.Order{})
-	if status != "" {
-		query = query.Where("status = ?", status)
+	if filter.Status != "" {
+		query = query.Where("status = ?", filter.Status)
+	}
+	if filter.Type != "" {
+		query = query.Where("type = ?", normalizeOrderType(filter.Type))
+	}
+	if filter.StartDate != nil {
+		query = query.Where("created_at >= ?", *filter.StartDate)
+	}
+	if filter.EndDate != nil {
+		query = query.Where("created_at < ?", *filter.EndDate)
 	}
 	query.Count(&total)
 	err := query.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&orders).Error
@@ -268,36 +277,49 @@ func (r *PaymentRepository) DashboardStats(ctx context.Context) (*model.Dashboar
 	r.db.WithContext(ctx).Model(&model.Order{}).Count(&stats.TotalOrders)
 
 	var todayRevenue *int64
-	today := time.Now().Format("2006-01-02")
-	r.db.WithContext(ctx).Model(&model.Order{}).Where("status = ? AND DATE(created_at) = ?", "paid", today).
+	now := time.Now()
+	todayStart := startOfDay(now)
+	tomorrowStart := todayStart.AddDate(0, 0, 1)
+	yesterdayStart := todayStart.AddDate(0, 0, -1)
+	r.db.WithContext(ctx).Model(&model.Order{}).Where("status = ? AND created_at >= ? AND created_at < ?", "paid", todayStart, tomorrowStart).
 		Select("COALESCE(SUM(amount), 0)").Scan(&todayRevenue)
 	if todayRevenue != nil {
 		stats.TodayRevenue = *todayRevenue
 	}
 
 	// Growth rates (compare today vs yesterday counts)
-	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
 	var todayUsers, yesterdayUsers int64
-	r.db.WithContext(ctx).Model(&model.User{}).Where("DATE(created_at) = ?", today).Count(&todayUsers)
-	r.db.WithContext(ctx).Model(&model.User{}).Where("DATE(created_at) = ?", yesterday).Count(&yesterdayUsers)
+	r.db.WithContext(ctx).Model(&model.User{}).Where("created_at >= ? AND created_at < ?", todayStart, tomorrowStart).Count(&todayUsers)
+	r.db.WithContext(ctx).Model(&model.User{}).Where("created_at >= ? AND created_at < ?", yesterdayStart, todayStart).Count(&yesterdayUsers)
 	stats.UserGrowth = calcGrowth(todayUsers, yesterdayUsers)
 
 	var todayOrders, yesterdayOrders int64
-	r.db.WithContext(ctx).Model(&model.Order{}).Where("DATE(created_at) = ?", today).Count(&todayOrders)
-	r.db.WithContext(ctx).Model(&model.Order{}).Where("DATE(created_at) = ?", yesterday).Count(&yesterdayOrders)
+	r.db.WithContext(ctx).Model(&model.Order{}).Where("created_at >= ? AND created_at < ?", todayStart, tomorrowStart).Count(&todayOrders)
+	r.db.WithContext(ctx).Model(&model.Order{}).Where("created_at >= ? AND created_at < ?", yesterdayStart, todayStart).Count(&yesterdayOrders)
 	stats.OrderGrowth = calcGrowth(todayOrders, yesterdayOrders)
 
 	var todayCourses, yesterdayCourses int64
-	r.db.WithContext(ctx).Model(&model.Course{}).Where("DATE(created_at) = ?", today).Count(&todayCourses)
-	r.db.WithContext(ctx).Model(&model.Course{}).Where("DATE(created_at) = ?", yesterday).Count(&yesterdayCourses)
+	r.db.WithContext(ctx).Model(&model.Course{}).Where("created_at >= ? AND created_at < ?", todayStart, tomorrowStart).Count(&todayCourses)
+	r.db.WithContext(ctx).Model(&model.Course{}).Where("created_at >= ? AND created_at < ?", yesterdayStart, todayStart).Count(&yesterdayCourses)
 	stats.CourseGrowth = calcGrowth(todayCourses, yesterdayCourses)
 
 	var yesterdayRevenue int64
-	r.db.WithContext(ctx).Model(&model.Order{}).Where("status = ? AND DATE(created_at) = ?", "paid", yesterday).
+	r.db.WithContext(ctx).Model(&model.Order{}).Where("status = ? AND created_at >= ? AND created_at < ?", "paid", yesterdayStart, todayStart).
 		Select("COALESCE(SUM(amount), 0)").Scan(&yesterdayRevenue)
 	stats.RevenueGrowth = calcGrowth(stats.TodayRevenue, yesterdayRevenue)
 
 	return &stats, nil
+}
+
+func (r *PaymentRepository) DashboardDailyCounts(ctx context.Context, start, end time.Time) (int64, int64, error) {
+	var users, orders int64
+	if err := r.db.WithContext(ctx).Model(&model.User{}).Where("created_at >= ? AND created_at < ?", start, end).Count(&users).Error; err != nil {
+		return 0, 0, err
+	}
+	if err := r.db.WithContext(ctx).Model(&model.Order{}).Where("created_at >= ? AND created_at < ?", start, end).Count(&orders).Error; err != nil {
+		return 0, 0, err
+	}
+	return users, orders, nil
 }
 
 func calcGrowth(current, previous int64) float64 {
@@ -308,4 +330,21 @@ func calcGrowth(current, previous int64) float64 {
 		return 0
 	}
 	return float64(current-previous) / float64(previous) * 100
+}
+
+func normalizeOrderType(orderType string) string {
+	switch orderType {
+	case "coin_recharge":
+		return "coin"
+	case "vip_purchase":
+		return "vip"
+	case "course_purchase":
+		return "course"
+	default:
+		return orderType
+	}
+}
+
+func startOfDay(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
 }

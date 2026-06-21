@@ -13,8 +13,8 @@ type Ticket struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
-	User    *User          `json:"user,omitempty" gorm:"foreignKey:UserID"`
-	Replies []TicketReply  `json:"replies,omitempty" gorm:"foreignKey:TicketID"`
+	User    *User         `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	Replies []TicketReply `json:"replies,omitempty" gorm:"foreignKey:TicketID"`
 }
 
 func (Ticket) TableName() string { return "tickets" }
@@ -69,6 +69,25 @@ type PaymentLog struct {
 
 func (PaymentLog) TableName() string { return "payment_logs" }
 
+// WithdrawalRequest records a user withdrawal application for admin finance review.
+type WithdrawalRequest struct {
+	ID          int64      `json:"id" gorm:"primaryKey;autoIncrement"`
+	UserID      int64      `json:"user_id" gorm:"not null"`
+	Amount      int        `json:"amount" gorm:"not null"`
+	AccountName string     `json:"account_name" gorm:"size:100"`
+	AccountNo   string     `json:"account_no" gorm:"size:100"`
+	BankName    string     `json:"bank_name" gorm:"size:100"`
+	Status      string     `json:"status" gorm:"size:20;not null;default:pending"`
+	Remark      string     `json:"remark" gorm:"type:text"`
+	ProcessedAt *time.Time `json:"processed_at"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+
+	User *User `json:"user,omitempty" gorm:"foreignKey:UserID"`
+}
+
+func (WithdrawalRequest) TableName() string { return "withdrawal_requests" }
+
 // DTOs
 
 type CreateTicketRequest struct {
@@ -85,13 +104,13 @@ type TicketStatusRequest struct {
 }
 
 type TicketResponse struct {
-	ID        int64               `json:"id"`
-	UserID    int64               `json:"user_id"`
-	Username  string              `json:"username"`
-	Title     string              `json:"title"`
-	Content   string              `json:"content"`
-	Status    string              `json:"status"`
-	CreatedAt time.Time           `json:"created_at"`
+	ID        int64                 `json:"id"`
+	UserID    int64                 `json:"user_id"`
+	Username  string                `json:"username"`
+	Title     string                `json:"title"`
+	Content   string                `json:"content"`
+	Status    string                `json:"status"`
+	CreatedAt time.Time             `json:"created_at"`
 	Replies   []TicketReplyResponse `json:"replies,omitempty"`
 }
 
@@ -125,9 +144,23 @@ type AdminUpdateRequest struct {
 type SettingsMap map[string]string
 
 type FinanceSummary struct {
-	TodayRevenue   int64 `json:"today_revenue"`
-	TotalSettled   int64 `json:"total_settled"`
-	TotalPending   int64 `json:"total_pending"`
+	TodayRevenue int64 `json:"today_revenue"`
+	TotalSettled int64 `json:"total_settled"`
+	TotalPending int64 `json:"total_pending"`
+}
+
+type FinanceWithdrawalResponse struct {
+	ID          int64      `json:"id"`
+	UserID      int64      `json:"user_id"`
+	Username    string     `json:"username"`
+	Amount      int        `json:"amount"`
+	AccountName string     `json:"account_name"`
+	AccountNo   string     `json:"account_no"`
+	BankName    string     `json:"bank_name"`
+	Status      string     `json:"status"`
+	Remark      string     `json:"remark"`
+	ProcessedAt *time.Time `json:"processed_at"`
+	CreatedAt   time.Time  `json:"created_at"`
 }
 
 type CommentReplyRequest struct {

@@ -5,9 +5,9 @@ import "time"
 // Coin DTOs
 
 type CoinBalanceResponse struct {
-	Balance    int `json:"balance"`
+	Balance     int `json:"balance"`
 	TotalEarned int `json:"total_earned"`
-	TotalSpent int  `json:"total_spent"`
+	TotalSpent  int `json:"total_spent"`
 }
 
 type RechargeRequest struct {
@@ -30,7 +30,7 @@ type VipPurchaseRequest struct {
 // Order DTOs
 
 type CreateOrderRequest struct {
-	Type     string `json:"type" binding:"required"`     // course, vip, coin
+	Type     string `json:"type" binding:"required"` // course, vip, coin
 	TargetID int    `json:"target_id"`
 	Amount   int    `json:"amount"`
 }
@@ -44,6 +44,13 @@ type OrderResponse struct {
 	Status     string     `json:"status"`
 	CreatedAt  time.Time  `json:"created_at"`
 	PaidAt     *time.Time `json:"paid_at"`
+}
+
+type AdminOrderFilter struct {
+	Status    string
+	Type      string
+	StartDate *time.Time
+	EndDate   *time.Time
 }
 
 // Guestbook DTOs
@@ -122,11 +129,11 @@ type DownloadResponse struct {
 }
 
 type FavoriteResponse struct {
-	CourseID    int64      `json:"course_id"`
-	Title       string     `json:"title"`
-	Cover       string     `json:"cover"`
-	Slug        string     `json:"slug"`
-	CreatedAt   time.Time  `json:"created_at"`
+	CourseID  int64     `json:"course_id"`
+	Title     string    `json:"title"`
+	Cover     string    `json:"cover"`
+	Slug      string    `json:"slug"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // Admin DTOs
@@ -148,15 +155,19 @@ type AdminCommentStatusRequest struct {
 	Status string `json:"status" binding:"required"`
 }
 
+type AdminGuestbookPinRequest struct {
+	Pinned *bool `json:"pinned"`
+}
+
 type DashboardStats struct {
-	TotalUsers     int64   `json:"totalUsers"`
-	TotalCourses   int64   `json:"totalCourses"`
-	TotalOrders    int64   `json:"totalOrders"`
-	TodayRevenue   int64   `json:"todayRevenue"`
-	UserGrowth     float64 `json:"userGrowth"`
-	CourseGrowth   float64 `json:"courseGrowth"`
-	OrderGrowth    float64 `json:"orderGrowth"`
-	RevenueGrowth  float64 `json:"revenueGrowth"`
+	TotalUsers    int64   `json:"totalUsers"`
+	TotalCourses  int64   `json:"totalCourses"`
+	TotalOrders   int64   `json:"totalOrders"`
+	TodayRevenue  int64   `json:"todayRevenue"`
+	UserGrowth    float64 `json:"userGrowth"`
+	CourseGrowth  float64 `json:"courseGrowth"`
+	OrderGrowth   float64 `json:"orderGrowth"`
+	RevenueGrowth float64 `json:"revenueGrowth"`
 }
 
 type RechargeResponse struct {

@@ -170,7 +170,8 @@ func (h *TicketHandler) TicketReply(c *gin.Context) {
 func (h *TicketHandler) AdminTicketList(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
-	result, err := h.ticketSvc.AdminList(c.Request.Context(), page, pageSize)
+	status := c.Query("status")
+	result, err := h.ticketSvc.AdminList(c.Request.Context(), page, pageSize, status)
 	if err != nil {
 		response.Error(c, errcode.ErrInternal)
 		return
@@ -342,8 +343,15 @@ func (h *TicketHandler) FinanceSummary(c *gin.Context) {
 }
 
 func (h *TicketHandler) FinanceWithdrawals(c *gin.Context) {
-	// MOCK: 待接入真实提现系统
-	response.Success(c, &model.PaginatedList{Items: []interface{}{}, Total: 0, Page: 1, PageSize: 20, TotalPages: 0})
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	status := c.Query("status")
+	result, err := h.ticketSvc.FinanceWithdrawals(c.Request.Context(), page, pageSize, status)
+	if err != nil {
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
+	response.Success(c, result)
 }
 
 // === Logs ===
@@ -460,7 +468,7 @@ func (h *TicketHandler) OAuthWechatCallback(c *gin.Context) {
 	}
 	response.Success(c, gin.H{
 		"token": token,
-		"user": gin.H{"id": user.ID, "username": user.Username, "phone": user.Phone, "avatar": user.AvatarURL, "is_vip": user.Role == "vip"},
+		"user":  gin.H{"id": user.ID, "username": user.Username, "phone": user.Phone, "avatar": user.AvatarURL, "is_vip": user.Role == "vip"},
 	})
 }
 

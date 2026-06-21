@@ -33,7 +33,7 @@ func setupCourseTestRouter(t *testing.T) (*gorm.DB, *httptest.Server, string) {
 	assert.NoError(t, db.AutoMigrate(&model.User{}, &model.Course{}, &model.Category{}, &model.Tag{}, &model.CourseResource{}, &model.UserFavorite{},
 		&model.CoinAccount{}, &model.CoinTransaction{}, &model.VipPackage{}, &model.UserVip{}, &model.Order{}, &model.Purchase{},
 		&model.Guestbook{}, &model.GuestbookLike{}, &model.Comment{}, &model.NavItem{}, &model.Banner{}, &model.UserDownload{},
-		&model.Ticket{}, &model.TicketReply{}, &model.Setting{}, &model.OperationLog{}, &model.PaymentLog{}))
+		&model.Ticket{}, &model.TicketReply{}, &model.Setting{}, &model.OperationLog{}, &model.PaymentLog{}, &model.WithdrawalRequest{}))
 
 	// Seed data
 	cat := model.Category{Name: "AIGC课堂", Slug: "aigc", IsActive: true}
@@ -45,12 +45,12 @@ func setupCourseTestRouter(t *testing.T) (*gorm.DB, *httptest.Server, string) {
 	for i := 1; i <= 20; i++ {
 		pub := now.Add(-time.Duration(i) * time.Hour)
 		c := model.Course{
-			Title:      fmt.Sprintf("课程%d", i),
-			Slug:       fmt.Sprintf("course-%d", i),
-			CategoryID: cat.ID,
-			CoverImage: "https://example.com/cover.jpg",
-			Status:     "published",
-			Price:      10,
+			Title:       fmt.Sprintf("课程%d", i),
+			Slug:        fmt.Sprintf("course-%d", i),
+			CategoryID:  cat.ID,
+			CoverImage:  "https://example.com/cover.jpg",
+			Status:      "published",
+			Price:       10,
 			PublishedAt: &pub,
 		}
 		db.Create(&c)
