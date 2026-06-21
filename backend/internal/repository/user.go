@@ -28,6 +28,15 @@ func (r *UserRepository) FindByPhone(ctx context.Context, phone string) (*model.
 	return &user, nil
 }
 
+func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*model.User, error) {
+	var user model.User
+	err := r.db.WithContext(ctx).Where("email = ?", email).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (r *UserRepository) FindByID(ctx context.Context, id int64) (*model.User, error) {
 	var user model.User
 	err := r.db.WithContext(ctx).First(&user, id).Error
@@ -48,6 +57,10 @@ func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*
 
 func (r *UserRepository) UpdatePassword(ctx context.Context, userID int64, hash string) error {
 	return r.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", userID).Update("password_hash", hash).Error
+}
+
+func (r *UserRepository) UpdateProfile(ctx context.Context, userID int64, updates map[string]interface{}) error {
+	return r.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", userID).Updates(updates).Error
 }
 
 func (r *UserRepository) FindByWechatOpenID(ctx context.Context, openID string) (*model.User, error) {

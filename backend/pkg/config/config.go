@@ -5,20 +5,20 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/zioran/backend/pkg/email"
 	"github.com/zioran/backend/pkg/oauth"
 	"github.com/zioran/backend/pkg/payment"
-	"github.com/zioran/backend/pkg/sms"
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	Server   ServerConfig   `yaml:"server"`
-	Database DatabaseConfig `yaml:"database"`
-	Redis    RedisConfig    `yaml:"redis"`
-	JWT      JWTConfig      `yaml:"jwt"`
-	SMS      sms.SMSConfig  `yaml:"sms"`
-	Payment  PaymentConfig  `yaml:"payment"`
-	OAuth    OAuthConfig    `yaml:"oauth"`
+	Server   ServerConfig      `yaml:"server"`
+	Database DatabaseConfig    `yaml:"database"`
+	Redis    RedisConfig       `yaml:"redis"`
+	JWT      JWTConfig         `yaml:"jwt"`
+	Email    email.EmailConfig `yaml:"email"`
+	Payment  PaymentConfig     `yaml:"payment"`
+	OAuth    OAuthConfig       `yaml:"oauth"`
 }
 
 type ServerConfig struct {
@@ -78,6 +78,14 @@ func applyEnvOverrides(cfg *Config) {
 	setIntEnv("REDIS_PORT", &cfg.Redis.Port)
 	setStringEnv("JWT_SECRET", &cfg.JWT.Secret)
 	setDurationEnv("JWT_EXPIRE", &cfg.JWT.Expire)
+
+	setStringEnv("EMAIL_PROVIDER", &cfg.Email.Provider)
+	setStringEnv("EMAIL_SMTP_HOST", &cfg.Email.SMTP.Host)
+	setIntEnv("EMAIL_SMTP_PORT", &cfg.Email.SMTP.Port)
+	setStringEnv("EMAIL_SMTP_USERNAME", &cfg.Email.SMTP.Username)
+	setStringEnv("EMAIL_SMTP_PASSWORD", &cfg.Email.SMTP.Password)
+	setStringEnv("EMAIL_SMTP_FROM", &cfg.Email.SMTP.From)
+	setStringEnv("EMAIL_SMTP_SUBJECT", &cfg.Email.SMTP.Subject)
 
 	setBoolEnv("PAYMENT_WECHAT_ENABLED", &cfg.Payment.Wechat.Enabled)
 	setBoolEnv("PAYMENT_WECHAT_MOCK_AUTO_COMPLETE", &cfg.Payment.Wechat.MockAutoComplete)

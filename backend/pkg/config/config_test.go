@@ -23,6 +23,15 @@ redis:
 jwt:
   secret: local
   expire: 72h
+email:
+  provider: mock
+  smtp:
+    host: ""
+    port: 587
+    username: ""
+    password: ""
+    from: ""
+    subject: ""
 payment:
   wechat:
     enabled: false
@@ -59,6 +68,10 @@ oauth:
 	t.Setenv("PAYMENT_WECHAT_CERT_PATH", "/secure/wechat-platform.pem")
 	t.Setenv("PAYMENT_ALIPAY_ENABLED", "true")
 	t.Setenv("PAYMENT_ALIPAY_RETURN_URL", "https://www.zioran.com/user/transactions")
+	t.Setenv("EMAIL_PROVIDER", "smtp")
+	t.Setenv("EMAIL_SMTP_HOST", "smtp.example.com")
+	t.Setenv("EMAIL_SMTP_PORT", "465")
+	t.Setenv("EMAIL_SMTP_FROM", "noreply@example.com")
 
 	cfg, err := Load(configPath)
 	if err != nil {
@@ -69,5 +82,8 @@ oauth:
 	}
 	if !cfg.Payment.Alipay.Enabled || cfg.Payment.Alipay.ReturnURL != "https://www.zioran.com/user/transactions" {
 		t.Fatalf("alipay env overrides not applied: %+v", cfg.Payment.Alipay)
+	}
+	if cfg.Email.Provider != "smtp" || cfg.Email.SMTP.Host != "smtp.example.com" || cfg.Email.SMTP.Port != 465 || cfg.Email.SMTP.From != "noreply@example.com" {
+		t.Fatalf("email env overrides not applied: %+v", cfg.Email)
 	}
 }

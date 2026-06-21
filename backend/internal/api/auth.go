@@ -25,13 +25,13 @@ func (h *AuthHandler) Captcha(c *gin.Context) {
 	response.Success(c, result)
 }
 
-func (h *AuthHandler) SendSMS(c *gin.Context) {
-	var req model.SendSMSRequest
+func (h *AuthHandler) SendEmail(c *gin.Context) {
+	var req model.SendEmailRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Error(c, errcode.ErrParam)
 		return
 	}
-	if err := h.authSvc.SendSMS(c.Request.Context(), req.Phone, req.CaptchaKey, req.Captcha); err != nil {
+	if err := h.authSvc.SendEmail(c.Request.Context(), req.Email, req.CaptchaKey, req.Captcha); err != nil {
 		if e, ok := err.(*errcode.Error); ok {
 			response.Error(c, e)
 			return
@@ -85,6 +85,29 @@ func (h *AuthHandler) Profile(c *gin.Context) {
 		return
 	}
 	result, err := h.authSvc.GetProfile(c.Request.Context(), userID.(int64))
+	if err != nil {
+		if e, ok := err.(*errcode.Error); ok {
+			response.Error(c, e)
+			return
+		}
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
+	response.Success(c, result)
+}
+
+func (h *AuthHandler) UpdateProfile(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.Error(c, errcode.ErrUnauthorized)
+		return
+	}
+	var req model.UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, errcode.ErrParam)
+		return
+	}
+	result, err := h.authSvc.UpdateProfile(c.Request.Context(), userID.(int64), &req)
 	if err != nil {
 		if e, ok := err.(*errcode.Error); ok {
 			response.Error(c, e)

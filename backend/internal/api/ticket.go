@@ -35,19 +35,23 @@ func NewTicketHandler(ticketSvc *service.TicketService, authSvc *service.AuthSer
 
 // === Auth extensions ===
 
-// ForgotPassword resets user password via SMS code
+// ForgotPassword resets user password via email code.
 func (h *TicketHandler) ForgotPassword(c *gin.Context) {
 	var req model.ForgotPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.Error(c, errcode.ErrParam)
 		return
 	}
-	// Verify SMS code via AuthService
-	if !h.authSvc.VerifySMSCode(req.Phone, req.SMSCode) {
-		response.Error(c, errcode.New(40001, "短信验证码错误"))
+	if req.Email == "" || req.EmailCode == "" {
+		response.Error(c, errcode.ErrParam)
 		return
 	}
-	if err := h.ticketSvc.ForgotPassword(c.Request.Context(), req.Phone, req.NewPassword); err != nil {
+	if !h.authSvc.VerifyEmailCode(req.Email, req.EmailCode) {
+		response.Error(c, errcode.New(40001, "邮箱验证码错误"))
+		return
+	}
+	err := h.ticketSvc.ForgotPasswordByEmail(c.Request.Context(), req.Email, req.NewPassword)
+	if err != nil {
 		if e, ok := err.(*errcode.Error); ok {
 			response.Error(c, e)
 			return
@@ -494,7 +498,7 @@ func (h *TicketHandler) completeWechatLogin(c *gin.Context, code string) (gin.H,
 	}
 	return gin.H{
 		"token": token,
-		"user":  gin.H{"id": user.ID, "username": user.Username, "phone": user.Phone, "avatar": user.AvatarURL, "is_vip": user.Role == "vip"},
+		"user":  gin.H{"id": user.ID, "username": user.Username, "email": user.Email, "avatar": user.AvatarURL, "is_vip": user.Role == "vip"},
 	}, nil
 }
 

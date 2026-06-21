@@ -10,11 +10,11 @@ import type {
 
 // Auth
 export const getCaptcha = () => api.post<CaptchaResponse>('/auth/captcha').then(r => r.data);
-export const sendSMS = (data: { phone: string; captcha: string; captcha_key: string }) =>
-  api.post('/auth/sms/send', data);
-export const register = (data: { phone: string; sms_code: string; password: string }) =>
+export const sendEmailCode = (data: { email: string; captcha: string; captcha_key: string }) =>
+  api.post('/auth/email/send', data);
+export const register = (data: { email: string; email_code: string; password: string }) =>
   api.post<AuthResponse>('/auth/register', data).then(r => r.data);
-export const login = (data: { phone: string; password: string; captcha: string; captcha_key: string }) =>
+export const login = (data: { email: string; password: string; captcha: string; captcha_key: string }) =>
   api.post<AuthResponse>('/auth/login', data).then(r => r.data);
 export const getWechatAuthURL = (state = 'login') =>
   api.get<{ auth_url: string }>('/auth/oauth/wechat', { params: { state } }).then(r => r.data.auth_url);
@@ -58,6 +58,8 @@ export const createComment = (data: { target_type: string; target_id: number; co
 
 // User
 export const getProfile = () => api.get<UserResponse>('/user/profile').then(r => r.data);
+export const updateProfile = (data: { username?: string; email?: string }) =>
+  api.put<UserResponse>('/user/profile', data).then(r => r.data);
 export const changePassword = (data: { old_password: string; new_password: string }) =>
   api.put('/user/password', data);
 export const getUserOrders = (params?: { page?: number }) =>
@@ -88,7 +90,7 @@ export const createOrder = (data: { type: string; target_id?: number; amount?: n
   api.post('/orders', data);
 
 // Forgot Password
-export const forgotPassword = (data: { phone: string; sms_code: string; new_password: string }) =>
+export const forgotPassword = (data: { email: string; email_code: string; new_password: string }) =>
   api.post('/auth/forgot-password', data);
 
 // Tickets

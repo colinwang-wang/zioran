@@ -4,19 +4,18 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { register, getCaptcha, sendSMS, getWechatAuthURL } from '@/lib/services';
+import { register, getCaptcha, sendEmailCode, getWechatAuthURL } from '@/lib/services';
 
 export default function RegisterPage() {
   const { setAuth } = useAuth();
   const router = useRouter();
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [smsCode, setSmsCode] = useState('');
+  const [emailCode, setEmailCode] = useState('');
   const [captcha, setCaptcha] = useState('');
   const [captchaKey, setCaptchaKey] = useState('');
   const [captchaImage, setCaptchaImage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [smsSent, setSmsSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [error, setError] = useState('');
 
@@ -28,11 +27,10 @@ export default function RegisterPage() {
     } catch { /* ignore */ }
   };
 
-  const handleSendSMS = async () => {
-    if (!phone || !captcha || !captchaKey) { setError('请输入手机号和验证码'); return; }
+  const handleSendEmail = async () => {
+    if (!email || !captcha || !captchaKey) { setError('请输入邮箱和验证码'); return; }
     try {
-      await sendSMS({ phone, captcha, captcha_key: captchaKey });
-      setSmsSent(true);
+      await sendEmailCode({ email, captcha, captcha_key: captchaKey });
       let c = 60;
       setCountdown(c);
       const timer = setInterval(() => { c--; setCountdown(c); if (c <= 0) clearInterval(timer); }, 1000);
@@ -45,11 +43,11 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone || !password || !smsCode) { setError('请填写完整信息'); return; }
+    if (!email || !password || !emailCode) { setError('请填写完整信息'); return; }
     setLoading(true);
     setError('');
     try {
-      const res = await register({ phone, sms_code: smsCode, password });
+      const res = await register({ email, email_code: emailCode, password });
       setAuth(res.token, res.user);
       router.push('/');
     } catch (err: unknown) {
@@ -76,7 +74,7 @@ export default function RegisterPage() {
           <p className="text-sm text-mute mt-1">创建账号</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="手机号" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="邮箱" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密码（至少6位）" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
           <div className="flex gap-2">
             <input type="text" value={captcha} onChange={(e) => setCaptcha(e.target.value)} placeholder="图片验证码" className="flex-1 px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
@@ -87,8 +85,8 @@ export default function RegisterPage() {
             )}
           </div>
           <div className="flex gap-2">
-            <input type="text" value={smsCode} onChange={(e) => setSmsCode(e.target.value)} placeholder="短信验证码" className="flex-1 px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
-            <button type="button" onClick={handleSendSMS} disabled={countdown > 0} className="px-4 py-3 bg-surface rounded-card text-xs font-semibold text-primary whitespace-nowrap disabled:text-mute">
+            <input type="text" value={emailCode} onChange={(e) => setEmailCode(e.target.value)} placeholder="邮箱验证码" className="flex-1 px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
+            <button type="button" onClick={handleSendEmail} disabled={countdown > 0} className="px-4 py-3 bg-surface rounded-card text-xs font-semibold text-primary whitespace-nowrap disabled:text-mute">
               {countdown > 0 ? `${countdown}s` : '发送验证码'}
             </button>
           </div>

@@ -17,7 +17,6 @@ import (
 	"github.com/zioran/backend/internal/service"
 	"github.com/zioran/backend/pkg/oauth"
 	"github.com/zioran/backend/pkg/payment"
-	"github.com/zioran/backend/pkg/sms"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -67,7 +66,7 @@ func setupCourseTestRouter(t *testing.T) (*gorm.DB, *httptest.Server, string) {
 	payRepo := repository.NewPaymentRepository(db)
 	commRepo := repository.NewCommunityRepository(db)
 
-	authSvc := service.NewAuthService(userRepo, testJWTSecret, 72*time.Hour, &sms.MockSender{})
+	authSvc := service.NewAuthService(userRepo, testJWTSecret, 72*time.Hour)
 	courseSvc := service.NewCourseService(courseRepo, catRepo, tagRepo, favRepo)
 	paySvc := service.NewPaymentService(payRepo, courseRepo, userRepo, payment.NewWechatPay(payment.WechatPayConfig{}), payment.NewAlipayClient(payment.AlipayConfig{}))
 	commSvc := service.NewCommunityService(commRepo)
@@ -86,9 +85,9 @@ func setupCourseTestRouter(t *testing.T) (*gorm.DB, *httptest.Server, string) {
 	ts := httptest.NewServer(r)
 
 	// Register a user and get token
-	authSvc.SetSMSCode("13800001111", "123456")
+	authSvc.SetEmailCode("course@example.com", "123456")
 	_, regResult := postJSON(ts.URL+"/api/v1/auth/register", map[string]string{
-		"phone": "13800001111", "sms_code": "123456", "password": "testpass",
+		"email": "course@example.com", "email_code": "123456", "password": "testpass",
 	})
 	var auth model.AuthResponse
 	json.Unmarshal(regResult.Data, &auth)

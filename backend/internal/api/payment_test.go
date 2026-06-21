@@ -17,7 +17,6 @@ import (
 	"github.com/zioran/backend/internal/service"
 	"github.com/zioran/backend/pkg/oauth"
 	"github.com/zioran/backend/pkg/payment"
-	"github.com/zioran/backend/pkg/sms"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -49,7 +48,7 @@ func setupPhase34RouterWithMockPayment(t *testing.T, mockAutoComplete bool) (*go
 	commRepo := repository.NewCommunityRepository(db)
 	ticketRepo := repository.NewTicketRepository(db)
 
-	authSvc := service.NewAuthService(userRepo, testJWTSecret, 72*time.Hour, &sms.MockSender{})
+	authSvc := service.NewAuthService(userRepo, testJWTSecret, 72*time.Hour)
 	courseSvc := service.NewCourseService(courseRepo, catRepo, tagRepo, favRepo)
 	paySvc := service.NewPaymentService(
 		payRepo,

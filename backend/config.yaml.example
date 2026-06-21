@@ -13,19 +13,15 @@ jwt:
   secret: zioran-jwt-secret-change-me
   expire: 72h
 
-sms:
-  provider: mock  # mock | aliyun | tencent
-  aliyun:
-    access_key_id: ""
-    access_key_secret: ""
-    sign_name: "知猿"
-    template_code: "SMS_123456"
-  tencent:
-    secret_id: ""
-    secret_key: ""
-    app_id: ""
-    sign_name: "知猿"
-    template_id: ""
+email:
+  provider: mock # mock | smtp
+  smtp:
+    host: ""
+    port: 587
+    username: ""
+    password: ""
+    from: ""
+    subject: "知猿验证码"
 
 payment:
   wechat:

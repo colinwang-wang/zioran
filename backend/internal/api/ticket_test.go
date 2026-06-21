@@ -18,7 +18,6 @@ import (
 	"github.com/zioran/backend/internal/service"
 	"github.com/zioran/backend/pkg/oauth"
 	"github.com/zioran/backend/pkg/payment"
-	"github.com/zioran/backend/pkg/sms"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -46,7 +45,7 @@ func setupTicketTestRouter(t *testing.T) (*gorm.DB, *httptest.Server, *service.A
 	commRepo := repository.NewCommunityRepository(db)
 	ticketRepo := repository.NewTicketRepository(db)
 
-	authSvc := service.NewAuthService(userRepo, testJWTSecret, 72*time.Hour, &sms.MockSender{})
+	authSvc := service.NewAuthService(userRepo, testJWTSecret, 72*time.Hour)
 	courseSvc := service.NewCourseService(courseRepo, catRepo, tagRepo, favRepo)
 	paySvc := service.NewPaymentService(payRepo, courseRepo, userRepo, payment.NewWechatPay(payment.WechatPayConfig{}), payment.NewAlipayClient(payment.AlipayConfig{}))
 	commSvc := service.NewCommunityService(commRepo)
@@ -63,15 +62,13 @@ func setupTicketTestRouter(t *testing.T) (*gorm.DB, *httptest.Server, *service.A
 	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, api.NewUploadHandler(t.TempDir()), ticketHandler, testJWTSecret)
 	ts := httptest.NewServer(r)
 
-	// Create test user
 	authSvc.SetCaptcha("cap1", "1234")
-	authSvc.SetSMSCode("13800000001", "123456")
 	return db, ts, authSvc, ts.URL
 }
 
 func createTestUser(t *testing.T, db *gorm.DB) (int64, string) {
 	user := &model.User{
-		Username: "testuser", Phone: "13800000001",
+		Username: "testuser", Phone: "13800000001", Email: "test@example.com",
 		PasswordHash: "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy", // "password"
 		Role:         "user", Status: "active",
 	}
@@ -145,16 +142,15 @@ func doDelete(url, token string) *apiResponse {
 
 // === Test ForgotPassword ===
 
-func TestForgotPassword(t *testing.T) {
+func TestForgotPassword_ByEmail(t *testing.T) {
 	db, ts, authSvc, baseURL := setupTicketTestRouter(t)
 	defer ts.Close()
 	createTestUser(t, db)
 
-	// Set SMS code for the test phone
-	authSvc.SetSMSCode("13800000001", "654321")
+	authSvc.SetEmailCode("test@example.com", "654321")
 
 	resp := doPost(baseURL+"/api/v1/auth/forgot-password", "", map[string]string{
-		"phone": "13800000001", "sms_code": "654321", "new_password": "newpass123",
+		"email": " Test@Example.com ", "email_code": "654321", "new_password": "newpass123",
 	})
 	assert.Equal(t, 0, resp.Code)
 }
@@ -165,7 +161,7 @@ func TestForgotPassword_WrongCode(t *testing.T) {
 	createTestUser(t, db)
 
 	resp := doPost(baseURL+"/api/v1/auth/forgot-password", "", map[string]string{
-		"phone": "13800000001", "sms_code": "000000", "new_password": "newpass123",
+		"email": "test@example.com", "email_code": "000000", "new_password": "newpass123",
 	})
 	assert.NotEqual(t, 0, resp.Code)
 }

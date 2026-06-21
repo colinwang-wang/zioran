@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"strings"
 
 	"github.com/zioran/backend/internal/model"
 	"github.com/zioran/backend/internal/repository"
@@ -333,8 +334,9 @@ func (s *TicketService) CancelOrder(ctx context.Context, userID, orderID int64) 
 
 // Forgot password
 
-func (s *TicketService) ForgotPassword(ctx context.Context, phone, newPassword string) error {
-	user, err := s.userRepo.FindByPhone(ctx, phone)
+func (s *TicketService) ForgotPasswordByEmail(ctx context.Context, email, newPassword string) error {
+	email = strings.ToLower(strings.TrimSpace(email))
+	user, err := s.userRepo.FindByEmail(ctx, email)
 	if err != nil {
 		return errcode.ErrNotFound
 	}

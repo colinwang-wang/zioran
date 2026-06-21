@@ -23,7 +23,7 @@ export default function UserProfilePage() {
         </div>
         <div>
           <h2 className="text-lg font-bold">{user?.username}</h2>
-          <p className="text-sm text-mute">{user?.phone}</p>
+          {user?.email && <p className="text-sm text-mute">{user.email}</p>}
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

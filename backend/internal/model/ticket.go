@@ -124,8 +124,8 @@ type TicketReplyResponse struct {
 }
 
 type ForgotPasswordRequest struct {
-	Phone       string `json:"phone" binding:"required"`
-	SMSCode     string `json:"sms_code" binding:"required"`
+	Email       string `json:"email"`
+	EmailCode   string `json:"email_code"`
 	NewPassword string `json:"new_password" binding:"required,min=6"`
 }
 

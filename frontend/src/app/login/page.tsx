@@ -9,7 +9,7 @@ import { login, getCaptcha, getWechatAuthURL } from '@/lib/services';
 export default function LoginPage() {
   const { setAuth } = useAuth();
   const router = useRouter();
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [captcha, setCaptcha] = useState('');
   const [captchaKey, setCaptchaKey] = useState('');
@@ -27,12 +27,12 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone || !password) { setError('请填写手机号和密码'); return; }
+    if (!email || !password) { setError('请填写邮箱和密码'); return; }
     if (!captcha || !captchaKey) { setError('请先获取并输入验证码'); return; }
     setLoading(true);
     setError('');
     try {
-      const res = await login({ phone, password, captcha, captcha_key: captchaKey });
+      const res = await login({ email, password, captcha, captcha_key: captchaKey });
       setAuth(res.token, res.user);
       router.push('/');
     } catch (err: unknown) {
@@ -60,7 +60,7 @@ export default function LoginPage() {
           <p className="text-sm text-mute mt-1">欢迎回来</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="手机号" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="邮箱" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密码" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
           <div className="flex gap-2">
             <input type="text" value={captcha} onChange={(e) => setCaptcha(e.target.value)} placeholder="验证码" className="flex-1 px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />

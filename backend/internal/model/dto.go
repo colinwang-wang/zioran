@@ -7,20 +7,20 @@ type CaptchaResponse struct {
 	CaptchaImage string `json:"captcha_image"`
 }
 
-type SendSMSRequest struct {
-	Phone      string `json:"phone" binding:"required"`
+type SendEmailRequest struct {
+	Email      string `json:"email" binding:"required,email"`
 	Captcha    string `json:"captcha" binding:"required"`
 	CaptchaKey string `json:"captcha_key" binding:"required"`
 }
 
 type RegisterRequest struct {
-	Phone    string `json:"phone" binding:"required"`
-	SMSCode  string `json:"sms_code" binding:"required"`
-	Password string `json:"password" binding:"required,min=6"`
+	Email     string `json:"email" binding:"required,email"`
+	EmailCode string `json:"email_code" binding:"required"`
+	Password  string `json:"password" binding:"required,min=6"`
 }
 
 type LoginRequest struct {
-	Phone      string `json:"phone" binding:"required"`
+	Email      string `json:"email" binding:"required,email"`
 	Password   string `json:"password" binding:"required"`
 	Captcha    string `json:"captcha" binding:"required"`
 	CaptchaKey string `json:"captcha_key" binding:"required"`
@@ -34,9 +34,14 @@ type AuthResponse struct {
 type UserResponse struct {
 	ID       int64  `json:"id"`
 	Username string `json:"username"`
-	Phone    string `json:"phone"`
+	Email    string `json:"email"`
 	Avatar   string `json:"avatar"`
 	IsVip    bool   `json:"is_vip"`
+}
+
+type UpdateProfileRequest struct {
+	Username string `json:"username"`
+	Email    string `json:"email" binding:"omitempty,email"`
 }
 
 // Admin login DTOs
@@ -47,8 +52,8 @@ type AdminLoginRequest struct {
 }
 
 type AdminLoginResponse struct {
-	Token string         `json:"token"`
-	Admin AdminUserInfo  `json:"admin"`
+	Token string        `json:"token"`
+	Admin AdminUserInfo `json:"admin"`
 }
 
 type AdminUserInfo struct {

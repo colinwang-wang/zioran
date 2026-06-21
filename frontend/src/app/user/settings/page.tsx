@@ -1,12 +1,34 @@
 'use client';
 
-import { useState } from 'react';
-import { changePassword } from '@/lib/services';
+import { useEffect, useState } from 'react';
+import { changePassword, getProfile, updateProfile } from '@/lib/services';
 
 export default function SettingsPage() {
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [oldPwd, setOldPwd] = useState('');
   const [newPwd, setNewPwd] = useState('');
   const [loading, setLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  useEffect(() => {
+    getProfile().then((profile) => {
+      setUsername(profile.username || '');
+      setEmail(profile.email || '');
+    }).catch(() => {});
+  }, []);
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileLoading(true);
+    try {
+      const profile = await updateProfile({ username, email });
+      setUsername(profile.username || '');
+      setEmail(profile.email || '');
+      alert('资料已保存');
+    } catch { alert('保存失败'); }
+    setProfileLoading(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,13 +43,24 @@ export default function SettingsPage() {
   };
 
   return (
-    <div>
-      <h2 className="text-lg font-bold mb-4">账号设置</h2>
+    <div className="space-y-8">
+      <section>
+        <h2 className="text-lg font-bold mb-4">账号资料</h2>
+        <form onSubmit={handleProfileSubmit} className="max-w-sm space-y-4">
+          <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="用户名" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="邮箱（用于找回密码）" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
+          <button type="submit" disabled={profileLoading} className="px-6 py-3 bg-primary text-white text-sm font-bold rounded-card disabled:opacity-50">保存资料</button>
+        </form>
+      </section>
+
+      <section>
+        <h2 className="text-lg font-bold mb-4">修改密码</h2>
       <form onSubmit={handleSubmit} className="max-w-sm space-y-4">
         <input type="password" value={oldPwd} onChange={(e) => setOldPwd(e.target.value)} placeholder="当前密码" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
         <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} placeholder="新密码（至少6位）" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
         <button type="submit" disabled={loading} className="px-6 py-3 bg-primary text-white text-sm font-bold rounded-card disabled:opacity-50">修改密码</button>
       </form>
+      </section>
     </div>
   );
 }

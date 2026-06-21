@@ -8,9 +8,9 @@ import (
 	"github.com/zioran/backend/internal/repository"
 	"github.com/zioran/backend/internal/service"
 	"github.com/zioran/backend/pkg/config"
+	"github.com/zioran/backend/pkg/email"
 	"github.com/zioran/backend/pkg/oauth"
 	"github.com/zioran/backend/pkg/payment"
-	"github.com/zioran/backend/pkg/sms"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -29,7 +29,7 @@ func main() {
 	}
 
 	// External services
-	smsSender := sms.NewSender(cfg.SMS)
+	emailSender := email.NewSender(cfg.Email)
 	wechatPay := payment.NewWechatPay(cfg.Payment.Wechat)
 	alipayClient := payment.NewAlipayClient(cfg.Payment.Alipay)
 	wechatOAuth := oauth.NewWechatOAuth(cfg.OAuth.Wechat)
@@ -45,7 +45,8 @@ func main() {
 	ticketRepo := repository.NewTicketRepository(db)
 
 	// Services
-	authSvc := service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.Expire, smsSender)
+	authSvc := service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.Expire)
+	authSvc.SetEmailSender(emailSender)
 	courseSvc := service.NewCourseService(courseRepo, catRepo, tagRepo, favRepo)
 	paySvc := service.NewPaymentService(payRepo, courseRepo, userRepo, wechatPay, alipayClient)
 	commSvc := service.NewCommunityService(commRepo)

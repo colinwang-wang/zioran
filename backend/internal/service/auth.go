@@ -3,35 +3,44 @@ package service
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha1"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/zioran/backend/internal/middleware"
 	"github.com/zioran/backend/internal/model"
 	"github.com/zioran/backend/internal/repository"
+	"github.com/zioran/backend/pkg/email"
 	"github.com/zioran/backend/pkg/errcode"
-	"github.com/zioran/backend/pkg/sms"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
-	userRepo  *repository.UserRepository
-	jwtSecret string
-	jwtExpire time.Duration
-	smsSender sms.Sender
-	captchas  sync.Map // key -> answer
-	smsCodes  sync.Map // phone -> code
+	userRepo    *repository.UserRepository
+	jwtSecret   string
+	jwtExpire   time.Duration
+	emailSender email.Sender
+	captchas    sync.Map // key -> answer
+	emailCodes  sync.Map // email -> code
 }
 
-func NewAuthService(userRepo *repository.UserRepository, jwtSecret string, jwtExpire time.Duration, smsSender sms.Sender) *AuthService {
+func NewAuthService(userRepo *repository.UserRepository, jwtSecret string, jwtExpire time.Duration) *AuthService {
 	return &AuthService{
-		userRepo:  userRepo,
-		jwtSecret: jwtSecret,
-		jwtExpire: jwtExpire,
-		smsSender: smsSender,
+		userRepo:    userRepo,
+		jwtSecret:   jwtSecret,
+		jwtExpire:   jwtExpire,
+		emailSender: &email.MockSender{},
+	}
+}
+
+func (s *AuthService) SetEmailSender(sender email.Sender) {
+	if sender != nil {
+		s.emailSender = sender
 	}
 }
 
@@ -67,35 +76,38 @@ func (s *AuthService) VerifyCaptcha(key, answer string) bool {
 	return val.(string) == answer
 }
 
-func (s *AuthService) SendSMS(ctx context.Context, phone, captchaKey, captcha string) error {
+func (s *AuthService) SendEmail(ctx context.Context, emailAddress, captchaKey, captcha string) error {
 	if !s.VerifyCaptcha(captchaKey, captcha) {
 		return errcode.New(40001, "图形验证码错误")
 	}
+	emailAddress = normalizeEmail(emailAddress)
 	code := generateCaptchaCode(6)
-	s.smsCodes.Store(phone, code)
+	s.emailCodes.Store(emailAddress, code)
 	go func() {
 		time.Sleep(5 * time.Minute)
-		s.smsCodes.Delete(phone)
+		s.emailCodes.Delete(emailAddress)
 	}()
-	return s.smsSender.Send(phone, code)
+	return s.emailSender.Send(emailAddress, code)
 }
 
 func (s *AuthService) Register(ctx context.Context, req *model.RegisterRequest) (*model.AuthResponse, error) {
-	val, ok := s.smsCodes.LoadAndDelete(req.Phone)
-	if !ok || val.(string) != req.SMSCode {
-		return nil, errcode.New(40001, "短信验证码错误")
+	req.Email = normalizeEmail(req.Email)
+	val, ok := s.emailCodes.LoadAndDelete(req.Email)
+	if !ok || val.(string) != req.EmailCode {
+		return nil, errcode.New(40001, "邮箱验证码错误")
 	}
-	existing, _ := s.userRepo.FindByPhone(ctx, req.Phone)
+	existing, _ := s.userRepo.FindByEmail(ctx, req.Email)
 	if existing != nil {
-		return nil, errcode.New(40001, "手机号已注册")
+		return nil, errcode.New(40001, "邮箱已注册")
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, errcode.ErrInternal
 	}
 	user := &model.User{
-		Username:     "user_" + req.Phone[len(req.Phone)-4:],
-		Phone:        req.Phone,
+		Username:     usernameFromEmail(req.Email),
+		Phone:        phonePlaceholderFromEmail(req.Email),
+		Email:        req.Email,
 		PasswordHash: string(hash),
 		Role:         "user",
 		Status:       "active",
@@ -117,12 +129,12 @@ func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest) (*mode
 	if !s.VerifyCaptcha(req.CaptchaKey, req.Captcha) {
 		return nil, errcode.New(40001, "图形验证码错误")
 	}
-	user, err := s.userRepo.FindByPhone(ctx, req.Phone)
+	user, err := s.userRepo.FindByEmail(ctx, normalizeEmail(req.Email))
 	if err != nil {
-		return nil, errcode.New(40001, "手机号或密码错误")
+		return nil, errcode.New(40001, "邮箱或密码错误")
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-		return nil, errcode.New(40001, "手机号或密码错误")
+		return nil, errcode.New(40001, "邮箱或密码错误")
 	}
 	token, err := middleware.GenerateToken(user.ID, s.jwtSecret, s.jwtExpire)
 	if err != nil {
@@ -143,16 +155,38 @@ func (s *AuthService) GetProfile(ctx context.Context, userID int64) (*model.User
 	return &resp, nil
 }
 
-func (s *AuthService) VerifySMSCode(phone, code string) bool {
-	val, ok := s.smsCodes.LoadAndDelete(phone)
+func (s *AuthService) UpdateProfile(ctx context.Context, userID int64, req *model.UpdateProfileRequest) (*model.UserResponse, error) {
+	updates := map[string]interface{}{}
+	username := strings.TrimSpace(req.Username)
+	if username != "" {
+		updates["username"] = username
+	}
+	emailAddress := normalizeEmail(req.Email)
+	if emailAddress != "" {
+		existing, _ := s.userRepo.FindByEmail(ctx, emailAddress)
+		if existing != nil && existing.ID != userID {
+			return nil, errcode.New(40001, "邮箱已绑定")
+		}
+		updates["email"] = emailAddress
+	}
+	if len(updates) > 0 {
+		if err := s.userRepo.UpdateProfile(ctx, userID, updates); err != nil {
+			return nil, errcode.ErrInternal
+		}
+	}
+	return s.GetProfile(ctx, userID)
+}
+
+func (s *AuthService) VerifyEmailCode(emailAddress, code string) bool {
+	val, ok := s.emailCodes.LoadAndDelete(normalizeEmail(emailAddress))
 	if !ok {
 		return false
 	}
 	return val.(string) == code
 }
 
-func (s *AuthService) SetSMSCode(phone, code string) {
-	s.smsCodes.Store(phone, code)
+func (s *AuthService) SetEmailCode(emailAddress, code string) {
+	s.emailCodes.Store(normalizeEmail(emailAddress), code)
 }
 
 func (s *AuthService) SetCaptcha(key, code string) {
@@ -181,17 +215,49 @@ func (s *AuthService) AdminLogin(ctx context.Context, req *model.AdminLoginReque
 }
 
 func maskUserResponse(user *model.User) model.UserResponse {
-	phone := user.Phone
-	if len(phone) >= 11 {
-		phone = phone[:3] + "****" + phone[7:]
-	}
 	return model.UserResponse{
 		ID:       user.ID,
 		Username: user.Username,
-		Phone:    phone,
+		Email:    user.Email,
 		Avatar:   user.AvatarURL,
 		IsVip:    user.Role == "vip",
 	}
+}
+
+func normalizeEmail(emailAddress string) string {
+	return strings.ToLower(strings.TrimSpace(emailAddress))
+}
+
+func usernameFromEmail(emailAddress string) string {
+	local := strings.SplitN(emailAddress, "@", 2)[0]
+	var b strings.Builder
+	for _, r := range local {
+		switch {
+		case r >= 'a' && r <= 'z':
+			b.WriteRune(r)
+		case r >= '0' && r <= '9':
+			b.WriteRune(r)
+		default:
+			b.WriteByte('_')
+		}
+	}
+	name := strings.Trim(b.String(), "_")
+	if name == "" {
+		name = "user"
+	}
+	if len(name) > 24 {
+		name = name[:24]
+	}
+	return name + "_" + emailHash(emailAddress)[:8]
+}
+
+func phonePlaceholderFromEmail(emailAddress string) string {
+	return "email_" + emailHash(emailAddress)[:14]
+}
+
+func emailHash(emailAddress string) string {
+	sum := sha1.Sum([]byte(emailAddress))
+	return hex.EncodeToString(sum[:])
 }
 
 func generateRandomString(n int) string {

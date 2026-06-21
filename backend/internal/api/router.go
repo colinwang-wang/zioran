@@ -25,7 +25,7 @@ func SetupRouter(
 		auth := v1.Group("/auth")
 		{
 			auth.POST("/captcha", authHandler.Captcha)
-			auth.POST("/sms/send", authHandler.SendSMS)
+			auth.POST("/email/send", authHandler.SendEmail)
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/forgot-password", ticketHandler.ForgotPassword)
@@ -74,6 +74,7 @@ func SetupRouter(
 
 			// User profile
 			authed.GET("/user/profile", authHandler.Profile)
+			authed.PUT("/user/profile", authHandler.UpdateProfile)
 			authed.PUT("/user/password", payHandler.ChangePassword)
 			authed.GET("/user/orders", payHandler.UserOrders)
 			authed.GET("/user/orders/:id", payHandler.GetOrder)

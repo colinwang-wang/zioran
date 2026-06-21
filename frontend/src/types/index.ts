@@ -77,7 +77,7 @@ export interface CourseDetail {
 export interface UserResponse {
   id: number;
   username: string;
-  phone: string;
+  email: string;
   avatar: string;
   is_vip: boolean;
 }
