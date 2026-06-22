@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const isServer = typeof window === 'undefined';
-const baseURL = isServer ? 'http://127.0.0.1:8080/api/v1' : '/api/v1';
+const baseURL = process.env.NEXT_PUBLIC_API_URL || (isServer ? 'http://127.0.0.1:8080/api/v1' : '/api/v1');
 
 const api = axios.create({ baseURL, timeout: 15000 });
 
