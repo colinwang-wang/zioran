@@ -177,7 +177,7 @@ export default function HomeClient({ navItems, banners, latest, categories }: Pr
       </section>
 
       {/* 知猿课堂（Tab切换） */}
-      <section className="bg-surface-soft py-12">
+      <section className="py-12">
         <div className="max-w-[1280px] mx-auto px-6">
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-[28px] font-bold tracking-[-1.2px] text-[#000]">知猿课堂</h2>
