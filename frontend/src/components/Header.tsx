@@ -24,26 +24,27 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-canvas border-b border-hairline">
-      <div className="max-w-container mx-auto px-4 h-16 flex items-center justify-between">
+      <div className="max-w-container mx-auto px-6 h-16 flex items-center w-full">
         {/* Logo */}
-        <div className="flex items-center gap-8">
-          <Link href="/" className="text-xl font-bold text-primary">知猿</Link>
+        <div className="flex items-center">
+          <Link href="/" className="mr-8 text-[22px] font-bold text-primary tracking-[-0.8px]">知猿</Link>
           <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="text-sm font-semibold text-ink hover:text-primary">首页</Link>
-            <Link href="/courses" className="text-sm font-semibold text-ink hover:text-primary">知猿课堂</Link>
-            <Link href="/guestbook" className="text-sm font-semibold text-ink hover:text-primary">留言反馈</Link>
-            <Link href="/vip" className="text-sm font-semibold text-ink hover:text-primary">成为会员</Link>
+            <Link href="/" className="text-base font-semibold text-ink hover:text-primary">首页</Link>
+            <Link href="/courses" className="text-base font-semibold text-ink hover:text-primary">知猿课堂</Link>
+            <Link href="/guestbook" className="text-base font-semibold text-ink hover:text-primary">留言反馈</Link>
+            <Link href="/vip" className="text-base font-semibold text-ink hover:text-primary">成为会员</Link>
           </nav>
         </div>
 
         {/* Right */}
-        <div className="flex items-center gap-3">
-          <button onClick={() => setSearchOpen(!searchOpen)} className="p-2 rounded-full hover:bg-surface" aria-label="搜索">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        <div className="ml-auto flex items-center gap-4">
+          <Link href="/vip" className="rounded-full bg-[#fff0f3] px-3 py-1 text-sm font-bold text-primary">VIP</Link>
+          <button onClick={() => setSearchOpen(!searchOpen)} className="h-10 w-10 rounded-full bg-surface text-lg hover:bg-secondary-bg" aria-label="搜索">
+            🔍
           </button>
           {isLoggedIn ? (
             <div className="relative">
-              <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="flex items-center gap-2 px-3 py-1.5 rounded-card bg-surface text-sm font-semibold">
+              <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="flex items-center gap-2 rounded-card bg-surface px-3 py-1.5 text-sm font-semibold">
                 {user?.avatar ? <img src={user.avatar} alt="" className="w-6 h-6 rounded-full" /> : <span className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs">{user?.username?.[0]}</span>}
                 {user?.username}
               </button>
@@ -55,7 +56,7 @@ export default function Header() {
               )}
             </div>
           ) : (
-            <Link href="/login" className="px-4 py-2 bg-primary text-white text-sm font-bold rounded-card hover:bg-primary-pressed">登录</Link>
+            <Link href="/login" className="rounded-card bg-primary px-5 py-2 text-sm font-bold text-white hover:bg-primary-pressed">登录</Link>
           )}
           {/* Mobile hamburger */}
           <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2" aria-label="菜单">

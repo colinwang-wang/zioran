@@ -13,6 +13,8 @@ const tabs = [
 export default function MobileNav() {
   const pathname = usePathname();
 
+  if (pathname === '/') return null;
+
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 bg-canvas border-t border-hairline z-50">
       <div className="flex justify-around py-2">
