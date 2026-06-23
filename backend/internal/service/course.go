@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/zioran/backend/internal/model"
@@ -11,9 +12,9 @@ import (
 
 type CourseService struct {
 	courseRepo *repository.CourseRepository
-	catRepo   *repository.CategoryRepository
-	tagRepo   *repository.TagRepository
-	favRepo   *repository.FavoriteRepository
+	catRepo    *repository.CategoryRepository
+	tagRepo    *repository.TagRepository
+	favRepo    *repository.FavoriteRepository
 }
 
 func NewCourseService(courseRepo *repository.CourseRepository, catRepo *repository.CategoryRepository, tagRepo *repository.TagRepository, favRepo *repository.FavoriteRepository) *CourseService {
@@ -406,9 +407,9 @@ func relativeTime(t time.Time) string {
 	case d < time.Hour:
 		return "刚刚"
 	case d < 24*time.Hour:
-		return time.Duration(d.Hours()).String() + "小时前"
+		return fmt.Sprintf("%d小时前", int(d.Hours()))
 	case d < 30*24*time.Hour:
-		return time.Duration(d.Hours()/24).String() + "天前"
+		return fmt.Sprintf("%d天前", int(d.Hours()/24))
 	default:
 		return t.Format("2006-01-02")
 	}
