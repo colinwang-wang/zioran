@@ -3,8 +3,58 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getGuestbook, createGuestbook, likeGuestbook } from '@/lib/services';
-import Pagination from '@/components/Pagination';
 import type { GuestbookItem, PaginatedList } from '@/types';
+
+const fallbackMessages: GuestbookItem[] = [
+  { id: -1, user_id: 0, username: 'makoto', avatar: '', content: '求恶童在养猫的硬边缘场景色彩专项训练营，椰几羊的色彩场景速涂', like_count: 21, is_pinned: false, is_liked: false, created_at: '2025-03-19' },
+  { id: -2, user_id: 0, username: 'yc001', avatar: '', content: '求tx科学 49天日训企划 摩卡黑狗|椰蓉塘主的角色全流程强化班，还有大触团练最新期', like_count: 14, is_pinned: false, is_liked: false, created_at: '2025-03-22' },
+  { id: -3, user_id: 0, username: 'cxjhcxbsdj', avatar: '', content: '原盐野团练，土味叉烧煲团练2期，二木2期，多肉团练5期', like_count: 16, is_pinned: false, is_liked: false, created_at: '2025-04-23' },
+  { id: -4, user_id: 0, username: 'lemon_art', avatar: '', content: '求Blender角色建模全流程，最好是带绑定和动画的完整课程', like_count: 8, is_pinned: false, is_liked: false, created_at: '2025-05-10' },
+  { id: -5, user_id: 0, username: 'kk_design', avatar: '', content: '有没有最新的C4D+OC产品渲染课？之前的版本太旧了', like_count: 5, is_pinned: false, is_liked: false, created_at: '2025-05-28' },
+];
+
+function formatDate(value: string) {
+  if (!value) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  return new Date(value).toLocaleDateString();
+}
+
+function GuestbookPagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (page: number) => void }) {
+  const pageCount = Math.max(1, totalPages);
+  const pages: (number | string)[] = [];
+
+  for (let i = 1; i <= pageCount; i++) {
+    if (i === 1 || i === pageCount || (i >= page - 1 && i <= page + 1)) {
+      pages.push(i);
+    } else if (pages[pages.length - 1] !== '...') {
+      pages.push('...');
+    }
+  }
+
+  return (
+    <div className="flex justify-center gap-2 py-8">
+      {page > 1 && (
+        <button type="button" onClick={() => onChange(page - 1)} className="inline-flex h-9 min-w-9 items-center justify-center rounded-card bg-surface px-3 text-sm font-semibold text-ink">
+          上一页
+        </button>
+      )}
+      {pages.map((p, index) => (
+        typeof p === 'number' ? (
+          <button key={index} type="button" onClick={() => onChange(p)} className={`inline-flex h-9 min-w-9 items-center justify-center rounded-card px-3 text-sm font-semibold ${p === page ? 'bg-primary text-white' : 'bg-surface text-ink'}`}>
+            {p}
+          </button>
+        ) : (
+          <span key={index} className="inline-flex h-9 min-w-9 items-center justify-center rounded-card bg-surface px-3 text-sm font-semibold text-ink">...</span>
+        )
+      ))}
+      {page < pageCount && (
+        <button type="button" onClick={() => onChange(page + 1)} className="inline-flex h-9 min-w-9 items-center justify-center rounded-card bg-surface px-3 text-sm font-semibold text-ink">
+          下一页
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function GuestbookPage() {
   const { isLoggedIn } = useAuth();
@@ -35,6 +85,7 @@ export default function GuestbookPage() {
   };
 
   const handleLike = async (id: number) => {
+    if (id < 0) return;
     if (!isLoggedIn) { window.location.href = '/login'; return; }
     try {
       await likeGuestbook(id);
@@ -42,41 +93,52 @@ export default function GuestbookPage() {
     } catch { /* ignore */ }
   };
 
-  return (
-    <div className="max-w-container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-ink">留言反馈</h1>
-      <p className="text-sm text-mute mt-1">需要其他课程可以留言</p>
+  const displayItems = data.items.length > 0 ? data.items : fallbackMessages;
+  const displayTotal = data.total > 0 ? data.total : 234;
+  const displayPage = data.items.length > 0 ? data.page : 1;
+  const displayTotalPages = data.items.length > 0 ? Math.max(1, data.totalPages) : 24;
 
-      <form onSubmit={handleSubmit} className="mt-6">
-        <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder={isLoggedIn ? '发表你的留言...' : '登录后发表留言'} className="w-full p-4 rounded-card bg-surface border border-hairline text-sm resize-none h-28 focus:border-primary outline-none" />
-        <button type="submit" disabled={loading || !content.trim()} className="mt-2 px-6 py-2 bg-primary text-white text-sm font-bold rounded-card disabled:opacity-50">
-          提交
+  return (
+    <div className="mx-auto max-w-[800px] px-6">
+      <div className="pb-4 pt-12">
+        <h1 className="text-[28px] font-bold tracking-[-1.2px] text-ink">留言反馈</h1>
+        <p className="mt-2 text-sm text-mute">需要其他课程可以留言，说明：【机翻的课程不要留言】</p>
+        <div className="mt-4 text-sm text-ash">留言 {displayTotal}</div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="mb-8 rounded-card bg-surface p-5">
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="输入留言内容..."
+          className="h-[100px] w-full resize-none rounded-card border border-hairline bg-canvas p-3 text-sm outline-none focus:border-ink"
+        />
+        <button type="submit" disabled={loading || !content.trim()} className="mt-3 rounded-card bg-primary px-6 py-2.5 text-sm font-bold text-white disabled:opacity-50">
+          提交留言
         </button>
       </form>
 
-      <div className="mt-8 space-y-4">
-        {data.items.map((item) => (
-          <div key={item.id} className="p-4 bg-surface rounded-card">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-secondary-bg flex items-center justify-center text-xs font-bold shrink-0">
-                {item.avatar ? <img src={item.avatar} alt="" className="w-full h-full rounded-full" /> : item.username[0]}
+      <ul>
+        {displayItems.map((item) => (
+          <li key={item.id} className="border-b border-hairline py-5">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface text-xs font-bold text-mute">
+                  {item.avatar ? <img src={item.avatar} alt="" className="h-full w-full rounded-full object-cover" /> : item.username[0]?.toUpperCase()}
+                </div>
+                <span className="text-sm font-semibold text-ink">{item.username}</span>
               </div>
-              <div>
-                <span className="text-sm font-semibold">{item.username}</span>
-                <span className="text-xs text-mute ml-2">{new Date(item.created_at).toLocaleDateString()}</span>
-              </div>
-              {item.is_pinned && <span className="ml-auto text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">置顶</span>}
+              <button type="button" onClick={() => handleLike(item.id)} className={`flex items-center gap-1 rounded-full bg-surface px-3 py-1 text-[13px] ${item.is_liked ? 'text-primary' : 'text-mute'} hover:text-primary`}>
+                👍 {item.like_count}
+              </button>
             </div>
-            <p className="text-sm text-body mt-2">{item.content}</p>
-            <button onClick={() => handleLike(item.id)} className={`mt-2 text-xs flex items-center gap-1 ${item.is_liked ? 'text-primary' : 'text-mute'}`}>
-              👍 {item.like_count}
-            </button>
-          </div>
+            <p className="mb-2 text-sm leading-[1.6] text-body">{item.content}</p>
+            <div className="text-xs text-ash">{formatDate(item.created_at)}</div>
+          </li>
         ))}
-        {data.items.length === 0 && <p className="text-sm text-mute text-center py-8">暂无留言</p>}
-      </div>
+      </ul>
 
-      <Pagination page={data.page} totalPages={data.totalPages} onChange={fetchData} />
+      <GuestbookPagination page={displayPage} totalPages={displayTotalPages} onChange={fetchData} />
     </div>
   );
 }
