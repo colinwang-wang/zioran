@@ -1,0 +1,8 @@
+SMTP 服务器地址：smtpdm.aliyun.com
+
+SSL 加密端口：465
+
+SMPT账号：no-reply@zioran.com
+
+SMTP密码：NOreply123456
+
