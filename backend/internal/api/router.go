@@ -54,6 +54,9 @@ func SetupRouter(
 		// Public VIP packages
 		v1.GET("/vip/packages", payHandler.VipPackages)
 
+		// Public recharge config
+		v1.GET("/coins/recharge-config", payHandler.RechargeConfig)
+
 		// Public guestbook (read)
 		v1.GET("/guestbook", commHandler.GuestbookList)
 

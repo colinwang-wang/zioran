@@ -153,6 +153,44 @@ func Test_Recharge_充值成功(t *testing.T) {
 	assert.Equal(t, 100, bal.Balance)
 }
 
+func Test_Recharge_按后台比例到账(t *testing.T) {
+	db, ts, token := setupPhase34Router(t)
+	defer ts.Close()
+
+	db.Create(&model.Setting{Key: "coinRechargeRatio", Value: "10"})
+
+	result := authedPost(ts.URL+"/api/v1/coins/recharge", token, map[string]interface{}{
+		"amount": 50, "pay_method": "wechat",
+	})
+	assert.Equal(t, 0, result.Code)
+
+	var recharge model.RechargeResponse
+	json.Unmarshal(result.Data, &recharge)
+	assert.Equal(t, 50, recharge.Amount)
+	assert.Equal(t, 500, recharge.Coins)
+
+	balResult := authedGet(ts.URL+"/api/v1/coins/balance", token)
+	var bal model.CoinBalanceResponse
+	json.Unmarshal(balResult.Data, &bal)
+	assert.Equal(t, 500, bal.Balance)
+}
+
+func Test_RechargeConfig_返回后台配置(t *testing.T) {
+	db, ts, _ := setupPhase34Router(t)
+	defer ts.Close()
+
+	db.Create(&model.Setting{Key: "coinRechargeRatio", Value: "10"})
+	db.Create(&model.Setting{Key: "coinRechargeAmounts", Value: "20,50,100"})
+
+	_, result := getJSON(ts.URL+"/api/v1/coins/recharge-config", "")
+	assert.Equal(t, 0, result.Code)
+
+	var config model.RechargeConfigResponse
+	json.Unmarshal(result.Data, &config)
+	assert.Equal(t, 10, config.Ratio)
+	assert.Equal(t, []int{20, 50, 100}, config.Amounts)
+}
+
 func Test_Recharge_DisabledPaymentDoesNotCreditBalance(t *testing.T) {
 	_, ts, token := setupPhase34RouterWithMockPayment(t, false)
 	defer ts.Close()

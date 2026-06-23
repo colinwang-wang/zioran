@@ -15,6 +15,11 @@ type RechargeRequest struct {
 	PayMethod string `json:"pay_method" binding:"required"`
 }
 
+type RechargeConfigResponse struct {
+	Ratio   int   `json:"ratio"`
+	Amounts []int `json:"amounts"`
+}
+
 // VIP DTOs
 
 type VipStatusResponse struct {
@@ -177,6 +182,8 @@ type RechargeResponse struct {
 	OrderID int64  `json:"order_id"`
 	OrderNo string `json:"order_no"`
 	PayURL  string `json:"pay_url"`
+	Amount  int    `json:"amount"`
+	Coins   int    `json:"coins"`
 }
 
 type ChartDataset struct {

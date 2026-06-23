@@ -154,6 +154,13 @@ export interface RechargeResponse {
   order_id: number;
   order_no: string;
   pay_url: string;
+  amount: number;
+  coins: number;
+}
+
+export interface RechargeConfig {
+  ratio: number;
+  amounts: number[];
 }
 
 export interface CourseDownloadResponse {

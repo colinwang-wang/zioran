@@ -5,7 +5,7 @@ import type {
   CourseDownloadResponse,
   CommentItem, CourseDetail, CourseListItem, DownloadItem,
   FavoriteItem, GuestbookItem, NavItem, Banner, OrderItem,
-  PaginatedList, RechargeResponse, TagBrief, Ticket, VipPackage, VipStatus, UserResponse,
+  PaginatedList, RechargeConfig, RechargeResponse, TagBrief, Ticket, VipPackage, VipStatus, UserResponse,
 } from '@/types';
 
 // Auth
@@ -75,6 +75,7 @@ export const removeFavorite = (courseId: number) => api.delete(`/user/favorites/
 export const getCoinBalance = () => api.get<CoinBalance>('/coins/balance').then(r => r.data);
 export const getCoinTransactions = (params?: { page?: number; pageSize?: number }) =>
   api.get<PaginatedList<CoinTransaction>>('/coins/transactions', { params }).then(r => r.data);
+export const getRechargeConfig = () => api.get<RechargeConfig>('/coins/recharge-config').then(r => r.data);
 export const recharge = (data: { amount: number; pay_method: string }) =>
   api.post<RechargeResponse>('/coins/recharge', data).then(r => r.data);
 

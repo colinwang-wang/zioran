@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/zioran/backend/internal/model"
@@ -10,7 +12,15 @@ import (
 	"github.com/zioran/backend/pkg/errcode"
 	"github.com/zioran/backend/pkg/payment"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
+
+const (
+	settingCoinRechargeRatio   = "coinRechargeRatio"
+	settingCoinRechargeAmounts = "coinRechargeAmounts"
+)
+
+var defaultRechargeAmounts = []int{10, 50, 100, 200, 500, 1000}
 
 type PaymentService struct {
 	payRepo    *repository.PaymentRepository
@@ -52,17 +62,29 @@ func (s *PaymentService) GetTransactions(ctx context.Context, userID int64, page
 	return &model.PaginatedList{Items: txs, Total: total, Page: page, PageSize: pageSize, TotalPages: totalPages}, nil
 }
 
+func (s *PaymentService) RechargeConfig(ctx context.Context) (*model.RechargeConfigResponse, error) {
+	return &model.RechargeConfigResponse{
+		Ratio:   s.coinRechargeRatio(ctx),
+		Amounts: s.coinRechargeAmounts(ctx),
+	}, nil
+}
+
 func (s *PaymentService) Recharge(ctx context.Context, userID int64, req *model.RechargeRequest) (*model.RechargeResponse, error) {
 	if req.Amount <= 0 {
 		return nil, errcode.New(40001, "充值金额必须大于0")
 	}
+
+	ratio := s.coinRechargeRatio(ctx)
+	coins := req.Amount * ratio
+	payAmountCents := req.Amount * 100
 
 	// Create coin order
 	order := &model.Order{
 		OrderNo:    generateOrderNo(),
 		UserID:     userID,
 		Type:       "coin",
-		TargetName: fmt.Sprintf("充值%d金币", req.Amount),
+		TargetID:   &coins,
+		TargetName: fmt.Sprintf("充值¥%d，到账%d金币", req.Amount, coins),
 		Amount:     req.Amount,
 		PayMethod:  req.PayMethod,
 		Status:     "pending",
@@ -76,7 +98,7 @@ func (s *PaymentService) Recharge(ctx context.Context, userID int64, req *model.
 	switch req.PayMethod {
 	case "wechat":
 		if s.wechatPay.Cfg.Enabled {
-			url, err := s.wechatPay.CreateNativeOrder(order.OrderNo, req.Amount, order.TargetName)
+			url, err := s.wechatPay.CreateNativeOrder(order.OrderNo, payAmountCents, order.TargetName)
 			if err != nil {
 				return nil, errcode.ErrInternal
 			}
@@ -89,7 +111,7 @@ func (s *PaymentService) Recharge(ctx context.Context, userID int64, req *model.
 		}
 	case "alipay":
 		if s.alipay.Cfg.Enabled {
-			url, err := s.alipay.CreatePagePay(order.OrderNo, req.Amount, order.TargetName)
+			url, err := s.alipay.CreatePagePay(order.OrderNo, payAmountCents, order.TargetName)
 			if err != nil {
 				return nil, errcode.ErrInternal
 			}
@@ -106,13 +128,15 @@ func (s *PaymentService) Recharge(ctx context.Context, userID int64, req *model.
 
 	if autoComplete {
 		s.payRepo.UpdateOrderStatus(ctx, order.ID, "paid")
-		s.payRepo.Recharge(ctx, userID, req.Amount, order.ID)
+		s.payRepo.Recharge(ctx, userID, coins, order.ID)
 	}
 
 	return &model.RechargeResponse{
 		OrderID: order.ID,
 		OrderNo: order.OrderNo,
 		PayURL:  payURL,
+		Amount:  req.Amount,
+		Coins:   coins,
 	}, nil
 }
 
@@ -441,8 +465,9 @@ func (s *PaymentService) AdminRefund(ctx context.Context, orderID int64) error {
 	if order.Status != "paid" {
 		return errcode.New(40001, "订单状态不允许退款")
 	}
-	// Refund coins
-	s.payRepo.Recharge(ctx, order.UserID, order.Amount, order.ID)
+	if order.Type != "coin" {
+		s.payRepo.Recharge(ctx, order.UserID, order.Amount, order.ID)
+	}
 	return s.payRepo.UpdateOrderStatus(ctx, orderID, "refunded")
 }
 
@@ -550,6 +575,49 @@ func generateOrderNo() string {
 	return fmt.Sprintf("ORD%d", time.Now().UnixNano())
 }
 
+func (s *PaymentService) coinRechargeRatio(ctx context.Context) int {
+	value, err := s.payRepo.GetSetting(ctx, settingCoinRechargeRatio)
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return 1
+	}
+	ratio, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil || ratio < 1 {
+		return 1
+	}
+	return ratio
+}
+
+func (s *PaymentService) coinRechargeAmounts(ctx context.Context) []int {
+	value, err := s.payRepo.GetSetting(ctx, settingCoinRechargeAmounts)
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return defaultRechargeAmounts
+	}
+	parts := strings.FieldsFunc(value, func(r rune) bool {
+		return r == ',' || r == '，' || r == '\n' || r == ' '
+	})
+	amounts := make([]int, 0, len(parts))
+	seen := make(map[int]bool, len(parts))
+	for _, part := range parts {
+		amount, err := strconv.Atoi(strings.TrimSpace(part))
+		if err != nil || amount < 1 || seen[amount] {
+			continue
+		}
+		amounts = append(amounts, amount)
+		seen[amount] = true
+	}
+	if len(amounts) == 0 {
+		return defaultRechargeAmounts
+	}
+	return amounts
+}
+
+func (s *PaymentService) rechargeCoinsForOrder(ctx context.Context, order *model.Order) int {
+	if order.TargetID != nil && *order.TargetID > 0 {
+		return *order.TargetID
+	}
+	return order.Amount * s.coinRechargeRatio(ctx)
+}
+
 // WechatNotifyCallback processes WeChat payment notification.
 func (s *PaymentService) WechatNotifyCallback(ctx context.Context, body []byte, headers payment.WechatNotifyHeaders) error {
 	orderNo, err := s.wechatPay.VerifyNotify(body, headers)
@@ -565,7 +633,7 @@ func (s *PaymentService) WechatNotifyCallback(ctx context.Context, body []byte, 
 	}
 	s.payRepo.UpdateOrderStatus(ctx, order.ID, "paid")
 	if order.Type == "coin" {
-		s.payRepo.Recharge(ctx, order.UserID, order.Amount, order.ID)
+		s.payRepo.Recharge(ctx, order.UserID, s.rechargeCoinsForOrder(ctx, order), order.ID)
 	}
 	return nil
 }
@@ -585,7 +653,7 @@ func (s *PaymentService) AlipayNotifyCallback(ctx context.Context, params map[st
 	}
 	s.payRepo.UpdateOrderStatus(ctx, order.ID, "paid")
 	if order.Type == "coin" {
-		s.payRepo.Recharge(ctx, order.UserID, order.Amount, order.ID)
+		s.payRepo.Recharge(ctx, order.UserID, s.rechargeCoinsForOrder(ctx, order), order.ID)
 	}
 	return nil
 }

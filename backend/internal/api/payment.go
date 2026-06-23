@@ -42,6 +42,15 @@ func (h *PaymentHandler) CoinTransactions(c *gin.Context) {
 	response.Success(c, result)
 }
 
+func (h *PaymentHandler) RechargeConfig(c *gin.Context) {
+	result, err := h.paySvc.RechargeConfig(c.Request.Context())
+	if err != nil {
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
+	response.Success(c, result)
+}
+
 func (h *PaymentHandler) Recharge(c *gin.Context) {
 	userID := c.GetInt64("user_id")
 	var req model.RechargeRequest

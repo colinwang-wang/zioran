@@ -17,6 +17,15 @@ func NewPaymentRepository(db *gorm.DB) *PaymentRepository {
 	return &PaymentRepository{db: db}
 }
 
+func (r *PaymentRepository) GetSetting(ctx context.Context, key string) (string, error) {
+	var setting model.Setting
+	err := r.db.WithContext(ctx).Where("`key` = ?", key).First(&setting).Error
+	if err != nil {
+		return "", err
+	}
+	return setting.Value, nil
+}
+
 // Coin Account
 
 func (r *PaymentRepository) GetOrCreateAccount(ctx context.Context, userID int64) (*model.CoinAccount, error) {

@@ -187,6 +187,8 @@ export interface Settings {
   vipYearlyPrice: number
   withdrawMinAmount: number
   commissionRate: number
+  coinRechargeRatio: number
+  coinRechargeAmounts: string
 }
 
 // 管理员

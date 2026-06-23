@@ -184,6 +184,8 @@ const adaptSettings = (data: AnyRecord): Settings => ({
   vipYearlyPrice: Number(data.vipYearlyPrice || 0),
   withdrawMinAmount: Number(data.withdrawMinAmount || 0),
   commissionRate: Number(data.commissionRate || 0),
+  coinRechargeRatio: Number(data.coinRechargeRatio || 1),
+  coinRechargeAmounts: data.coinRechargeAmounts || '10,50,100,200,500,1000',
 })
 
 const toSettingsPayload = (data: Partial<Settings>) => Object.fromEntries(
