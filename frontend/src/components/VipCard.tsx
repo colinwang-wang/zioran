@@ -12,7 +12,7 @@ interface VipCardProps {
   loading?: boolean;
 }
 
-const benefits = ['全站课程免费下载', '持续每天更新资源', '终身会员永久有效'];
+const benefits = ['全站课程免费下载', '持续更新学习资源', '终身会员永久有效'];
 
 export default function VipCard({
   name = '终身VIP',
