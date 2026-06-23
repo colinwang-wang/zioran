@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { recharge } from '@/lib/services';
 import type { RechargeResponse } from '@/types';
 
@@ -8,6 +9,8 @@ const amounts = [10, 50, 100, 200, 500, 1000];
 
 export default function RechargePage() {
   const [amount, setAmount] = useState(100);
+  const [customAmount, setCustomAmount] = useState('');
+  const [isCustom, setIsCustom] = useState(false);
   const [method, setMethod] = useState('wechat');
   const [loading, setLoading] = useState(false);
   const [payment, setPayment] = useState<RechargeResponse | null>(null);
@@ -30,26 +33,39 @@ export default function RechargePage() {
     setLoading(false);
   };
 
+  const isWechatQR = payment && method === 'wechat' && payment.pay_url && !payment.pay_url.startsWith('mock://');
+
   return (
     <div>
       <h2 className="text-lg font-bold mb-4">在线充值</h2>
       <div className="grid grid-cols-3 gap-3 mb-6">
         {amounts.map((a) => (
-          <button key={a} onClick={() => setAmount(a)} className={`py-3 rounded-card text-sm font-bold ${amount === a ? 'bg-primary text-white' : 'bg-surface text-ink'}`}>{a} 金币</button>
+          <button key={a} onClick={() => { setAmount(a); setIsCustom(false); }} className={`py-3 rounded-card text-sm font-bold ${!isCustom && amount === a ? 'bg-primary text-white' : 'bg-surface text-ink'}`}>{a} 金币</button>
         ))}
+        <button onClick={() => setIsCustom(true)} className={`py-3 rounded-card text-sm font-bold ${isCustom ? 'bg-primary text-white' : 'bg-surface text-ink'}`}>自定义</button>
       </div>
+      {isCustom && (
+        <div className="mb-6">
+          <input type="number" min="1" placeholder="输入金币数量" value={customAmount} onChange={(e) => { setCustomAmount(e.target.value); setAmount(Number(e.target.value) || 0); }} className="w-full px-4 py-3 rounded-card border border-hairline bg-surface text-sm" />
+        </div>
+      )}
       <div className="flex gap-3 mb-6">
         <button onClick={() => setMethod('wechat')} className={`flex-1 py-3 rounded-card text-sm font-bold ${method === 'wechat' ? 'bg-[#07c160] text-white' : 'bg-surface'}`}>微信支付</button>
         <button onClick={() => setMethod('alipay')} className={`flex-1 py-3 rounded-card text-sm font-bold ${method === 'alipay' ? 'bg-[#1677ff] text-white' : 'bg-surface'}`}>支付宝</button>
       </div>
-      <button onClick={handleRecharge} disabled={loading} className="w-full py-3 bg-primary text-white text-sm font-bold rounded-card disabled:opacity-50">确认充值 {amount} 金币</button>
-      {payment && !payment.pay_url.startsWith('mock://') && (
+      <button onClick={handleRecharge} disabled={loading || amount < 1} className="w-full py-3 bg-primary text-white text-sm font-bold rounded-card disabled:opacity-50">确认充值 {amount || 0} 金币</button>
+      {isWechatQR && (
+        <div className="mt-4 p-6 rounded-card bg-surface border border-hairline flex flex-col items-center">
+          <p className="font-semibold text-ink text-sm mb-1">订单：{payment.order_no}</p>
+          <p className="text-mute text-xs mb-4">请使用微信扫码支付</p>
+          <QRCodeSVG value={payment.pay_url} size={200} />
+          <p className="text-mute text-xs mt-4">支付完成后页面将自动更新</p>
+        </div>
+      )}
+      {payment && !isWechatQR && !payment.pay_url.startsWith('mock://') && (
         <div className="mt-4 p-4 rounded-card bg-surface border border-hairline text-sm">
           <p className="font-semibold text-ink">订单已创建：{payment.order_no}</p>
           <p className="text-mute mt-1">请完成支付，到账以支付回调为准。</p>
-          <a href={payment.pay_url} target="_blank" rel="noreferrer" className="block mt-3 break-all text-primary hover:underline">
-            打开支付链接
-          </a>
         </div>
       )}
     </div>

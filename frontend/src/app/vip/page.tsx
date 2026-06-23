@@ -24,8 +24,9 @@ export default function VipPage() {
       await purchaseVip(pkg.id);
       alert('购买成功！已成为VIP会员');
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || '购买失败';
-      alert(msg);
+      const data = (err as { response?: { data?: { message?: string } } })?.response?.data;
+      const msg = data?.message || '购买失败';
+      alert(msg === '金币余额不足' ? '金币余额不足，请先充值' : msg);
     } finally {
       setLoadingId(null);
     }
