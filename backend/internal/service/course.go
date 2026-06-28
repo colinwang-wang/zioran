@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/zioran/backend/internal/model"
@@ -149,6 +150,11 @@ func (s *CourseService) Search(ctx context.Context, req *model.SearchRequest) (*
 	if req.PageSize < 1 || req.PageSize > 50 {
 		req.PageSize = 16
 	}
+	// Trim and validate keyword
+	req.Q = strings.TrimSpace(req.Q)
+	if req.Q == "" {
+		return &model.PaginatedList{Items: []model.CourseListItem{}, Total: 0, Page: req.Page, PageSize: req.PageSize, TotalPages: 0}, nil
+	}
 	courses, total, err := s.courseRepo.Search(ctx, req)
 	if err != nil {
 		return nil, errcode.ErrInternal
@@ -242,7 +248,7 @@ func (s *CourseService) AdminUpdate(ctx context.Context, id int64, req *model.Ad
 	course.Price = req.Price
 	course.VipPrice = req.VipPrice
 
-	if err := s.courseRepo.Update(ctx, course); err != nil {
+	if err := s.courseRepo.UpdateFields(ctx, course); err != nil {
 		return nil, errcode.ErrInternal
 	}
 	if req.TagIDs != nil {
@@ -255,6 +261,8 @@ func (s *CourseService) AdminUpdate(ctx context.Context, id int64, req *model.Ad
 		}
 		s.courseRepo.ReplaceResources(ctx, id, resources)
 	}
+	// Reload with associations
+	course, _ = s.courseRepo.FindByID(ctx, id)
 	return course, nil
 }
 

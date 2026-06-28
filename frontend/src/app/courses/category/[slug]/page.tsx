@@ -1,21 +1,29 @@
 import { Suspense } from 'react';
 import CoursesClient from '../../CoursesClient';
 
+export const dynamic = 'force-dynamic';
+
 async function getData(slug: string) {
   const baseUrl = 'http://127.0.0.1:8080/api/v1';
   try {
-    const categoriesRes = await fetch(`${baseUrl}/categories`, { next: { revalidate: 300 } });
-    const categories = categoriesRes.ok ? await categoriesRes.json().then(r => r.data || []) : [];
+    const [categoriesRes, tagsRes] = await Promise.all([
+      fetch(`${baseUrl}/categories`, { cache: 'no-store' }),
+      fetch(`${baseUrl}/tags`, { cache: 'no-store' }),
+    ]);
+    const [categories, tags] = await Promise.all([
+      categoriesRes.ok ? categoriesRes.json().then(r => r.data || []) : [],
+      tagsRes.ok ? tagsRes.json().then(r => r.data || []) : [],
+    ]);
     const cat = categories.find((c: { slug: string }) => c.slug === slug);
     if (!cat) {
-      return { courses: { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 }, categories, categoryId: null };
+      return { courses: { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 }, categories, tags, categoryId: null };
     }
     const catId = cat.id;
-    const coursesRes = await fetch(`${baseUrl}/courses?page=1&pageSize=16&categoryId=${catId}`, { next: { revalidate: 60 } });
+    const coursesRes = await fetch(`${baseUrl}/courses?page=1&pageSize=16&categoryId=${catId}`, { cache: 'no-store' });
     const courses = coursesRes.ok ? await coursesRes.json().then(r => r.data || { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 }) : { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 };
-    return { courses, categories, categoryId: catId };
+    return { courses, categories, tags, categoryId: catId };
   } catch {
-    return { courses: { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 }, categories: [], categoryId: null };
+    return { courses: { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 }, categories: [], tags: [], categoryId: null };
   }
 }
 
@@ -24,7 +32,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   const data = await getData(slug);
   return (
     <Suspense fallback={<div className="max-w-container mx-auto px-4 py-8">加载中...</div>}>
-      <CoursesClient initialCourses={data.courses} categories={data.categories} initialCategoryId={data.categoryId} />
+      <CoursesClient initialCourses={data.courses} categories={data.categories} tags={data.tags} initialCategoryId={data.categoryId} />
     </Suspense>
   );
 }

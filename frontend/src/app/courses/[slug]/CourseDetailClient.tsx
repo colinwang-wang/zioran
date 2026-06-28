@@ -42,7 +42,11 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
       alert('购买成功！');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || '购买失败，余额不足请先充值';
-      alert(msg);
+      if (msg.includes('金币') || msg.includes('余额') || msg.includes('不足')) {
+        window.location.href = `/user/recharge?returnTo=/courses/${course.slug}&amount=${course.price}`;
+      } else {
+        alert(msg);
+      }
     }
   };
 
@@ -134,12 +138,15 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-4 mt-6">
+          <div className="flex items-center gap-4 mt-6 py-4 border-t border-b border-hairline">
             <button onClick={handleFavorite} className={`flex items-center gap-1 text-sm ${favorited ? 'text-primary' : 'text-mute'}`}>
               ♡ {favorited ? '已收藏' : '收藏'}
             </button>
             <button onClick={handleLike} className={`flex items-center gap-1 text-sm ${liked ? 'text-primary' : 'text-mute'}`}>
               👍 {likeCount}
+            </button>
+            <button onClick={() => { navigator.clipboard.writeText(window.location.href); alert('链接已复制'); }} className="flex items-center gap-1 text-sm text-mute hover:text-primary">
+              ✎ 分享
             </button>
           </div>
 
@@ -162,7 +169,7 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
 
           {/* Related */}
           {course.related_courses.length > 0 && (
-            <div className="mt-8">
+            <div className="mt-8 pt-6 border-t border-hairline">
               <h3 className="font-bold text-ink mb-4">猜你喜欢</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {course.related_courses.slice(0, 3).map((c) => <CourseCard key={c.id} course={c} />)}

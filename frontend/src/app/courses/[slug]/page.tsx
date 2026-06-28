@@ -5,9 +5,11 @@ import type { CourseDetail } from '@/types';
 
 const baseUrl = 'http://127.0.0.1:8080/api/v1';
 
+export const dynamic = 'force-dynamic';
+
 async function getCourse(slug: string): Promise<CourseDetail | null> {
   try {
-    const res = await fetch(`${baseUrl}/courses/${slug}`, { next: { revalidate: 60 } });
+    const res = await fetch(`${baseUrl}/courses/${slug}`, { cache: 'no-store' });
     if (!res.ok) return null;
     return res.json().then(r => r.data);
   } catch {

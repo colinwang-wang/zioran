@@ -35,7 +35,7 @@ func setupPhase34RouterWithMockPayment(t *testing.T, mockAutoComplete bool) (*go
 		&model.UserVip{}, &model.Order{}, &model.Purchase{},
 		&model.Guestbook{}, &model.GuestbookLike{}, &model.Comment{},
 		&model.NavItem{}, &model.Banner{}, &model.UserDownload{},
-		&model.Ticket{}, &model.TicketReply{}, &model.Setting{},
+		&model.Ticket{}, &model.TicketReply{}, &model.TicketAttachment{}, &model.Setting{},
 		&model.OperationLog{}, &model.PaymentLog{}, &model.WithdrawalRequest{},
 	))
 
@@ -464,6 +464,32 @@ func Test_UserDownloads(t *testing.T) {
 	assert.Equal(t, 0, result.Code)
 }
 
+func Test_UserDownloads_ReturnsOrderMeta(t *testing.T) {
+	db, ts, token := setupPhase34Router(t)
+	defer ts.Close()
+
+	cat := &model.Category{Name: "编程", Slug: "code", IsActive: true}
+	db.Create(cat)
+	course := &model.Course{Title: "Go 实战", Slug: "go", CategoryID: cat.ID, Status: "published", Price: 20}
+	db.Create(course)
+	targetID := int(course.ID)
+	order := &model.Order{OrderNo: "ORD_DOWNLOAD_1", UserID: 1, Type: "course", TargetID: &targetID, TargetName: course.Title, Amount: 20, Status: "paid"}
+	db.Create(order)
+	db.Create(&model.Purchase{UserID: 1, CourseID: course.ID, OrderID: &order.ID})
+	db.Create(&model.UserDownload{UserID: 1, CourseID: course.ID})
+
+	result := authedGet(ts.URL+"/api/v1/user/downloads", token)
+	assert.Equal(t, 0, result.Code)
+	var page struct {
+		Items []model.DownloadResponse `json:"items"`
+	}
+	json.Unmarshal(result.Data, &page)
+	if assert.Len(t, page.Items, 1) {
+		assert.Equal(t, "ORD_DOWNLOAD_1", page.Items[0].OrderNo)
+		assert.Equal(t, 20, page.Items[0].Amount)
+	}
+}
+
 func Test_ChangePassword_原密码错误(t *testing.T) {
 	_, ts, token := setupPhase34Router(t)
 	defer ts.Close()
@@ -571,6 +597,33 @@ func Test_AdminUsers(t *testing.T) {
 
 	result := authedGet(ts.URL+"/api/v1/admin/users", token)
 	assert.Equal(t, 0, result.Code)
+}
+
+func Test_AdminUserDetail_ReturnsVipAndStats(t *testing.T) {
+	db, ts, token := setupPhase34Router(t)
+	defer ts.Close()
+
+	cat := &model.Category{Name: "编程", Slug: "code", IsActive: true}
+	db.Create(cat)
+	course := &model.Course{Title: "Go 实战", Slug: "go", CategoryID: cat.ID, Status: "published"}
+	db.Create(course)
+	db.Create(&model.CoinAccount{UserID: 1, Balance: 88})
+	db.Create(&model.VipPackage{ID: 1, Name: "终身VIP", Price: 99, IsActive: true})
+	db.Create(&model.UserVip{UserID: 1, PackageID: 1, StartedAt: time.Now(), IsActive: true})
+	targetID := int(course.ID)
+	order := &model.Order{OrderNo: "ORD_ADMIN_USER_1", UserID: 1, Type: "course", TargetID: &targetID, TargetName: course.Title, Amount: 20, Status: "paid"}
+	db.Create(order)
+	db.Create(&model.Purchase{UserID: 1, CourseID: course.ID, OrderID: &order.ID})
+	db.Create(&model.UserFavorite{UserID: 1, CourseID: course.ID})
+
+	result := authedGet(ts.URL+"/api/v1/admin/users/1", token)
+	assert.Equal(t, 0, result.Code)
+	var user model.AdminUserResponse
+	json.Unmarshal(result.Data, &user)
+	assert.True(t, user.IsVip)
+	assert.Equal(t, 88, user.Balance)
+	assert.Equal(t, int64(1), user.PurchasedCount)
+	assert.Equal(t, int64(1), user.FavoriteCount)
 }
 
 func Test_AdminNavItems_CRUD(t *testing.T) {

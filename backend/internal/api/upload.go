@@ -2,8 +2,10 @@ package api
 
 import (
 	"fmt"
+	"mime/multipart"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -26,13 +28,43 @@ func (h *UploadHandler) ImageUpload(c *gin.Context) {
 		response.Error(c, errcode.ErrParam)
 		return
 	}
-	ext := filepath.Ext(file.Filename)
-	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-	dst := filepath.Join(h.uploadDir, filename)
-	if err := c.SaveUploadedFile(file, dst); err != nil {
+	url, saveErr := saveUploadedImage(c, h.uploadDir, file)
+	if saveErr != nil {
+		if e, ok := saveErr.(*errcode.Error); ok {
+			response.Error(c, e)
+			return
+		}
 		response.Error(c, errcode.ErrInternal)
 		return
 	}
-	url := "/uploads/" + filename
 	response.Success(c, gin.H{"url": url})
+}
+
+const maxImageUploadSize = 5 << 20
+
+var allowedImageExts = map[string]bool{
+	".jpg":  true,
+	".jpeg": true,
+	".png":  true,
+	".webp": true,
+	".gif":  true,
+}
+
+func saveUploadedImage(c *gin.Context, uploadDir string, file *multipart.FileHeader) (string, error) {
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	if !allowedImageExts[ext] {
+		return "", errcode.New(40001, "仅支持 jpg、png、webp、gif 图片")
+	}
+	if file.Size > maxImageUploadSize {
+		return "", errcode.New(40001, "图片大小不能超过 5MB")
+	}
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		return "", err
+	}
+	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
+	dst := filepath.Join(uploadDir, filename)
+	if err := c.SaveUploadedFile(file, dst); err != nil {
+		return "", err
+	}
+	return "/uploads/" + filename, nil
 }

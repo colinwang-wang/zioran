@@ -6,10 +6,7 @@
 |------|------|
 | 项目名称 | 知猿 (Zioran) |
 | 域名 | zioran.com |
-| 服务器 IP | 120.26.192.163 |
-| 服务器系统 | Ubuntu 26.04 LTS (x86_64) |
-| SSH 用户名 | root |
-| SSH 密码 | Root123456 |
+
 | 项目路径 | /Users/clwang/workspace/OutWorks/zioran |
 
 ## 项目定位

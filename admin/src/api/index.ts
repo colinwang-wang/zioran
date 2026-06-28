@@ -1,7 +1,23 @@
 import request from '@/utils/request'
-import type { ApiResponse, PageData, PageResponse, LoginParams, LoginResult, Course, Category, Tag, User, Order, Guestbook, Comment, NavItem, Banner, DashboardStats, ChartData, Ticket, TicketDetail, Settings, Admin } from '@/types'
+import type { ApiResponse, PageData, PageResponse, LoginParams, LoginResult, Course, Category, Tag, User, Order, Guestbook, Comment, NavItem, Banner, VipPackageConfig, DashboardStats, ChartData, Ticket, TicketDetail, Settings, Admin } from '@/types'
 
 type AnyRecord = Record<string, any>
+
+const apiAssetOrigin = (() => {
+  const configured = import.meta.env.VITE_API_ORIGIN
+  if (configured) return configured.replace(/\/$/, '')
+  if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+    return 'http://localhost:8080'
+  }
+  return 'https://api.zioran.com'
+})()
+
+export const assetUrl = (url?: string) => {
+  if (!url) return ''
+  if (/^(https?:)?\/\//.test(url) || url.startsWith('data:') || url.startsWith('blob:')) return url
+  if (url.startsWith('/uploads/')) return `${apiAssetOrigin}${url}`
+  return url
+}
 
 const slugify = (value?: string, fallback = 'item') => {
   const slug = (value || '')
@@ -29,14 +45,14 @@ const mapPage = <T extends AnyRecord, U>(data: AnyRecord, mapper: (item: T) => U
 
 const adaptCourse = (item: AnyRecord): Course => ({
   ...item,
-  coverImage: item.coverImage || item.cover || '',
+  coverImage: assetUrl(item.coverImage || item.cover || ''),
   categoryId: item.categoryId ?? item.category?.id ?? 0,
   categoryName: item.categoryName || item.category?.name || '-',
   vipPrice: item.vipPrice ?? 0,
   qualityLabel: item.qualityLabel || '',
   detailTitle: item.detailTitle || '',
   detailSubtitle: item.detailSubtitle || '',
-  detailImages: item.detailImages || [],
+  detailImages: Array.isArray(item.detailImages) ? item.detailImages.map(assetUrl) : [],
   tags: Array.isArray(item.tags) ? item.tags : [],
   resources: Array.isArray(item.resources)
     ? item.resources.map((r: AnyRecord) => ({ link: r.link || r.url || '', code: r.code || r.password || '' }))
@@ -59,11 +75,12 @@ const adaptUser = (item: AnyRecord): User => ({
   ...item,
   nickname: item.nickname || item.username || '-',
   avatar: item.avatar || item.avatarUrl || '',
+  isVip: item.isVip ?? item.is_vip ?? false,
   balance: item.balance ?? 0,
-  vipExpireAt: item.vipExpireAt || '',
-  purchasedCount: item.purchasedCount ?? 0,
-  favoriteCount: item.favoriteCount ?? 0,
-  createdAt: item.createdAt || '',
+  vipExpireAt: item.vipExpireAt || item.vip_expire_at || '',
+  purchasedCount: item.purchasedCount ?? item.purchased_count ?? 0,
+  favoriteCount: item.favoriteCount ?? item.favorite_count ?? 0,
+  createdAt: item.createdAt || item.created_at || '',
 } as User)
 
 const adaptOrder = (item: AnyRecord): Order => ({
@@ -93,22 +110,37 @@ const adaptComment = (item: AnyRecord): Comment => ({
 
 const adaptNavItem = (item: AnyRecord): NavItem => ({
   ...item,
+  subtitle: item.subtitle || '',
+  icon: assetUrl(item.icon || ''),
   link: item.link || item.url || '',
+  categoryId: item.categoryId ?? item.category_id ?? null,
   sort: item.sort ?? item.sortOrder ?? 0,
+  status: item.status || (item.isActive === false ? 'inactive' : 'active'),
 } as NavItem)
 
 const adaptBanner = (item: AnyRecord): Banner => ({
   ...item,
-  image: item.image || item.imageUrl || '',
+  image: assetUrl(item.image || item.imageUrl || ''),
   link: item.link || item.linkUrl || '',
+  placement: item.placement || 'home',
+  backgroundColor: item.backgroundColor || '',
   sort: item.sort ?? item.sortOrder ?? 0,
   status: item.status || (item.isActive === false ? 'inactive' : 'active'),
 } as Banner)
+
+const adaptVipPackage = (item: AnyRecord): VipPackageConfig => ({
+  ...item,
+  originalPrice: item.originalPrice ?? item.original_price ?? 0,
+  benefits: item.benefits || '',
+  isActive: item.isActive ?? item.is_active ?? true,
+  sortOrder: item.sortOrder ?? item.sort_order ?? 0,
+} as VipPackageConfig)
 
 const adaptTicket = (item: AnyRecord): Ticket => ({
   ...item,
   userName: item.userName || item.username || '-',
   subject: item.subject || item.title || '',
+  attachments: Array.isArray(item.attachments) ? item.attachments.map(assetUrl) : [],
   createdAt: item.createdAt || '',
   updatedAt: item.updatedAt || '',
 } as Ticket)
@@ -116,6 +148,7 @@ const adaptTicket = (item: AnyRecord): Ticket => ({
 const adaptTicketDetail = (item: AnyRecord): TicketDetail => ({
   ...adaptTicket(item),
   content: item.content || '',
+  attachments: Array.isArray(item.attachments) ? item.attachments.map(assetUrl) : [],
   replies: Array.isArray(item.replies)
     ? item.replies.map((r: AnyRecord) => ({
       ...r,
@@ -161,8 +194,10 @@ const toTagPayload = (data: AnyRecord) => ({ name: data.name, slug: data.slug ||
 
 const toNavItemPayload = (data: AnyRecord) => ({
   title: data.title,
+  subtitle: data.subtitle || '',
   icon: data.icon || '',
   url: data.url || data.link || '',
+  category_id: data.categoryId || null,
   sort_order: data.sort ?? data.sortOrder ?? 0,
   is_active: data.status ? data.status === 'active' : data.isActive ?? true,
 })
@@ -171,8 +206,19 @@ const toBannerPayload = (data: AnyRecord) => ({
   title: data.title || '',
   image_url: data.imageUrl || data.image || '',
   link_url: data.linkUrl || data.link || '',
+  placement: data.placement || 'home',
+  background_color: data.backgroundColor || data.background_color || '',
   sort_order: data.sort ?? data.sortOrder ?? 0,
   is_active: data.status ? data.status === 'active' : data.isActive ?? true,
+})
+
+const toVipPackagePayload = (data: Partial<VipPackageConfig>) => ({
+  name: data.name,
+  price: data.price ?? 0,
+  original_price: data.originalPrice ?? 0,
+  benefits: data.benefits || '',
+  is_active: data.isActive ?? true,
+  sort_order: data.sortOrder ?? 0,
 })
 
 const adaptSettings = (data: AnyRecord): Settings => ({
@@ -329,11 +375,17 @@ export const updateBanner = (id: number, data: Partial<Banner>) =>
 // DELETE /api/v1/admin/banners/:id
 export const deleteBanner = (id: number) => request.delete<unknown, ApiResponse<null>>(`/admin/banners/${id}`)
 
+// VIP 套餐配置
+export const getVipPackagesAdmin = () =>
+  mapApi(request.get<unknown, ApiResponse<VipPackageConfig[]>>('/admin/vip/packages'), data => data.map(adaptVipPackage))
+export const updateVipPackage = (id: number, data: Partial<VipPackageConfig>) =>
+  mapApi(request.put<unknown, ApiResponse<VipPackageConfig>>(`/admin/vip/packages/${id}`, toVipPackagePayload(data)), adaptVipPackage)
+
 // POST /api/v1/upload/image
 export const uploadImage = (file: File) => {
   const form = new FormData()
   form.append('file', file)
-  return request.post<unknown, ApiResponse<{ url: string }>>('/upload/image', form)
+  return mapApi(request.post<unknown, ApiResponse<{ url: string }>>('/upload/image', form), data => ({ url: assetUrl(data.url) }))
 }
 
 // 工单管理

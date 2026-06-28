@@ -1,11 +1,8 @@
 package api
 
 import (
-	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strconv"
 	"time"
 
@@ -424,7 +421,7 @@ func (h *TicketHandler) WechatNotify(c *gin.Context) {
 		Serial:    c.GetHeader("Wechatpay-Serial"),
 	}
 	if svcErr := h.paySvc.WechatNotifyCallback(c.Request.Context(), body, headers); svcErr != nil {
-		c.JSON(200, gin.H{"code": "FAIL", "message": svcErr.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"code": "FAIL", "message": svcErr.Error()})
 		return
 	}
 	c.JSON(200, gin.H{"code": "SUCCESS", "message": "ok"})
@@ -439,7 +436,7 @@ func (h *TicketHandler) AlipayNotify(c *gin.Context) {
 		}
 	}
 	if svcErr := h.paySvc.AlipayNotifyCallback(c.Request.Context(), params); svcErr != nil {
-		c.String(200, "fail")
+		c.String(http.StatusInternalServerError, "fail")
 		return
 	}
 	c.String(200, "success")
@@ -515,16 +512,18 @@ func (h *TicketHandler) BatchImageUpload(c *gin.Context) {
 		response.Error(c, errcode.ErrParam)
 		return
 	}
-	os.MkdirAll(h.uploadDir, 0755)
 	urls := make([]string, 0, len(files))
 	for _, file := range files {
-		ext := filepath.Ext(file.Filename)
-		filename := fmt.Sprintf("%d_%s%s", time.Now().UnixNano(), file.Filename, ext)
-		dst := filepath.Join(h.uploadDir, filename)
-		if err := c.SaveUploadedFile(file, dst); err != nil {
-			continue
+		url, saveErr := saveUploadedImage(c, h.uploadDir, file)
+		if saveErr != nil {
+			if e, ok := saveErr.(*errcode.Error); ok {
+				response.Error(c, e)
+				return
+			}
+			response.Error(c, errcode.ErrInternal)
+			return
 		}
-		urls = append(urls, "/uploads/"+filename)
+		urls = append(urls, url)
 	}
 	response.Success(c, gin.H{"urls": urls})
 }

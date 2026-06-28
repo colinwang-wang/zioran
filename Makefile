@@ -1,8 +1,15 @@
 # 知猿 (Zioran) 运维 Makefile
 # 服务器: 120.26.192.163 | 域名: zioran.com
 
-SSH = sshpass -p 'Admin66668888' ssh -o StrictHostKeyChecking=no root@120.26.192.163
-SCP = sshpass -p 'Admin66668888' scp -o StrictHostKeyChecking=no
+REMOTE_HOST ?= 120.26.192.163
+REMOTE_USER ?= root
+SSH_PASS ?=
+DB_USER ?= root
+DB_PASS ?=
+DB_NAME ?= zioran
+
+SSH = sshpass -p '$(SSH_PASS)' ssh -o StrictHostKeyChecking=no $(REMOTE_USER)@$(REMOTE_HOST)
+SCP = sshpass -p '$(SSH_PASS)' scp -o StrictHostKeyChecking=no
 REMOTE_DIR = /opt/zioran
 
 # ==================== 本地开发 ====================
@@ -59,12 +66,12 @@ deploy-code:
 
 ## 执行数据库迁移
 deploy-migrate:
-	$(SSH) "cd $(REMOTE_DIR) && for f in backend/migrations/*.sql; do mysql -uroot -proot123456 zioran < \$$f 2>/dev/null; done"
+	$(SSH) "cd $(REMOTE_DIR) && for f in backend/migrations/*.sql; do mysql -u$(DB_USER) -p'$(DB_PASS)' $(DB_NAME) < \$$f 2>/dev/null; done"
 	@echo "✅ Migration done"
 
 ## 部署后端
 deploy-backend:
-	$(SSH) "export PATH=\$$PATH:/usr/local/go/bin && cd $(REMOTE_DIR)/backend && go build -o $(REMOTE_DIR)/bin/zioran-api ./cmd/server/ && cp config.yaml $(REMOTE_DIR)/bin/config.yaml"
+	$(SSH) "export PATH=\$$PATH:/usr/local/go/bin && cd $(REMOTE_DIR)/backend && go build -o $(REMOTE_DIR)/bin/zioran-api ./cmd/server/ && (test -f $(REMOTE_DIR)/bin/config.yaml || cp config.yaml $(REMOTE_DIR)/bin/config.yaml) && (grep -q '^email:' $(REMOTE_DIR)/bin/config.yaml || (printf '\n' >> $(REMOTE_DIR)/bin/config.yaml && awk 'BEGIN{p=0} /^email:/{p=1} p && p!=1 && /^[^[:space:]]/{exit} p{print; p=2}' config.yaml >> $(REMOTE_DIR)/bin/config.yaml))"
 	@echo "✅ Backend deployed"
 
 ## 部署前端
@@ -125,15 +132,15 @@ restart:
 
 ## 进入MySQL命令行
 db-shell:
-	$(SSH) "mysql -uroot -proot123456 zioran"
+	$(SSH) "mysql -u$(DB_USER) -p'$(DB_PASS)' $(DB_NAME)"
 
 ## 数据库备份
 db-backup:
-	$(SSH) "mysqldump -uroot -proot123456 zioran > /opt/zioran/backup/zioran_$$(date +%Y%m%d_%H%M%S).sql && echo '✅ Backup done'"
+	$(SSH) "mysqldump -u$(DB_USER) -p'$(DB_PASS)' $(DB_NAME) > /opt/zioran/backup/zioran_$$(date +%Y%m%d_%H%M%S).sql && echo '✅ Backup done'"
 
 ## 初始化种子数据
 seed:
-	$(SSH) "mysql -uroot -proot123456 zioran < $(REMOTE_DIR)/backend/migrations/004_seed_data.sql"
+	$(SSH) "mysql -u$(DB_USER) -p'$(DB_PASS)' $(DB_NAME) < $(REMOTE_DIR)/backend/migrations/004_seed_data.sql"
 	@echo "✅ Seed data loaded"
 
 # ==================== 快捷 ====================
@@ -146,7 +153,7 @@ push:
 
 ## 快速部署（拉代码+重启，不重新构建前端）
 quick-deploy:
-	$(SSH) "cd $(REMOTE_DIR) && git pull origin main && export PATH=\$$PATH:/usr/local/go/bin && cd backend && go build -o $(REMOTE_DIR)/bin/zioran-api ./cmd/server/ && cp config.yaml $(REMOTE_DIR)/bin/config.yaml && pm2 restart zioran-api && pm2 save"
+	$(SSH) "cd $(REMOTE_DIR) && git pull origin main && export PATH=\$$PATH:/usr/local/go/bin && cd backend && go build -o $(REMOTE_DIR)/bin/zioran-api ./cmd/server/ && (test -f $(REMOTE_DIR)/bin/config.yaml || cp config.yaml $(REMOTE_DIR)/bin/config.yaml) && (grep -q '^email:' $(REMOTE_DIR)/bin/config.yaml || (printf '\n' >> $(REMOTE_DIR)/bin/config.yaml && awk 'BEGIN{p=0} /^email:/{p=1} p && p!=1 && /^[^[:space:]]/{exit} p{print; p=2}' config.yaml >> $(REMOTE_DIR)/bin/config.yaml)) && pm2 restart zioran-api && pm2 save"
 	@echo "✅ Quick deploy done"
 
 ## 健康检查

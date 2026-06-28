@@ -1,21 +1,27 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
-import { getRechargeConfig, recharge } from '@/lib/services';
+import { getOrder, getRechargeConfig, recharge } from '@/lib/services';
 import type { RechargeResponse } from '@/types';
 
 const fallbackAmounts = [10, 50, 100, 200, 500, 1000];
 
 export default function RechargePage() {
-  const [amount, setAmount] = useState(100);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
+  const requestedAmount = Number(searchParams.get('amount') || 0);
+  const [amount, setAmount] = useState(requestedAmount > 0 ? requestedAmount : 100);
   const [amounts, setAmounts] = useState(fallbackAmounts);
   const [ratio, setRatio] = useState(1);
-  const [customAmount, setCustomAmount] = useState('');
+  const [customAmount, setCustomAmount] = useState(requestedAmount > 0 ? String(requestedAmount) : '');
   const [isCustom, setIsCustom] = useState(false);
   const [method, setMethod] = useState('wechat');
   const [loading, setLoading] = useState(false);
   const [payment, setPayment] = useState<RechargeResponse | null>(null);
+  const [payStatus, setPayStatus] = useState<'idle' | 'pending' | 'paid'>('idle');
   const coins = amount * ratio;
 
   useEffect(() => {
@@ -24,23 +30,48 @@ export default function RechargePage() {
         const nextAmounts = config.amounts?.filter((item) => item > 0) || [];
         setAmounts(nextAmounts.length > 0 ? nextAmounts : fallbackAmounts);
         setRatio(config.ratio > 0 ? config.ratio : 1);
-        if (nextAmounts.length > 0) {
+        if (requestedAmount > 0) {
+          setAmount(requestedAmount);
+          setIsCustom(!nextAmounts.includes(requestedAmount));
+          setCustomAmount(String(requestedAmount));
+        } else if (nextAmounts.length > 0) {
           setAmount(nextAmounts[0]);
         }
       })
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (!payment || payStatus !== 'pending') return;
+    const timer = window.setInterval(async () => {
+      try {
+        const order = await getOrder(payment.order_id);
+        if (order.status === 'paid') {
+          setPayStatus('paid');
+          window.clearInterval(timer);
+          if (returnTo) {
+            setTimeout(() => router.push(returnTo), 1200);
+          }
+        }
+      } catch { /* keep polling */ }
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, [payment, payStatus, returnTo, router]);
+
   const handleRecharge = async () => {
     setLoading(true);
     setPayment(null);
+    setPayStatus('idle');
     try {
       const res = await recharge({ amount, pay_method: method });
       setPayment(res);
       if (res.pay_url.startsWith('mock://')) {
-        alert(`模拟充值已完成，到账 ${res.coins} 金币`);
+        setPayStatus('paid');
       } else if (method === 'alipay' && res.pay_url.startsWith('http')) {
+        window.localStorage.setItem('pending_recharge_order_id', String(res.order_id));
         window.location.href = res.pay_url;
+      } else {
+        setPayStatus('pending');
       }
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || '充值失败';
@@ -83,6 +114,11 @@ export default function RechargePage() {
           <p className="text-mute text-xs mb-4">请使用微信扫码支付 ¥{payment.amount}，到账 {payment.coins} 金币</p>
           <QRCodeSVG value={payment.pay_url} size={200} />
           <p className="text-mute text-xs mt-4">支付完成后页面将自动更新</p>
+        </div>
+      )}
+      {payment && payStatus === 'paid' && (
+        <div className="mt-4 rounded-card border border-[#b7eb8f] bg-[#f6ffed] p-4 text-sm text-[#237804]">
+          支付成功，已到账 {payment.coins} 金币。
         </div>
       )}
       {payment && !isWechatQR && !payment.pay_url.startsWith('mock://') && (

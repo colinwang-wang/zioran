@@ -62,7 +62,7 @@ export default function UserList() {
           { title: '手机号', dataIndex: 'phone', width: 130, render: (v: string) => v ? v.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '-' },
           { title: '昵称', dataIndex: 'nickname' },
           { title: '余额', dataIndex: 'balance', width: 80, render: (v: number) => `${v}金币` },
-          { title: 'VIP到期', dataIndex: 'vipExpireAt', width: 120, render: (v: string) => v ? dayjs(v).format('YYYY-MM-DD') : '非VIP' },
+          { title: 'VIP到期', dataIndex: 'vipExpireAt', width: 120, render: (v: string, r: User) => r.isVip ? (v ? dayjs(v).format('YYYY-MM-DD') : '终身VIP') : '非VIP' },
           { title: '已购课程', dataIndex: 'purchasedCount', width: 80 },
           { title: '状态', dataIndex: 'status', width: 80, render: (v: string) => <Tag color={v === 'active' ? 'green' : 'red'}>{v === 'active' ? '正常' : '已禁用'}</Tag> },
           { title: '注册时间', dataIndex: 'createdAt', width: 160, render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm') },

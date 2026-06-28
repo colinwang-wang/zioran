@@ -67,6 +67,7 @@ export interface User {
   nickname: string
   avatar: string
   balance: number
+  isVip: boolean
   vipExpireAt: string
   status: 'active' | 'disabled'
   purchasedCount: number
@@ -119,9 +120,12 @@ export interface Comment {
 export interface NavItem {
   id: number
   title: string
+  subtitle: string
   icon: string
   link: string
+  categoryId?: number | null
   sort: number
+  status?: 'active' | 'inactive'
 }
 
 // Banner
@@ -130,8 +134,20 @@ export interface Banner {
   title: string
   image: string
   link: string
+  placement: 'home' | 'vip'
+  backgroundColor: string
   sort: number
   status: 'active' | 'inactive'
+}
+
+export interface VipPackageConfig {
+  id: number
+  name: string
+  price: number
+  originalPrice: number
+  benefits: string
+  isActive: boolean
+  sortOrder: number
 }
 
 // 看板统计
@@ -159,6 +175,7 @@ export interface Ticket {
   subject: string
   content: string
   status: 'pending' | 'processing' | 'replied' | 'closed'
+  attachments?: string[]
   createdAt: string
   updatedAt: string
 }

@@ -74,18 +74,34 @@ export default function RegisterPage() {
           <p className="text-sm text-mute mt-1">创建账号</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="邮箱" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密码（至少6位）" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
+          <div className="flex items-center gap-2 px-4 py-3 rounded-card bg-surface border border-hairline">
+            <span className="text-mute">👤</span>
+            <input type="text" value={email.split('@')[0] || ''} onChange={(e) => {}} placeholder="用户名" className="flex-1 bg-transparent text-sm outline-none" readOnly={false} tabIndex={-1} />
+          </div>
+          <div className="flex items-center gap-2 px-4 py-3 rounded-card bg-surface border border-hairline">
+            <span className="text-mute">✉️</span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="邮箱" className="flex-1 bg-transparent text-sm outline-none" />
+          </div>
+          <div className="flex items-center gap-2 px-4 py-3 rounded-card bg-surface border border-hairline">
+            <span className="text-mute">🔒</span>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密码（至少6位）" className="flex-1 bg-transparent text-sm outline-none" />
+          </div>
           <div className="flex gap-2">
-            <input type="text" value={captcha} onChange={(e) => setCaptcha(e.target.value)} placeholder="图片验证码" className="flex-1 px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
+            <div className="flex-1 flex items-center gap-2 px-4 py-3 rounded-card bg-surface border border-hairline">
+              <span className="text-mute">🔑</span>
+              <input type="text" value={captcha} onChange={(e) => setCaptcha(e.target.value)} placeholder="图片验证码" className="flex-1 bg-transparent text-sm outline-none" />
+            </div>
             {captchaImage ? (
-              <img src={captchaImage} alt="验证码" onClick={loadCaptcha} className="h-11 rounded-card cursor-pointer" />
+              <img src={captchaImage} alt="验证码" onClick={loadCaptcha} className="h-11 w-[100px] object-contain rounded-card cursor-pointer border border-hairline" />
             ) : (
               <button type="button" onClick={loadCaptcha} className="px-4 py-3 bg-surface rounded-card text-xs font-semibold text-primary whitespace-nowrap">显示验证码</button>
             )}
           </div>
           <div className="flex gap-2">
-            <input type="text" value={emailCode} onChange={(e) => setEmailCode(e.target.value)} placeholder="邮箱验证码" className="flex-1 px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
+            <div className="flex-1 flex items-center gap-2 px-4 py-3 rounded-card bg-surface border border-hairline">
+              <span className="text-mute">💌</span>
+              <input type="text" value={emailCode} onChange={(e) => setEmailCode(e.target.value)} placeholder="邮箱验证码" className="flex-1 bg-transparent text-sm outline-none" />
+            </div>
             <button type="button" onClick={handleSendEmail} disabled={countdown > 0} className="px-4 py-3 bg-surface rounded-card text-xs font-semibold text-primary whitespace-nowrap disabled:text-mute">
               {countdown > 0 ? `${countdown}s` : '发送验证码'}
             </button>

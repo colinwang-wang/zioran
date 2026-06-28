@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Tag, List, Input, Button, Space, Select, message, Spin } from 'antd'
+import { Card, Descriptions, Tag, List, Input, Button, Space, Select, message, Spin, Image } from 'antd'
 import { getTicket, replyTicket, updateTicketStatus } from '@/api'
 import type { TicketDetail as TicketDetailType } from '@/types'
 
@@ -53,6 +53,17 @@ export default function TicketDetail() {
             </Select>
           </Descriptions.Item>
           <Descriptions.Item label="内容" span={2}>{ticket.content}</Descriptions.Item>
+          {ticket.attachments && ticket.attachments.length > 0 && (
+            <Descriptions.Item label="附件" span={2}>
+              <Image.PreviewGroup>
+                <Space wrap>
+                  {ticket.attachments.map((url, index) => (
+                    <Image key={`${url}-${index}`} src={url} width={96} height={72} style={{ objectFit: 'cover', borderRadius: 6 }} />
+                  ))}
+                </Space>
+              </Image.PreviewGroup>
+            </Descriptions.Item>
+          )}
           <Descriptions.Item label="创建时间">{ticket.createdAt}</Descriptions.Item>
         </Descriptions>
       </Card>

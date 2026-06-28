@@ -3,20 +3,34 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createTicket } from '@/lib/services';
+import { createTicket, uploadImages } from '@/lib/services';
 
 export default function NewTicketPage() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(event.target.files || []);
+    const validFiles = selected.filter((file) => {
+      const validType = ['image/jpeg', 'image/png'].includes(file.type);
+      const validSize = file.size <= 5 * 1024 * 1024;
+      if (!validType) alert(`${file.name} 格式不支持，请上传 JPG/PNG 图片`);
+      if (validType && !validSize) alert(`${file.name} 超过 5MB`);
+      return validType && validSize;
+    });
+    setFiles(validFiles.slice(0, 5));
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) return;
     setLoading(true);
     try {
-      await createTicket({ title: title.trim(), content: content.trim() });
+      const attachments = files.length > 0 ? await uploadImages(files) : [];
+      await createTicket({ title: title.trim(), content: content.trim(), attachments });
       router.push('/user/tickets');
     } catch {
       alert('提交失败，请稍后重试');
@@ -51,8 +65,29 @@ export default function NewTicketPage() {
             className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none resize-none"
           />
         </div>
-        <button type="submit" disabled={loading || !title.trim() || !content.trim()} className="px-5 py-3 bg-primary text-white text-sm font-bold rounded-card disabled:opacity-50">
-          提交工单
+        <div>
+          <label className="block text-sm font-semibold text-ink mb-2">截图附件</label>
+          <input
+            type="file"
+            accept="image/png,image/jpeg"
+            multiple
+            onChange={handleFileChange}
+            className="block w-full text-sm text-mute file:mr-4 file:rounded-card file:border-0 file:bg-[#ff0036] file:px-4 file:py-2 file:text-sm file:font-bold file:text-white"
+          />
+          <p className="mt-2 text-xs text-mute">支持 JPG/PNG，不超过 5MB</p>
+          {files.length > 0 && (
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {files.map((file) => (
+                <div key={`${file.name}-${file.size}`} className="rounded-card border border-hairline bg-surface p-2 text-xs text-mute">
+                  <div className="truncate font-semibold text-ink">{file.name}</div>
+                  <div className="mt-1">{Math.ceil(file.size / 1024)} KB</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <button type="submit" disabled={loading || !title.trim() || !content.trim()} className="px-5 py-3 bg-[#ff0036] text-white text-sm font-bold rounded-card disabled:opacity-50">
+          {loading ? '提交中...' : '提交工单'}
         </button>
       </form>
     </div>

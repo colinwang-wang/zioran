@@ -74,6 +74,40 @@ func (h *AdminPaymentHandler) OrderDetail(c *gin.Context) {
 	response.Success(c, order)
 }
 
+// VIP packages
+
+func (h *AdminPaymentHandler) VipPackageList(c *gin.Context) {
+	result, err := h.paySvc.AdminVipPackages(c.Request.Context())
+	if err != nil {
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
+	response.Success(c, result)
+}
+
+func (h *AdminPaymentHandler) VipPackageUpdate(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		response.Error(c, errcode.ErrParam)
+		return
+	}
+	var req model.AdminVipPackageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, errcode.ErrParam)
+		return
+	}
+	result, svcErr := h.paySvc.AdminUpdateVipPackage(c.Request.Context(), id, &req)
+	if svcErr != nil {
+		if e, ok := svcErr.(*errcode.Error); ok {
+			response.Error(c, e)
+			return
+		}
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
+	response.Success(c, result)
+}
+
 // Users
 
 func (h *AdminPaymentHandler) UserList(c *gin.Context) {

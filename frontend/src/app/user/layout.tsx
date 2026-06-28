@@ -7,12 +7,12 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 const tabs = [
+  { href: '/user', label: '我的资料' },
   { href: '/user/recharge', label: '在线充值' },
   { href: '/vip', label: '升级VIP' },
   { href: '/user/transactions', label: '充值记录' },
   { href: '/user/orders', label: '购买资源' },
   { href: '/user/downloads', label: '我的下载' },
-  { href: '/user', label: '我的资料' },
   { href: '/user/comments', label: '我的评论' },
   { href: '/user/favorites', label: '我的收藏' },
   { href: '/user/tickets/new', label: '提交工单' },

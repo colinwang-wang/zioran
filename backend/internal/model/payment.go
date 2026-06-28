@@ -5,13 +5,13 @@ import "time"
 // Coin
 
 type CoinAccount struct {
-	ID         int64     `json:"id" gorm:"primaryKey;autoIncrement"`
-	UserID     int64     `json:"user_id" gorm:"not null;uniqueIndex"`
-	Balance    int       `json:"balance" gorm:"not null;default:0"`
-	TotalEarned int      `json:"total_earned" gorm:"not null;default:0"`
-	TotalSpent int       `json:"total_spent" gorm:"not null;default:0"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID          int64     `json:"id" gorm:"primaryKey;autoIncrement"`
+	UserID      int64     `json:"user_id" gorm:"not null;uniqueIndex"`
+	Balance     int       `json:"balance" gorm:"not null;default:0"`
+	TotalEarned int       `json:"total_earned" gorm:"not null;default:0"`
+	TotalSpent  int       `json:"total_spent" gorm:"not null;default:0"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 func (CoinAccount) TableName() string { return "coin_accounts" }
@@ -123,8 +123,8 @@ type Comment struct {
 	Status     string    `json:"status" gorm:"size:20;not null;default:visible"`
 	CreatedAt  time.Time `json:"created_at"`
 
-	User     *User      `json:"user,omitempty" gorm:"foreignKey:UserID"`
-	Children []Comment  `json:"children,omitempty" gorm:"foreignKey:ParentID"`
+	User     *User     `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	Children []Comment `json:"children,omitempty" gorm:"foreignKey:ParentID"`
 }
 
 func (Comment) TableName() string { return "comments" }
@@ -132,25 +132,29 @@ func (Comment) TableName() string { return "comments" }
 // Home Config
 
 type NavItem struct {
-	ID        int       `json:"id" gorm:"primaryKey;autoIncrement"`
-	Title     string    `json:"title" gorm:"size:50;not null"`
-	Icon      string    `json:"icon" gorm:"size:200"`
-	URL       string    `json:"url" gorm:"size:500;not null"`
-	SortOrder int       `json:"sort_order" gorm:"not null;default:0"`
-	IsActive  bool      `json:"is_active" gorm:"not null;default:true"`
-	CreatedAt time.Time `json:"created_at"`
+	ID         int       `json:"id" gorm:"primaryKey;autoIncrement"`
+	Title      string    `json:"title" gorm:"size:50;not null"`
+	Subtitle   string    `json:"subtitle" gorm:"size:100"`
+	Icon       string    `json:"icon" gorm:"size:200"`
+	URL        string    `json:"url" gorm:"size:500;not null"`
+	CategoryID *int      `json:"category_id"`
+	SortOrder  int       `json:"sort_order" gorm:"not null;default:0"`
+	IsActive   bool      `json:"is_active" gorm:"not null;default:true"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 func (NavItem) TableName() string { return "nav_items" }
 
 type Banner struct {
-	ID        int       `json:"id" gorm:"primaryKey;autoIncrement"`
-	Title     string    `json:"title" gorm:"size:100"`
-	ImageURL  string    `json:"image_url" gorm:"size:500;not null"`
-	LinkURL   string    `json:"link_url" gorm:"size:500"`
-	SortOrder int       `json:"sort_order" gorm:"not null;default:0"`
-	IsActive  bool      `json:"is_active" gorm:"not null;default:true"`
-	CreatedAt time.Time `json:"created_at"`
+	ID              int       `json:"id" gorm:"primaryKey;autoIncrement"`
+	Title           string    `json:"title" gorm:"size:100"`
+	ImageURL        string    `json:"image_url" gorm:"size:500;not null"`
+	LinkURL         string    `json:"link_url" gorm:"size:500"`
+	Placement       string    `json:"placement" gorm:"size:50;not null;default:home"`
+	BackgroundColor string    `json:"background_color" gorm:"size:30"`
+	SortOrder       int       `json:"sort_order" gorm:"not null;default:0"`
+	IsActive        bool      `json:"is_active" gorm:"not null;default:true"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 func (Banner) TableName() string { return "banners" }

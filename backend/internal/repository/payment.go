@@ -7,6 +7,7 @@ import (
 
 	"github.com/zioran/backend/internal/model"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type PaymentRepository struct {
@@ -15,6 +16,18 @@ type PaymentRepository struct {
 
 func NewPaymentRepository(db *gorm.DB) *PaymentRepository {
 	return &PaymentRepository{db: db}
+}
+
+type UserAdminStats struct {
+	Balance        int
+	PurchasedCount int64
+	FavoriteCount  int64
+}
+
+type DownloadOrderMeta struct {
+	CourseID int64  `gorm:"column:course_id"`
+	OrderNo  string `gorm:"column:order_no"`
+	Amount   int    `gorm:"column:amount"`
 }
 
 func (r *PaymentRepository) GetSetting(ctx context.Context, key string) (string, error) {
@@ -112,6 +125,12 @@ func (r *PaymentRepository) VipPackages(ctx context.Context) ([]model.VipPackage
 	return pkgs, err
 }
 
+func (r *PaymentRepository) AdminVipPackages(ctx context.Context) ([]model.VipPackage, error) {
+	var pkgs []model.VipPackage
+	err := r.db.WithContext(ctx).Order("sort_order ASC, id ASC").Find(&pkgs).Error
+	return pkgs, err
+}
+
 func (r *PaymentRepository) GetVipStatus(ctx context.Context, userID int64) (*model.UserVip, error) {
 	var vip model.UserVip
 	err := r.db.WithContext(ctx).Where("user_id = ? AND is_active = ?", userID, true).
@@ -134,6 +153,13 @@ func (r *PaymentRepository) GetVipPackage(ctx context.Context, id int) (*model.V
 		return nil, err
 	}
 	return &pkg, nil
+}
+
+func (r *PaymentRepository) UpdateVipPackage(ctx context.Context, id int, updates map[string]interface{}) (*model.VipPackage, error) {
+	if err := r.db.WithContext(ctx).Model(&model.VipPackage{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+		return nil, err
+	}
+	return r.GetVipPackage(ctx, id)
 }
 
 // Orders
@@ -160,6 +186,58 @@ func (r *PaymentRepository) GetOrderByNo(ctx context.Context, orderNo string) (*
 	return &order, nil
 }
 
+func (r *PaymentRepository) CompleteRechargeOrder(ctx context.Context, orderID int64, coins int) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var order model.Order
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&order, orderID).Error; err != nil {
+			return err
+		}
+		if order.Status != "paid" {
+			now := time.Now()
+			if err := tx.Model(&model.Order{}).Where("id = ?", order.ID).
+				Updates(map[string]interface{}{"status": "paid", "paid_at": &now}).Error; err != nil {
+				return err
+			}
+		}
+
+		var existing int64
+		if err := tx.Model(&model.CoinTransaction{}).
+			Where("order_id = ? AND type = ?", order.ID, "recharge").
+			Count(&existing).Error; err != nil {
+			return err
+		}
+		if existing > 0 {
+			return nil
+		}
+
+		var acc model.CoinAccount
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("user_id = ?", order.UserID).First(&acc).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				acc = model.CoinAccount{UserID: order.UserID}
+				if createErr := tx.Create(&acc).Error; createErr != nil {
+					return createErr
+				}
+			} else {
+				return err
+			}
+		}
+		acc.Balance += coins
+		acc.TotalEarned += coins
+		if err := tx.Save(&acc).Error; err != nil {
+			return err
+		}
+		txn := model.CoinTransaction{
+			UserID:       order.UserID,
+			Type:         "recharge",
+			Amount:       coins,
+			BalanceAfter: acc.Balance,
+			Description:  fmt.Sprintf("充值%d金币", coins),
+			OrderID:      &order.ID,
+		}
+		return tx.Create(&txn).Error
+	})
+}
+
 func (r *PaymentRepository) UpdateOrderStatus(ctx context.Context, id int64, status string) error {
 	updates := map[string]interface{}{"status": status}
 	if status == "paid" {
@@ -167,6 +245,11 @@ func (r *PaymentRepository) UpdateOrderStatus(ctx context.Context, id int64, sta
 		updates["paid_at"] = &now
 	}
 	return r.db.WithContext(ctx).Model(&model.Order{}).Where("id = ?", id).Updates(updates).Error
+}
+
+func (r *PaymentRepository) LogPayment(ctx context.Context, orderID *int64, logType, detail string) error {
+	log := &model.PaymentLog{OrderID: orderID, Type: logType, Detail: detail}
+	return r.db.WithContext(ctx).Create(log).Error
 }
 
 func (r *PaymentRepository) UserOrders(ctx context.Context, userID int64, page, pageSize int) ([]model.Order, int64, error) {
@@ -227,6 +310,30 @@ func (r *PaymentRepository) UserDownloads(ctx context.Context, userID int64, pag
 	return downloads, total, err
 }
 
+func (r *PaymentRepository) UserDownloadOrderMetas(ctx context.Context, userID int64, courseIDs []int64) (map[int64]DownloadOrderMeta, error) {
+	metas := make(map[int64]DownloadOrderMeta, len(courseIDs))
+	if len(courseIDs) == 0 {
+		return metas, nil
+	}
+	var rows []DownloadOrderMeta
+	err := r.db.WithContext(ctx).
+		Table("purchases").
+		Select("purchases.course_id, orders.order_no, orders.amount").
+		Joins("LEFT JOIN orders ON orders.id = purchases.order_id").
+		Where("purchases.user_id = ? AND purchases.course_id IN ?", userID, courseIDs).
+		Order("purchases.created_at DESC").
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		if _, exists := metas[row.CourseID]; !exists {
+			metas[row.CourseID] = row
+		}
+	}
+	return metas, nil
+}
+
 // User favorites (paginated)
 
 func (r *PaymentRepository) UserFavorites(ctx context.Context, userID int64, page, pageSize int) ([]model.UserFavorite, int64, error) {
@@ -272,6 +379,30 @@ func (r *PaymentRepository) AdminUsers(ctx context.Context, page, pageSize int, 
 	query.Count(&total)
 	err := query.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&users).Error
 	return users, total, err
+}
+
+func (r *PaymentRepository) UserAdminStats(ctx context.Context, userID int64) (UserAdminStats, error) {
+	stats := UserAdminStats{}
+	var acc model.CoinAccount
+	err := r.db.WithContext(ctx).Where("user_id = ?", userID).First(&acc).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return stats, err
+	}
+	if err == nil {
+		stats.Balance = acc.Balance
+	}
+	if err := r.db.WithContext(ctx).Model(&model.Purchase{}).
+		Where("user_id = ?", userID).
+		Distinct("course_id").
+		Count(&stats.PurchasedCount).Error; err != nil {
+		return stats, err
+	}
+	if err := r.db.WithContext(ctx).Model(&model.UserFavorite{}).
+		Where("user_id = ?", userID).
+		Count(&stats.FavoriteCount).Error; err != nil {
+		return stats, err
+	}
+	return stats, nil
 }
 
 func (r *PaymentRepository) UpdateUserStatus(ctx context.Context, userID int64, status string) error {

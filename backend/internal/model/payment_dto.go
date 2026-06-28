@@ -32,6 +32,15 @@ type VipPurchaseRequest struct {
 	PackageID int `json:"package_id" binding:"required"`
 }
 
+type AdminVipPackageRequest struct {
+	Name          string `json:"name" binding:"required"`
+	Price         int    `json:"price"`
+	OriginalPrice int    `json:"original_price"`
+	Benefits      string `json:"benefits"`
+	IsActive      *bool  `json:"is_active"`
+	SortOrder     int    `json:"sort_order"`
+}
+
 // Order DTOs
 
 type CreateOrderRequest struct {
@@ -102,19 +111,23 @@ type CommentResponse struct {
 // Home Config DTOs
 
 type NavItemRequest struct {
-	Title     string `json:"title" binding:"required"`
-	Icon      string `json:"icon"`
-	URL       string `json:"url" binding:"required"`
-	SortOrder int    `json:"sort_order"`
-	IsActive  *bool  `json:"is_active"`
+	Title      string `json:"title" binding:"required"`
+	Subtitle   string `json:"subtitle"`
+	Icon       string `json:"icon"`
+	URL        string `json:"url"`
+	CategoryID *int   `json:"category_id"`
+	SortOrder  int    `json:"sort_order"`
+	IsActive   *bool  `json:"is_active"`
 }
 
 type BannerRequest struct {
-	Title     string `json:"title"`
-	ImageURL  string `json:"image_url" binding:"required"`
-	LinkURL   string `json:"link_url"`
-	SortOrder int    `json:"sort_order"`
-	IsActive  *bool  `json:"is_active"`
+	Title           string `json:"title"`
+	ImageURL        string `json:"image_url" binding:"required"`
+	LinkURL         string `json:"link_url"`
+	Placement       string `json:"placement"`
+	BackgroundColor string `json:"background_color"`
+	SortOrder       int    `json:"sort_order"`
+	IsActive        *bool  `json:"is_active"`
 }
 
 // User center DTOs
@@ -133,6 +146,8 @@ type DownloadResponse struct {
 	CourseID  int64     `json:"course_id"`
 	Title     string    `json:"title"`
 	Cover     string    `json:"cover"`
+	OrderNo   string    `json:"order_no"`
+	Amount    int       `json:"amount"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -148,6 +163,22 @@ type FavoriteResponse struct {
 
 type AdminUserStatusRequest struct {
 	Status string `json:"status" binding:"required"`
+}
+
+type AdminUserResponse struct {
+	ID             int64      `json:"id"`
+	Username       string     `json:"username"`
+	Phone          string     `json:"phone"`
+	Email          string     `json:"email"`
+	AvatarURL      string     `json:"avatar_url"`
+	Role           string     `json:"role"`
+	Status         string     `json:"status"`
+	Balance        int        `json:"balance"`
+	PurchasedCount int64      `json:"purchased_count"`
+	FavoriteCount  int64      `json:"favorite_count"`
+	IsVip          bool       `json:"is_vip"`
+	VipExpireAt    *time.Time `json:"vip_expire_at"`
+	CreatedAt      time.Time  `json:"created_at"`
 }
 
 type AdminRechargeRequest struct {

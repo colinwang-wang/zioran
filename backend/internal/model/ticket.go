@@ -13,8 +13,9 @@ type Ticket struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
-	User    *User         `json:"user,omitempty" gorm:"foreignKey:UserID"`
-	Replies []TicketReply `json:"replies,omitempty" gorm:"foreignKey:TicketID"`
+	User        *User              `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	Replies     []TicketReply      `json:"replies,omitempty" gorm:"foreignKey:TicketID"`
+	Attachments []TicketAttachment `json:"attachments,omitempty" gorm:"foreignKey:TicketID"`
 }
 
 func (Ticket) TableName() string { return "tickets" }
@@ -31,6 +32,15 @@ type TicketReply struct {
 }
 
 func (TicketReply) TableName() string { return "ticket_replies" }
+
+type TicketAttachment struct {
+	ID        int64     `json:"id" gorm:"primaryKey;autoIncrement"`
+	TicketID  int64     `json:"ticket_id" gorm:"not null"`
+	URL       string    `json:"url" gorm:"size:500;not null"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (TicketAttachment) TableName() string { return "ticket_attachments" }
 
 // Setting
 
@@ -91,8 +101,9 @@ func (WithdrawalRequest) TableName() string { return "withdrawal_requests" }
 // DTOs
 
 type CreateTicketRequest struct {
-	Title   string `json:"title" binding:"required"`
-	Content string `json:"content" binding:"required"`
+	Title       string   `json:"title" binding:"required"`
+	Content     string   `json:"content" binding:"required"`
+	Attachments []string `json:"attachments"`
 }
 
 type TicketReplyRequest struct {
@@ -104,14 +115,15 @@ type TicketStatusRequest struct {
 }
 
 type TicketResponse struct {
-	ID        int64                 `json:"id"`
-	UserID    int64                 `json:"user_id"`
-	Username  string                `json:"username"`
-	Title     string                `json:"title"`
-	Content   string                `json:"content"`
-	Status    string                `json:"status"`
-	CreatedAt time.Time             `json:"created_at"`
-	Replies   []TicketReplyResponse `json:"replies,omitempty"`
+	ID          int64                 `json:"id"`
+	UserID      int64                 `json:"user_id"`
+	Username    string                `json:"username"`
+	Title       string                `json:"title"`
+	Content     string                `json:"content"`
+	Status      string                `json:"status"`
+	CreatedAt   time.Time             `json:"created_at"`
+	Replies     []TicketReplyResponse `json:"replies,omitempty"`
+	Attachments []string              `json:"attachments,omitempty"`
 }
 
 type TicketReplyResponse struct {

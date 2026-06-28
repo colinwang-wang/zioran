@@ -27,7 +27,7 @@ func setupTestRouter(t *testing.T) (*service.AuthService, *httptest.Server) {
 	assert.NoError(t, db.AutoMigrate(&model.User{}, &model.Course{}, &model.Category{}, &model.Tag{}, &model.CourseResource{}, &model.UserFavorite{},
 		&model.CoinAccount{}, &model.CoinTransaction{}, &model.VipPackage{}, &model.UserVip{}, &model.Order{}, &model.Purchase{},
 		&model.Guestbook{}, &model.GuestbookLike{}, &model.Comment{}, &model.NavItem{}, &model.Banner{}, &model.UserDownload{},
-		&model.Ticket{}, &model.TicketReply{}, &model.Setting{}, &model.OperationLog{}, &model.PaymentLog{}, &model.WithdrawalRequest{}))
+		&model.Ticket{}, &model.TicketReply{}, &model.TicketAttachment{}, &model.Setting{}, &model.OperationLog{}, &model.PaymentLog{}, &model.WithdrawalRequest{}))
 
 	userRepo := repository.NewUserRepository(db)
 	courseRepo := repository.NewCourseRepository(db)

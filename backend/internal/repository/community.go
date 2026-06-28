@@ -178,9 +178,13 @@ func (r *CommunityRepository) NavItemDelete(ctx context.Context, id int) error {
 
 // Banners
 
-func (r *CommunityRepository) BannerList(ctx context.Context) ([]model.Banner, error) {
+func (r *CommunityRepository) BannerList(ctx context.Context, placement string) ([]model.Banner, error) {
 	var items []model.Banner
-	err := r.db.WithContext(ctx).Where("is_active = ?", true).Order("sort_order ASC").Find(&items).Error
+	query := r.db.WithContext(ctx).Where("is_active = ?", true)
+	if placement != "" {
+		query = query.Where("placement = ?", placement)
+	}
+	err := query.Order("sort_order ASC").Find(&items).Error
 	return items, err
 }
 

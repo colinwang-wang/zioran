@@ -24,7 +24,7 @@ func (r *TicketRepository) Create(ctx context.Context, ticket *model.Ticket) err
 
 func (r *TicketRepository) FindByID(ctx context.Context, id int64) (*model.Ticket, error) {
 	var t model.Ticket
-	err := r.db.WithContext(ctx).Preload("Replies").Preload("Replies.User").Preload("User").First(&t, id).Error
+	err := r.db.WithContext(ctx).Preload("Replies").Preload("Replies.User").Preload("User").Preload("Attachments").First(&t, id).Error
 	return &t, err
 }
 
@@ -55,6 +55,13 @@ func (r *TicketRepository) UpdateStatus(ctx context.Context, id int64, status st
 
 func (r *TicketRepository) CreateReply(ctx context.Context, reply *model.TicketReply) error {
 	return r.db.WithContext(ctx).Create(reply).Error
+}
+
+func (r *TicketRepository) CreateAttachments(ctx context.Context, attachments []model.TicketAttachment) error {
+	if len(attachments) == 0 {
+		return nil
+	}
+	return r.db.WithContext(ctx).Create(&attachments).Error
 }
 
 // Settings

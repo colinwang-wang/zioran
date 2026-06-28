@@ -6,13 +6,14 @@ import { useRouter } from 'next/navigation';
 import CourseCard from '@/components/CourseCard';
 import VipCard from '@/components/VipCard';
 import { getCourses } from '@/lib/services';
-import type { NavItem, Banner, CourseListItem, CategoryBrief } from '@/types';
+import type { NavItem, Banner, CourseListItem, CategoryBrief, VipPackage } from '@/types';
 
 interface Props {
   navItems: NavItem[];
   banners: Banner[];
   latest: CourseListItem[];
   categories: CategoryBrief[];
+  vipPackages: VipPackage[];
 }
 
 const fallbackCategories: CategoryBrief[] = [
@@ -85,9 +86,10 @@ function normalizeHref(url?: string) {
     .replace('login.html', '/login');
 }
 
-export default function HomeClient({ navItems, banners, latest, categories }: Props) {
+export default function HomeClient({ navItems, banners, latest, categories, vipPackages }: Props) {
   const [activeTab, setActiveTab] = useState<number | null>(null);
   const [tabCourses, setTabCourses] = useState<CourseListItem[]>(latest.length > 0 ? latest : fallbackClassroomCourses);
+  const [tabLoadFailed, setTabLoadFailed] = useState(false);
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const visibleNavItems = navItems.length > 0
@@ -95,23 +97,29 @@ export default function HomeClient({ navItems, banners, latest, categories }: Pr
         id: item.id,
         title: item.title,
         icon: item.icon || navIcons[item.title] || item.title.slice(0, 2),
-        subtitle: navSubtitles[item.title] || '精选课程',
-        url: normalizeHref(item.url),
+        subtitle: item.subtitle || navSubtitles[item.title] || '精选课程',
+        url: item.category_id ? `/courses?categoryId=${item.category_id}` : normalizeHref(item.url),
       }))
     : fallbackNavItems;
   const visibleCategories = categories.length > 0 ? categories : fallbackCategories;
   const visibleLatest = latest.length > 0 ? latest.slice(0, 8) : fallbackLatestCourses;
-  const visibleTabCourses = tabCourses.length > 0 ? tabCourses.slice(0, 8) : fallbackClassroomCourses;
+  const visibleTabCourses = tabCourses.slice(0, 8);
+  const visibleVipPackage = vipPackages[0];
 
   useEffect(() => {
     if (activeTab === null) {
       setTabCourses(latest.length > 0 ? latest : fallbackClassroomCourses);
+      setTabLoadFailed(latest.length === 0);
       return;
     }
     getCourses({ categoryId: activeTab, pageSize: 8 }).then((res) => {
       const courses = Array.isArray(res) ? res : res?.items || [];
-      setTabCourses(courses.length > 0 ? courses : fallbackClassroomCourses);
-    }).catch(() => setTabCourses(fallbackClassroomCourses));
+      setTabCourses(courses);
+      setTabLoadFailed(false);
+    }).catch(() => {
+      setTabCourses([]);
+      setTabLoadFailed(true);
+    });
   }, [activeTab, latest]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -149,7 +157,7 @@ export default function HomeClient({ navItems, banners, latest, categories }: Pr
                 <div className="absolute inset-0 bg-black/50" />
               </div>
             ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460]" />
+              <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f3460]" style={{ background: banners[0]?.background_color || undefined }} />
             )}
             {/* 装饰光效 */}
             <div className="absolute right-[-20%] top-[-50%] h-[400px] w-[400px] bg-[radial-gradient(circle,rgba(255,0,54,0.2),transparent_70%)]" />
@@ -177,7 +185,7 @@ export default function HomeClient({ navItems, banners, latest, categories }: Pr
       </section>
 
       {/* 知猿课堂（Tab切换） */}
-      <section className="py-12">
+      <section className="py-12 bg-[#f8f8f5]">
         <div className="max-w-[1280px] mx-auto px-6">
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-[28px] font-bold tracking-[-1.2px] text-[#000]">知猿课堂</h2>
@@ -192,6 +200,11 @@ export default function HomeClient({ navItems, banners, latest, categories }: Pr
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {visibleTabCourses.map((c) => <CourseCard key={c.id} course={c} />)}
           </div>
+          {visibleTabCourses.length === 0 && (
+            <div className="rounded-[16px] bg-white py-16 text-center text-sm text-mute">
+              {tabLoadFailed ? '课程加载失败，请稍后重试' : '暂无该分类课程'}
+            </div>
+          )}
         </div>
       </section>
 
@@ -201,7 +214,12 @@ export default function HomeClient({ navItems, banners, latest, categories }: Pr
           <div className="mb-6 flex justify-center">
             <h2 className="text-[28px] font-bold tracking-[-1.2px] text-[#000]">关于VIP</h2>
           </div>
-          <VipCard actionHref="/vip" />
+          <VipCard
+            name={visibleVipPackage?.name}
+            price={visibleVipPackage?.price}
+            originalPrice={visibleVipPackage?.original_price}
+            actionHref="/vip"
+          />
         </div>
       </section>
     </div>

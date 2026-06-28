@@ -33,9 +33,21 @@ func (s *TicketService) Create(ctx context.Context, userID int64, req *model.Cre
 	if err := s.repo.Create(ctx, ticket); err != nil {
 		return nil, errcode.ErrInternal
 	}
+	attachments := make([]model.TicketAttachment, 0, len(req.Attachments))
+	for _, url := range req.Attachments {
+		url = strings.TrimSpace(url)
+		if url == "" {
+			continue
+		}
+		attachments = append(attachments, model.TicketAttachment{TicketID: ticket.ID, URL: url})
+	}
+	if err := s.repo.CreateAttachments(ctx, attachments); err != nil {
+		return nil, errcode.ErrInternal
+	}
 	return &model.TicketResponse{
 		ID: ticket.ID, UserID: userID, Title: ticket.Title,
 		Content: ticket.Content, Status: ticket.Status, CreatedAt: ticket.CreatedAt,
+		Attachments: req.Attachments,
 	}, nil
 }
 
@@ -78,6 +90,10 @@ func (s *TicketService) Detail(ctx context.Context, userID int64, ticketID int64
 	}
 	if ticket.User != nil {
 		resp.Username = ticket.User.Username
+	}
+	resp.Attachments = make([]string, 0, len(ticket.Attachments))
+	for _, attachment := range ticket.Attachments {
+		resp.Attachments = append(resp.Attachments, attachment.URL)
 	}
 	resp.Replies = make([]model.TicketReplyResponse, len(ticket.Replies))
 	for i, r := range ticket.Replies {

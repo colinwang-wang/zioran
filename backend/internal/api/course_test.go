@@ -32,7 +32,7 @@ func setupCourseTestRouter(t *testing.T) (*gorm.DB, *httptest.Server, string) {
 	assert.NoError(t, db.AutoMigrate(&model.User{}, &model.Course{}, &model.Category{}, &model.Tag{}, &model.CourseResource{}, &model.UserFavorite{},
 		&model.CoinAccount{}, &model.CoinTransaction{}, &model.VipPackage{}, &model.UserVip{}, &model.Order{}, &model.Purchase{},
 		&model.Guestbook{}, &model.GuestbookLike{}, &model.Comment{}, &model.NavItem{}, &model.Banner{}, &model.UserDownload{},
-		&model.Ticket{}, &model.TicketReply{}, &model.Setting{}, &model.OperationLog{}, &model.PaymentLog{}, &model.WithdrawalRequest{}))
+		&model.Ticket{}, &model.TicketReply{}, &model.TicketAttachment{}, &model.Setting{}, &model.OperationLog{}, &model.PaymentLog{}, &model.WithdrawalRequest{}))
 
 	// Seed data
 	cat := model.Category{Name: "AIGC课堂", Slug: "aigc", IsActive: true}

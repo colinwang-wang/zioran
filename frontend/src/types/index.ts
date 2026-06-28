@@ -95,8 +95,10 @@ export interface CaptchaResponse {
 export interface NavItem {
   id: number;
   title: string;
+  subtitle: string;
   icon: string;
   url: string;
+  category_id?: number | null;
   sort_order: number;
 }
 
@@ -105,6 +107,8 @@ export interface Banner {
   title: string;
   image_url: string;
   link_url: string;
+  placement: string;
+  background_color: string;
 }
 
 export interface GuestbookItem {
@@ -189,6 +193,8 @@ export interface DownloadItem {
   course_id: number;
   title: string;
   cover: string;
+  order_no: string;
+  amount: number;
   created_at: string;
 }
 
@@ -228,5 +234,6 @@ export interface Ticket {
   status: string;
   created_at: string;
   updated_at: string;
+  attachments?: string[];
   replies?: TicketReply[];
 }

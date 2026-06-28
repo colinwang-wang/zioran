@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,13 +17,17 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const loadCaptcha = async () => {
+  const loadCaptcha = useCallback(async () => {
     try {
       const res = await getCaptcha();
       setCaptchaKey(res.captcha_key);
       setCaptchaImage(res.captcha_image);
     } catch { /* ignore */ }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadCaptcha();
+  }, [loadCaptcha]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,14 +64,23 @@ export default function LoginPage() {
           <p className="text-sm text-mute mt-1">欢迎回来</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="邮箱" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密码" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
+          <div className="flex items-center gap-2 px-4 py-3 rounded-card bg-surface border border-hairline">
+            <span className="text-mute">👤</span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="用户名/邮箱" className="flex-1 bg-transparent text-sm outline-none" />
+          </div>
+          <div className="flex items-center gap-2 px-4 py-3 rounded-card bg-surface border border-hairline">
+            <span className="text-mute">🔒</span>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密码" className="flex-1 bg-transparent text-sm outline-none" />
+          </div>
           <div className="flex gap-2">
-            <input type="text" value={captcha} onChange={(e) => setCaptcha(e.target.value)} placeholder="验证码" className="flex-1 px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
+            <div className="flex-1 flex items-center gap-2 px-4 py-3 rounded-card bg-surface border border-hairline">
+              <span className="text-mute">🔑</span>
+              <input type="text" value={captcha} onChange={(e) => setCaptcha(e.target.value)} placeholder="验证码" className="flex-1 bg-transparent text-sm outline-none" />
+            </div>
             {captchaImage ? (
-              <img src={captchaImage} alt="验证码" onClick={loadCaptcha} className="h-11 rounded-card cursor-pointer" />
+              <img src={captchaImage} alt="验证码" onClick={loadCaptcha} className="h-11 w-[100px] object-contain rounded-card cursor-pointer border border-hairline" />
             ) : (
-              <button type="button" onClick={loadCaptcha} className="px-4 py-3 bg-surface rounded-card text-xs font-semibold text-primary whitespace-nowrap">显示验证码</button>
+              <button type="button" onClick={loadCaptcha} aria-label="刷新验证码" className="h-11 w-[100px] bg-surface rounded-card border border-hairline" />
             )}
           </div>
           {error && <p className="text-xs text-red-600">{error}</p>}

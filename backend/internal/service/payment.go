@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -127,8 +128,9 @@ func (s *PaymentService) Recharge(ctx context.Context, userID int64, req *model.
 	}
 
 	if autoComplete {
-		s.payRepo.UpdateOrderStatus(ctx, order.ID, "paid")
-		s.payRepo.Recharge(ctx, userID, coins, order.ID)
+		if err := s.payRepo.CompleteRechargeOrder(ctx, order.ID, coins); err != nil {
+			return nil, errcode.ErrInternal
+		}
 	}
 
 	return &model.RechargeResponse{
@@ -144,6 +146,38 @@ func (s *PaymentService) Recharge(ctx context.Context, userID int64, req *model.
 
 func (s *PaymentService) VipPackages(ctx context.Context) ([]model.VipPackage, error) {
 	return s.payRepo.VipPackages(ctx)
+}
+
+func (s *PaymentService) AdminVipPackages(ctx context.Context) ([]model.VipPackage, error) {
+	return s.payRepo.AdminVipPackages(ctx)
+}
+
+func (s *PaymentService) AdminUpdateVipPackage(ctx context.Context, id int, req *model.AdminVipPackageRequest) (*model.VipPackage, error) {
+	if strings.TrimSpace(req.Name) == "" || req.Price < 0 || req.OriginalPrice < 0 {
+		return nil, errcode.ErrParam
+	}
+	benefits := strings.TrimSpace(req.Benefits)
+	if benefits == "" {
+		benefits = "[]"
+	}
+	updates := map[string]interface{}{
+		"name":           strings.TrimSpace(req.Name),
+		"price":          req.Price,
+		"original_price": req.OriginalPrice,
+		"benefits":       benefits,
+		"sort_order":     req.SortOrder,
+	}
+	if req.IsActive != nil {
+		updates["is_active"] = *req.IsActive
+	}
+	pkg, err := s.payRepo.UpdateVipPackage(ctx, id, updates)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errcode.ErrNotFound
+		}
+		return nil, errcode.ErrInternal
+	}
+	return pkg, nil
 }
 
 func (s *PaymentService) VipStatus(ctx context.Context, userID int64) (*model.VipStatusResponse, error) {
@@ -363,11 +397,27 @@ func (s *PaymentService) UserDownloads(ctx context.Context, userID int64, page, 
 		return nil, errcode.ErrInternal
 	}
 	items := make([]model.DownloadResponse, len(downloads))
+	courseIDs := make([]int64, 0, len(downloads))
+	seenCourses := make(map[int64]bool, len(downloads))
+	for _, d := range downloads {
+		if !seenCourses[d.CourseID] {
+			courseIDs = append(courseIDs, d.CourseID)
+			seenCourses[d.CourseID] = true
+		}
+	}
+	orderMetas, err := s.payRepo.UserDownloadOrderMetas(ctx, userID, courseIDs)
+	if err != nil {
+		return nil, errcode.ErrInternal
+	}
 	for i, d := range downloads {
 		items[i] = model.DownloadResponse{ID: d.ID, CourseID: d.CourseID, CreatedAt: d.CreatedAt}
 		if d.Course != nil {
 			items[i].Title = d.Course.Title
 			items[i].Cover = d.Course.CoverImage
+		}
+		if meta, ok := orderMetas[d.CourseID]; ok {
+			items[i].OrderNo = meta.OrderNo
+			items[i].Amount = meta.Amount
 		}
 	}
 	totalPages := int(total) / pageSize
@@ -494,11 +544,19 @@ func (s *PaymentService) AdminUsers(ctx context.Context, page, pageSize int, key
 	if err != nil {
 		return nil, errcode.ErrInternal
 	}
+	items := make([]model.AdminUserResponse, len(users))
+	for i, u := range users {
+		item, err := s.adminUserResponse(ctx, &u)
+		if err != nil {
+			return nil, errcode.ErrInternal
+		}
+		items[i] = *item
+	}
 	totalPages := int(total) / pageSize
 	if int(total)%pageSize > 0 {
 		totalPages++
 	}
-	return &model.PaginatedList{Items: users, Total: total, Page: page, PageSize: pageSize, TotalPages: totalPages}, nil
+	return &model.PaginatedList{Items: items, Total: total, Page: page, PageSize: pageSize, TotalPages: totalPages}, nil
 }
 
 func (s *PaymentService) AdminUpdateUserStatus(ctx context.Context, userID int64, status string) error {
@@ -522,12 +580,41 @@ func (s *PaymentService) DashboardStats(ctx context.Context) (*model.DashboardSt
 	return s.payRepo.DashboardStats(ctx)
 }
 
-func (s *PaymentService) AdminGetUser(ctx context.Context, userID int64) (*model.User, error) {
+func (s *PaymentService) AdminGetUser(ctx context.Context, userID int64) (*model.AdminUserResponse, error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, errcode.ErrNotFound
 	}
-	return user, nil
+	resp, err := s.adminUserResponse(ctx, user)
+	if err != nil {
+		return nil, errcode.ErrInternal
+	}
+	return resp, nil
+}
+
+func (s *PaymentService) adminUserResponse(ctx context.Context, user *model.User) (*model.AdminUserResponse, error) {
+	stats, err := s.payRepo.UserAdminStats(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	resp := &model.AdminUserResponse{
+		ID:             user.ID,
+		Username:       user.Username,
+		Phone:          user.Phone,
+		Email:          user.Email,
+		AvatarURL:      user.AvatarURL,
+		Role:           user.Role,
+		Status:         user.Status,
+		Balance:        stats.Balance,
+		PurchasedCount: stats.PurchasedCount,
+		FavoriteCount:  stats.FavoriteCount,
+		CreatedAt:      user.CreatedAt,
+	}
+	if vip, err := s.payRepo.GetVipStatus(ctx, user.ID); err == nil {
+		resp.IsVip = true
+		resp.VipExpireAt = vip.ExpiresAt
+	}
+	return resp, nil
 }
 
 func (s *PaymentService) DashboardCharts(ctx context.Context, period string) (*model.DashboardChartsResponse, error) {
@@ -622,40 +709,61 @@ func (s *PaymentService) rechargeCoinsForOrder(ctx context.Context, order *model
 func (s *PaymentService) WechatNotifyCallback(ctx context.Context, body []byte, headers payment.WechatNotifyHeaders) error {
 	orderNo, err := s.wechatPay.VerifyNotify(body, headers)
 	if err != nil {
+		s.logPayment(ctx, nil, "wechat_notify_failed", err.Error())
 		return err
 	}
 	if orderNo == "" {
 		return nil
 	}
-	order, err := s.payRepo.GetOrderByNo(ctx, orderNo)
-	if err != nil || order.Status != "pending" {
-		return nil
-	}
-	s.payRepo.UpdateOrderStatus(ctx, order.ID, "paid")
-	if order.Type == "coin" {
-		s.payRepo.Recharge(ctx, order.UserID, s.rechargeCoinsForOrder(ctx, order), order.ID)
-	}
-	return nil
+	return s.completePaidOrder(ctx, orderNo, "wechat")
 }
 
 // AlipayNotifyCallback processes Alipay payment notification.
 func (s *PaymentService) AlipayNotifyCallback(ctx context.Context, params map[string]string) error {
 	orderNo, err := s.alipay.VerifyNotify(params)
 	if err != nil {
+		s.logPayment(ctx, nil, "alipay_notify_failed", err.Error())
 		return err
 	}
 	if orderNo == "" {
 		return nil
 	}
+	return s.completePaidOrder(ctx, orderNo, "alipay")
+}
+
+func (s *PaymentService) completePaidOrder(ctx context.Context, orderNo, provider string) error {
 	order, err := s.payRepo.GetOrderByNo(ctx, orderNo)
-	if err != nil || order.Status != "pending" {
+	if err != nil {
+		s.logPayment(ctx, nil, provider+"_notify_order_not_found", "order_no="+orderNo)
+		return err
+	}
+	orderID := order.ID
+	if order.Type != "coin" {
+		if order.Status == "pending" {
+			if err := s.payRepo.UpdateOrderStatus(ctx, order.ID, "paid"); err != nil {
+				s.logPayment(ctx, &orderID, provider+"_notify_complete_failed", err.Error())
+				return err
+			}
+		}
+		s.logPayment(ctx, &orderID, provider+"_notify_paid", "type="+order.Type)
 		return nil
 	}
-	s.payRepo.UpdateOrderStatus(ctx, order.ID, "paid")
-	if order.Type == "coin" {
-		s.payRepo.Recharge(ctx, order.UserID, s.rechargeCoinsForOrder(ctx, order), order.ID)
+	if err := s.payRepo.CompleteRechargeOrder(ctx, order.ID, s.rechargeCoinsForOrder(ctx, order)); err != nil {
+		s.logPayment(ctx, &orderID, provider+"_notify_complete_failed", err.Error())
+		return err
 	}
+	s.logPayment(ctx, &orderID, provider+"_notify_paid", "order_no="+orderNo)
 	return nil
+}
+
+func (s *PaymentService) logPayment(ctx context.Context, orderID *int64, logType, detail string) {
+	if len(detail) > 1000 {
+		detail = detail[:1000]
+	}
+	if err := s.payRepo.LogPayment(ctx, orderID, logType, detail); err != nil && !errors.Is(err, context.Canceled) {
+		// Payment logging must never make a user-facing payment path fail.
+		return
+	}
 }
 
 func intPtr(v int) *int { return &v }

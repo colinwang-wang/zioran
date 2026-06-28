@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/zioran/backend/internal/model"
 	"github.com/zioran/backend/internal/repository"
@@ -155,8 +156,8 @@ func (s *CommunityService) NavItems(ctx context.Context) ([]model.NavItem, error
 	return s.repo.NavItemList(ctx)
 }
 
-func (s *CommunityService) Banners(ctx context.Context) ([]model.Banner, error) {
-	return s.repo.BannerList(ctx)
+func (s *CommunityService) Banners(ctx context.Context, placement string) ([]model.Banner, error) {
+	return s.repo.BannerList(ctx, placement)
 }
 
 // Admin guestbook
@@ -230,7 +231,11 @@ func (s *CommunityService) AdminNavItemList(ctx context.Context) ([]model.NavIte
 }
 
 func (s *CommunityService) AdminNavItemCreate(ctx context.Context, req *model.NavItemRequest) (*model.NavItem, error) {
-	item := &model.NavItem{Title: req.Title, Icon: req.Icon, URL: req.URL, SortOrder: req.SortOrder, IsActive: true}
+	url := req.URL
+	if url == "" && req.CategoryID != nil {
+		url = "/courses?categoryId=" + fmt.Sprint(*req.CategoryID)
+	}
+	item := &model.NavItem{Title: req.Title, Subtitle: req.Subtitle, Icon: req.Icon, URL: url, CategoryID: req.CategoryID, SortOrder: req.SortOrder, IsActive: true}
 	if req.IsActive != nil {
 		item.IsActive = *req.IsActive
 	}
@@ -246,8 +251,13 @@ func (s *CommunityService) AdminNavItemUpdate(ctx context.Context, id int, req *
 		return nil, errcode.ErrNotFound
 	}
 	item.Title = req.Title
+	item.Subtitle = req.Subtitle
 	item.Icon = req.Icon
 	item.URL = req.URL
+	if item.URL == "" && req.CategoryID != nil {
+		item.URL = "/courses?categoryId=" + fmt.Sprint(*req.CategoryID)
+	}
+	item.CategoryID = req.CategoryID
 	item.SortOrder = req.SortOrder
 	if req.IsActive != nil {
 		item.IsActive = *req.IsActive
@@ -273,7 +283,11 @@ func (s *CommunityService) AdminBannerList(ctx context.Context) ([]model.Banner,
 }
 
 func (s *CommunityService) AdminBannerCreate(ctx context.Context, req *model.BannerRequest) (*model.Banner, error) {
-	item := &model.Banner{Title: req.Title, ImageURL: req.ImageURL, LinkURL: req.LinkURL, SortOrder: req.SortOrder, IsActive: true}
+	placement := req.Placement
+	if placement == "" {
+		placement = "home"
+	}
+	item := &model.Banner{Title: req.Title, ImageURL: req.ImageURL, LinkURL: req.LinkURL, Placement: placement, BackgroundColor: req.BackgroundColor, SortOrder: req.SortOrder, IsActive: true}
 	if req.IsActive != nil {
 		item.IsActive = *req.IsActive
 	}
@@ -291,6 +305,11 @@ func (s *CommunityService) AdminBannerUpdate(ctx context.Context, id int, req *m
 	item.Title = req.Title
 	item.ImageURL = req.ImageURL
 	item.LinkURL = req.LinkURL
+	item.Placement = req.Placement
+	if item.Placement == "" {
+		item.Placement = "home"
+	}
+	item.BackgroundColor = req.BackgroundColor
 	item.SortOrder = req.SortOrder
 	if req.IsActive != nil {
 		item.IsActive = *req.IsActive

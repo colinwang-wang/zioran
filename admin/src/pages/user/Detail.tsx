@@ -29,7 +29,7 @@ export default function UserDetail() {
         <Descriptions.Item label="昵称">{user.nickname}</Descriptions.Item>
         <Descriptions.Item label="状态"><Tag color={user.status === 'active' ? 'green' : 'red'}>{user.status === 'active' ? '正常' : '已禁用'}</Tag></Descriptions.Item>
         <Descriptions.Item label="金币余额">{user.balance} 金币</Descriptions.Item>
-        <Descriptions.Item label="VIP到期时间">{user.vipExpireAt ? dayjs(user.vipExpireAt).format('YYYY-MM-DD') : '非VIP'}</Descriptions.Item>
+        <Descriptions.Item label="VIP到期时间">{user.isVip ? (user.vipExpireAt ? dayjs(user.vipExpireAt).format('YYYY-MM-DD') : '终身VIP') : '非VIP'}</Descriptions.Item>
         <Descriptions.Item label="已购课程">{user.purchasedCount} 个</Descriptions.Item>
         <Descriptions.Item label="收藏课程">{user.favoriteCount} 个</Descriptions.Item>
         <Descriptions.Item label="注册时间" span={2}>{dayjs(user.createdAt).format('YYYY-MM-DD HH:mm:ss')}</Descriptions.Item>

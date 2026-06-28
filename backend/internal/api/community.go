@@ -163,7 +163,8 @@ func (h *CommunityHandler) NavItems(c *gin.Context) {
 }
 
 func (h *CommunityHandler) Banners(c *gin.Context) {
-	result, err := h.commSvc.Banners(c.Request.Context())
+	placement := c.DefaultQuery("placement", "home")
+	result, err := h.commSvc.Banners(c.Request.Context(), placement)
 	if err != nil {
 		response.Error(c, errcode.ErrInternal)
 		return

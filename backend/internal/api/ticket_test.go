@@ -32,7 +32,7 @@ func setupTicketTestRouter(t *testing.T) (*gorm.DB, *httptest.Server, *service.A
 		&model.UserVip{}, &model.Order{}, &model.Purchase{},
 		&model.Guestbook{}, &model.GuestbookLike{}, &model.Comment{},
 		&model.NavItem{}, &model.Banner{}, &model.UserDownload{},
-		&model.Ticket{}, &model.TicketReply{}, &model.Setting{},
+		&model.Ticket{}, &model.TicketReply{}, &model.TicketAttachment{}, &model.Setting{},
 		&model.OperationLog{}, &model.PaymentLog{}, &model.WithdrawalRequest{},
 	))
 

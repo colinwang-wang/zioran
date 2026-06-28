@@ -21,6 +21,7 @@ func SetupRouter(
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(corsMiddleware())
+	r.Static("/uploads", "./uploads")
 
 	v1 := r.Group("/api/v1")
 	{
@@ -156,6 +157,10 @@ func SetupRouter(
 			admin.GET("/orders", adminPayHandler.OrderList)
 			admin.GET("/orders/:id", adminPayHandler.OrderDetail)
 			admin.POST("/orders/:id/refund", adminPayHandler.OrderRefund)
+
+			// VIP package management
+			admin.GET("/vip/packages", adminPayHandler.VipPackageList)
+			admin.PUT("/vip/packages/:id", adminPayHandler.VipPackageUpdate)
 
 			// User management
 			admin.GET("/users", adminPayHandler.UserList)

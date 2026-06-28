@@ -37,7 +37,7 @@ export const getTags = () => api.get<TagBrief[]>('/tags').then(r => r.data);
 
 // Home
 export const getNavItems = () => api.get<NavItem[]>('/home/nav-items').then(r => r.data);
-export const getBanners = () => api.get<Banner[]>('/home/banners').then(r => r.data);
+export const getBanners = (placement = 'home') => api.get<Banner[]>('/home/banners', { params: { placement } }).then(r => r.data);
 
 // VIP
 export const getVipPackages = () => api.get<VipPackage[]>('/vip/packages').then(r => r.data);
@@ -60,6 +60,11 @@ export const createComment = (data: { target_type: string; target_id: number; co
 export const getProfile = () => api.get<UserResponse>('/user/profile').then(r => r.data);
 export const updateProfile = (data: { username?: string; email?: string }) =>
   api.put<UserResponse>('/user/profile', data).then(r => r.data);
+export const uploadImages = (files: File[]) => {
+  const form = new FormData();
+  files.forEach((file) => form.append('files', file));
+  return api.post<{ urls: string[] }>('/upload/images', form).then(r => r.data.urls);
+};
 export const changePassword = (data: { old_password: string; new_password: string }) =>
   api.put('/user/password', data);
 export const getUserOrders = (params?: { page?: number }) =>
@@ -89,6 +94,8 @@ export const purchaseCourse = (courseId: number) =>
 // Orders
 export const createOrder = (data: { type: string; target_id?: number; amount?: number }) =>
   api.post('/orders', data);
+export const getOrder = (id: number) =>
+  api.get<OrderItem>(`/orders/${id}`).then(r => r.data);
 
 // Forgot Password
 export const forgotPassword = (data: { email: string; email_code: string; new_password: string }) =>
@@ -97,7 +104,7 @@ export const forgotPassword = (data: { email: string; email_code: string; new_pa
 // Tickets
 export const getTickets = (params?: { page?: number }) =>
   api.get<PaginatedList<Ticket>>('/tickets', { params }).then(r => r.data);
-export const createTicket = (data: { title: string; content: string }) =>
+export const createTicket = (data: { title: string; content: string; attachments?: string[] }) =>
   api.post('/tickets', data);
 export const getTicketDetail = (id: number) =>
   api.get<Ticket>(`/tickets/${id}`).then(r => r.data);
