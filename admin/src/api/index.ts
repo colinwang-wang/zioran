@@ -159,13 +159,22 @@ const adaptTicketDetail = (item: AnyRecord): TicketDetail => ({
     : [],
 } as TicketDetail)
 
+const stripAssetOrigin = (url: string) => {
+  if (!url) return ''
+  try {
+    const u = new URL(url)
+    if (u.pathname.startsWith('/uploads/')) return u.pathname
+  } catch { /* not a full URL */ }
+  return url
+}
+
 const toCoursePayload = (data: AnyRecord) => ({
   title: data.title,
   subtitle: data.subtitle || '',
   slug: data.slug || slugify(data.title, 'course'),
   category_id: data.categoryId,
   quality_label: data.qualityLabel || '',
-  cover_image: data.coverImage || '',
+  cover_image: stripAssetOrigin(data.coverImage || ''),
   content: data.content || '',
   detail_title: data.detailTitle || '',
   detail_subtitle: data.detailSubtitle || '',
@@ -204,7 +213,7 @@ const toNavItemPayload = (data: AnyRecord) => ({
 
 const toBannerPayload = (data: AnyRecord) => ({
   title: data.title || '',
-  image_url: data.imageUrl || data.image || '',
+  image_url: stripAssetOrigin(data.imageUrl || data.image || ''),
   link_url: data.linkUrl || data.link || '',
   placement: data.placement || 'home',
   background_color: data.backgroundColor || data.background_color || '',

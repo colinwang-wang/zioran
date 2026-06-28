@@ -74,27 +74,25 @@ export default function LoginPage() {
           <p className="text-sm text-mute mt-1">欢迎回来</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex items-center gap-2 px-4 py-3 rounded-card bg-surface border border-hairline">
-            <span className="text-mute">👤</span>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="用户名/邮箱" className="flex-1 bg-transparent text-sm outline-none" />
+          <div className="flex h-12 items-center gap-2 rounded-card bg-surface border border-hairline px-4">
+            <span className="shrink-0 text-mute">👤</span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="用户名/邮箱" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
           </div>
-          <div className="flex items-center gap-2 px-4 py-3 rounded-card bg-surface border border-hairline">
-            <span className="text-mute">🔒</span>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密码" className="flex-1 bg-transparent text-sm outline-none" />
+          <div className="flex h-12 items-center gap-2 rounded-card bg-surface border border-hairline px-4">
+            <span className="shrink-0 text-mute">🔒</span>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密码" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
           </div>
-          <div className="flex gap-2">
-            <div className="flex-1 flex items-center gap-2 px-4 py-3 rounded-card bg-surface border border-hairline">
-              <span className="text-mute">🔑</span>
-              <input type="text" value={captcha} onChange={(e) => setCaptcha(e.target.value)} placeholder="验证码" className="flex-1 bg-transparent text-sm outline-none" />
-            </div>
+          <div className="flex h-12 items-center gap-2 rounded-card bg-surface border border-hairline px-4">
+            <span className="shrink-0 text-mute">🔑</span>
+            <input type="text" value={captcha} onChange={(e) => setCaptcha(e.target.value)} placeholder="验证码" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
             {captchaImage ? (
-              <img src={captchaImage} alt="验证码" onClick={loadCaptcha} className="h-11 w-[100px] object-contain rounded-card cursor-pointer border border-hairline" />
+              <img src={captchaImage} alt="验证码" onClick={loadCaptcha} className="h-9 w-[96px] shrink-0 object-contain rounded-card cursor-pointer border border-hairline bg-canvas" />
             ) : captchaLoading ? (
-              <div className="h-11 w-[100px] bg-surface rounded-card border border-hairline flex items-center justify-center" aria-label="加载验证码">
+              <div className="h-9 w-[96px] shrink-0 rounded-card border border-hairline bg-canvas flex items-center justify-center" aria-label="加载验证码">
                 <span className="h-4 w-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
               </div>
             ) : (
-              <button type="button" onClick={loadCaptcha} aria-label={captchaError ? '重新加载验证码' : '加载验证码'} className="h-11 w-[100px] bg-surface rounded-card border border-hairline text-lg font-semibold text-primary">
+              <button type="button" onClick={loadCaptcha} aria-label={captchaError ? '重新加载验证码' : '加载验证码'} className="h-9 w-[96px] shrink-0 rounded-card border border-hairline bg-canvas text-lg font-semibold text-primary">
                 ↻
               </button>
             )}
