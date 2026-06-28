@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,6 +26,8 @@ export default function RegisterPage() {
       setCaptchaImage(res.captcha_image);
     } catch { /* ignore */ }
   };
+
+  useEffect(() => { loadCaptcha(); }, []);
 
   const handleSendEmail = async () => {
     if (!email || !captcha || !captchaKey) { setError('请输入邮箱和验证码'); return; }

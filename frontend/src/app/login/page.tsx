@@ -14,15 +14,25 @@ export default function LoginPage() {
   const [captcha, setCaptcha] = useState('');
   const [captchaKey, setCaptchaKey] = useState('');
   const [captchaImage, setCaptchaImage] = useState('');
+  const [captchaLoading, setCaptchaLoading] = useState(false);
+  const [captchaError, setCaptchaError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const loadCaptcha = useCallback(async () => {
+    setCaptchaLoading(true);
+    setCaptchaError(false);
     try {
       const res = await getCaptcha();
       setCaptchaKey(res.captcha_key);
       setCaptchaImage(res.captcha_image);
-    } catch { /* ignore */ }
+    } catch {
+      setCaptchaKey('');
+      setCaptchaImage('');
+      setCaptchaError(true);
+    } finally {
+      setCaptchaLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -79,8 +89,14 @@ export default function LoginPage() {
             </div>
             {captchaImage ? (
               <img src={captchaImage} alt="验证码" onClick={loadCaptcha} className="h-11 w-[100px] object-contain rounded-card cursor-pointer border border-hairline" />
+            ) : captchaLoading ? (
+              <div className="h-11 w-[100px] bg-surface rounded-card border border-hairline flex items-center justify-center" aria-label="加载验证码">
+                <span className="h-4 w-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+              </div>
             ) : (
-              <button type="button" onClick={loadCaptcha} aria-label="刷新验证码" className="h-11 w-[100px] bg-surface rounded-card border border-hairline" />
+              <button type="button" onClick={loadCaptcha} aria-label={captchaError ? '重新加载验证码' : '加载验证码'} className="h-11 w-[100px] bg-surface rounded-card border border-hairline text-lg font-semibold text-primary">
+                ↻
+              </button>
             )}
           </div>
           {error && <p className="text-xs text-red-600">{error}</p>}
