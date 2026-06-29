@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 
 	"github.com/zioran/backend/internal/api"
 	"github.com/zioran/backend/internal/repository"
@@ -59,8 +61,13 @@ func main() {
 	payHandler := api.NewPaymentHandler(paySvc)
 	commHandler := api.NewCommunityHandler(commSvc)
 	adminPayHandler := api.NewAdminPaymentHandler(paySvc, commSvc)
-	uploadHandler := api.NewUploadHandler("./uploads")
-	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, paySvc, wechatOAuth, cfg.JWT.Secret, cfg.JWT.Expire, "./uploads")
+	uploadDir, err := resolveUploadDir(cfg.Server.UploadDir)
+	if err != nil {
+		log.Fatalf("resolve upload dir: %v", err)
+	}
+	log.Printf("Upload dir: %s", uploadDir)
+	uploadHandler := api.NewUploadHandler(uploadDir)
+	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, paySvc, wechatOAuth, cfg.JWT.Secret, cfg.JWT.Expire, uploadDir)
 
 	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, uploadHandler, ticketHandler, cfg.JWT.Secret)
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
@@ -68,4 +75,21 @@ func main() {
 	if err := r.Run(addr); err != nil {
 		log.Fatalf("server: %v", err)
 	}
+}
+
+func resolveUploadDir(uploadDir string) (string, error) {
+	if uploadDir == "" {
+		uploadDir = "./uploads"
+	}
+	if filepath.IsAbs(uploadDir) {
+		return filepath.Clean(uploadDir), nil
+	}
+	abs, err := filepath.Abs(uploadDir)
+	if err != nil {
+		return "", err
+	}
+	if _, err := os.Stat(filepath.Dir(abs)); err != nil {
+		return "", err
+	}
+	return abs, nil
 }

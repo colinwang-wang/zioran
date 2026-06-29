@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getGuestbook, createGuestbook, likeGuestbook } from '@/lib/services';
+import Pagination from '@/components/Pagination';
 import type { GuestbookItem, PaginatedList } from '@/types';
 
 const fallbackMessages: GuestbookItem[] = [
@@ -17,43 +18,6 @@ function formatDate(value: string) {
   if (!value) return '';
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
   return new Date(value).toLocaleDateString();
-}
-
-function GuestbookPagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (page: number) => void }) {
-  const pageCount = Math.max(1, totalPages);
-  const pages: (number | string)[] = [];
-
-  for (let i = 1; i <= pageCount; i++) {
-    if (i === 1 || i === pageCount || (i >= page - 1 && i <= page + 1)) {
-      pages.push(i);
-    } else if (pages[pages.length - 1] !== '...') {
-      pages.push('...');
-    }
-  }
-
-  return (
-    <div className="flex justify-center gap-2 py-8">
-      {page > 1 && (
-        <button type="button" onClick={() => onChange(page - 1)} className="inline-flex h-9 min-w-9 items-center justify-center rounded-card bg-surface px-3 text-sm font-semibold text-ink">
-          上一页
-        </button>
-      )}
-      {pages.map((p, index) => (
-        typeof p === 'number' ? (
-          <button key={index} type="button" onClick={() => onChange(p)} className={`inline-flex h-9 min-w-9 items-center justify-center rounded-card px-3 text-sm font-semibold ${p === page ? 'bg-primary text-white' : 'bg-surface text-ink'}`}>
-            {p}
-          </button>
-        ) : (
-          <span key={index} className="inline-flex h-9 min-w-9 items-center justify-center rounded-card bg-surface px-3 text-sm font-semibold text-ink">...</span>
-        )
-      ))}
-      {page < pageCount && (
-        <button type="button" onClick={() => onChange(page + 1)} className="inline-flex h-9 min-w-9 items-center justify-center rounded-card bg-surface px-3 text-sm font-semibold text-ink">
-          下一页
-        </button>
-      )}
-    </div>
-  );
 }
 
 export default function GuestbookPage() {
@@ -138,7 +102,7 @@ export default function GuestbookPage() {
         ))}
       </ul>
 
-      <GuestbookPagination page={displayPage} totalPages={displayTotalPages} onChange={fetchData} />
+      <Pagination page={displayPage} totalPages={displayTotalPages} onChange={fetchData} />
     </div>
   );
 }

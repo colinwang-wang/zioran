@@ -18,7 +18,7 @@ type UploadHandler struct {
 }
 
 func NewUploadHandler(uploadDir string) *UploadHandler {
-	os.MkdirAll(uploadDir, 0755)
+	ensureUploadDir(uploadDir)
 	return &UploadHandler{uploadDir: uploadDir}
 }
 
@@ -58,7 +58,7 @@ func saveUploadedImage(c *gin.Context, uploadDir string, file *multipart.FileHea
 	if file.Size > maxImageUploadSize {
 		return "", errcode.New(40001, "图片大小不能超过 5MB")
 	}
-	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+	if err := ensureUploadDir(uploadDir); err != nil {
 		return "", err
 	}
 	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
@@ -66,5 +66,15 @@ func saveUploadedImage(c *gin.Context, uploadDir string, file *multipart.FileHea
 	if err := c.SaveUploadedFile(file, dst); err != nil {
 		return "", err
 	}
+	if err := os.Chmod(dst, 0644); err != nil {
+		return "", err
+	}
 	return "/uploads/" + filename, nil
+}
+
+func ensureUploadDir(uploadDir string) error {
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		return err
+	}
+	return os.Chmod(uploadDir, 0755)
 }

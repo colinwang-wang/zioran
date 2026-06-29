@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import CoursesClient from '../courses/CoursesClient';
+import { normalizeAssetUrls } from '@/lib/assets';
 
 async function getData() {
   const baseUrl = 'http://127.0.0.1:8080/api/v1';
@@ -10,9 +11,9 @@ async function getData() {
       fetch(`${baseUrl}/tags`, { next: { revalidate: 300 } }),
     ]);
     const [courses, categories, tags] = await Promise.all([
-      coursesRes.ok ? coursesRes.json().then(r => r.data || { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 }) : { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 },
-      categoriesRes.ok ? categoriesRes.json().then(r => r.data || []) : [],
-      tagsRes.ok ? tagsRes.json().then(r => r.data || []) : [],
+      coursesRes.ok ? coursesRes.json().then(r => normalizeAssetUrls(r.data || { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 })) : { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 },
+      categoriesRes.ok ? categoriesRes.json().then(r => normalizeAssetUrls(r.data || [])) : [],
+      tagsRes.ok ? tagsRes.json().then(r => normalizeAssetUrls(r.data || [])) : [],
     ]);
     return { courses, categories, tags };
   } catch {

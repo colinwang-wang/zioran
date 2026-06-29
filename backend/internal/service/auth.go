@@ -100,12 +100,21 @@ func (s *AuthService) Register(ctx context.Context, req *model.RegisterRequest) 
 	if existing != nil {
 		return nil, errcode.New(40001, "邮箱已注册")
 	}
+	username := strings.TrimSpace(req.Username)
+	if username == "" {
+		username = usernameFromEmail(req.Email)
+	} else {
+		existing, _ := s.userRepo.FindByUsername(ctx, username)
+		if existing != nil {
+			return nil, errcode.New(40001, "用户名已存在")
+		}
+	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, errcode.ErrInternal
 	}
 	user := &model.User{
-		Username:     usernameFromEmail(req.Email),
+		Username:     username,
 		Phone:        phonePlaceholderFromEmail(req.Email),
 		Email:        req.Email,
 		PasswordHash: string(hash),

@@ -14,6 +14,7 @@ type SendEmailRequest struct {
 }
 
 type RegisterRequest struct {
+	Username  string `json:"username" binding:"omitempty,max=50"`
 	Email     string `json:"email" binding:"required,email"`
 	EmailCode string `json:"email_code" binding:"required"`
 	Password  string `json:"password" binding:"required,min=6"`

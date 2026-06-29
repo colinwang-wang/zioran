@@ -12,7 +12,7 @@ import type {
 export const getCaptcha = () => api.post<CaptchaResponse>('/auth/captcha').then(r => r.data);
 export const sendEmailCode = (data: { email: string; captcha: string; captcha_key: string }) =>
   api.post('/auth/email/send', data);
-export const register = (data: { email: string; email_code: string; password: string }) =>
+export const register = (data: { username?: string; email: string; email_code: string; password: string }) =>
   api.post<AuthResponse>('/auth/register', data).then(r => r.data);
 export const login = (data: { email: string; password: string; captcha: string; captcha_key: string }) =>
   api.post<AuthResponse>('/auth/login', data).then(r => r.data);

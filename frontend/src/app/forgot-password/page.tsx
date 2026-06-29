@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { sendEmailCode, getCaptcha, forgotPassword } from '@/lib/services';
@@ -13,18 +13,30 @@ export default function ForgotPasswordPage() {
   const [captcha, setCaptcha] = useState('');
   const [captchaKey, setCaptchaKey] = useState('');
   const [captchaImage, setCaptchaImage] = useState('');
+  const [captchaLoading, setCaptchaLoading] = useState(false);
+  const [captchaError, setCaptchaError] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  const loadCaptcha = async () => {
+  const loadCaptcha = useCallback(async () => {
+    setCaptchaLoading(true);
+    setCaptchaError(false);
     try {
       const res = await getCaptcha();
       setCaptchaKey(res.captcha_key);
       setCaptchaImage(res.captcha_image);
-    } catch { /* ignore */ }
-  };
+    } catch {
+      setCaptchaKey('');
+      setCaptchaImage('');
+      setCaptchaError(true);
+    } finally {
+      setCaptchaLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadCaptcha(); }, [loadCaptcha]);
 
   const handleSendEmail = async () => {
     if (!email || !captcha || !captchaKey) { setError('请输入邮箱和图形验证码'); return; }
@@ -63,22 +75,36 @@ export default function ForgotPasswordPage() {
           <p className="text-center text-sm text-green-600">密码重置成功，正在跳转登录页...</p>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="邮箱" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
-            <div className="flex gap-2">
-              <input type="text" value={captcha} onChange={(e) => setCaptcha(e.target.value)} placeholder="图形验证码" className="flex-1 px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
+            <div className="flex h-12 items-center gap-2 rounded-card bg-surface border border-hairline px-4">
+              <span className="shrink-0 text-mute">✉️</span>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="邮箱" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
+            </div>
+            <div className="flex h-12 items-center gap-2 rounded-card bg-surface border border-hairline px-4">
+              <span className="shrink-0 text-mute">🔑</span>
+              <input type="text" value={captcha} onChange={(e) => setCaptcha(e.target.value)} placeholder="验证码" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
               {captchaImage ? (
-                <img src={captchaImage} alt="验证码" onClick={loadCaptcha} className="h-11 rounded-card cursor-pointer" />
+                <img src={captchaImage} alt="验证码" onClick={loadCaptcha} className="h-9 w-[96px] shrink-0 object-contain rounded-card cursor-pointer border border-hairline bg-canvas" />
+              ) : captchaLoading ? (
+                <div className="h-9 w-[96px] shrink-0 rounded-card border border-hairline bg-canvas flex items-center justify-center" aria-label="加载验证码">
+                  <span className="h-4 w-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                </div>
               ) : (
-                <button type="button" onClick={loadCaptcha} className="px-4 py-3 bg-surface rounded-card text-xs font-semibold text-primary whitespace-nowrap">获取图形码</button>
+                <button type="button" onClick={loadCaptcha} aria-label={captchaError ? '重新加载验证码' : '加载验证码'} className="h-9 w-[96px] shrink-0 rounded-card border border-hairline bg-canvas text-lg font-semibold text-primary">
+                  ↻
+                </button>
               )}
             </div>
-            <div className="flex gap-2">
-              <input type="text" value={emailCode} onChange={(e) => setEmailCode(e.target.value)} placeholder="邮箱验证码" className="flex-1 px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
-              <button type="button" onClick={handleSendEmail} disabled={countdown > 0} className="px-4 py-3 bg-surface rounded-card text-xs font-semibold text-primary whitespace-nowrap disabled:opacity-50">
+            <div className="flex h-12 items-center gap-2 rounded-card bg-surface border border-hairline px-4">
+              <span className="shrink-0 text-mute">💌</span>
+              <input type="text" value={emailCode} onChange={(e) => setEmailCode(e.target.value)} placeholder="邮箱验证码" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
+              <button type="button" onClick={handleSendEmail} disabled={countdown > 0} className="h-9 w-[96px] shrink-0 rounded-card bg-canvas text-xs font-semibold text-primary whitespace-nowrap disabled:opacity-50">
                 {countdown > 0 ? `${countdown}s` : '发送验证码'}
               </button>
             </div>
-            <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="新密码" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
+            <div className="flex h-12 items-center gap-2 rounded-card bg-surface border border-hairline px-4">
+              <span className="shrink-0 text-mute">🔒</span>
+              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="新密码" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
+            </div>
             {error && <p className="text-xs text-red-600">{error}</p>}
             <button type="submit" disabled={loading} className="w-full py-3 bg-primary text-white text-sm font-bold rounded-card hover:bg-primary-pressed disabled:opacity-50">
               重置密码

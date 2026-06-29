@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,25 +9,36 @@ import { register, getCaptcha, sendEmailCode, getWechatAuthURL } from '@/lib/ser
 export default function RegisterPage() {
   const { setAuth } = useAuth();
   const router = useRouter();
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailCode, setEmailCode] = useState('');
   const [captcha, setCaptcha] = useState('');
   const [captchaKey, setCaptchaKey] = useState('');
   const [captchaImage, setCaptchaImage] = useState('');
+  const [captchaLoading, setCaptchaLoading] = useState(false);
+  const [captchaError, setCaptchaError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [error, setError] = useState('');
 
-  const loadCaptcha = async () => {
+  const loadCaptcha = useCallback(async () => {
+    setCaptchaLoading(true);
+    setCaptchaError(false);
     try {
       const res = await getCaptcha();
       setCaptchaKey(res.captcha_key);
       setCaptchaImage(res.captcha_image);
-    } catch { /* ignore */ }
-  };
+    } catch {
+      setCaptchaKey('');
+      setCaptchaImage('');
+      setCaptchaError(true);
+    } finally {
+      setCaptchaLoading(false);
+    }
+  }, []);
 
-  useEffect(() => { loadCaptcha(); }, []);
+  useEffect(() => { loadCaptcha(); }, [loadCaptcha]);
 
   const handleSendEmail = async () => {
     if (!email || !captcha || !captchaKey) { setError('请输入邮箱和验证码'); return; }
@@ -37,7 +48,7 @@ export default function RegisterPage() {
       setCountdown(c);
       const timer = setInterval(() => { c--; setCountdown(c); if (c <= 0) clearInterval(timer); }, 1000);
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || '发送失败';
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || '发送失败';
       setError(msg);
       loadCaptcha();
     }
@@ -45,15 +56,15 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || !emailCode) { setError('请填写完整信息'); return; }
+    if (!username.trim() || !email || !password || !emailCode) { setError('请填写完整信息'); return; }
     setLoading(true);
     setError('');
     try {
-      const res = await register({ email, email_code: emailCode, password });
+      const res = await register({ username: username.trim(), email, email_code: emailCode, password });
       setAuth(res.token, res.user);
       router.push('/');
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || '注册失败';
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || '注册失败';
       setError(msg);
     }
     setLoading(false);
@@ -76,35 +87,37 @@ export default function RegisterPage() {
           <p className="text-sm text-mute mt-1">创建账号</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex items-center gap-2 px-4 py-3 rounded-card bg-surface border border-hairline">
-            <span className="text-mute">👤</span>
-            <input type="text" value={email.split('@')[0] || ''} onChange={(e) => {}} placeholder="用户名" className="flex-1 bg-transparent text-sm outline-none" readOnly={false} tabIndex={-1} />
+          <div className="flex h-12 items-center gap-2 rounded-card bg-surface border border-hairline px-4">
+            <span className="shrink-0 text-mute">👤</span>
+            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="用户名" maxLength={50} autoComplete="username" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
           </div>
-          <div className="flex items-center gap-2 px-4 py-3 rounded-card bg-surface border border-hairline">
-            <span className="text-mute">✉️</span>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="邮箱" className="flex-1 bg-transparent text-sm outline-none" />
+          <div className="flex h-12 items-center gap-2 rounded-card bg-surface border border-hairline px-4">
+            <span className="shrink-0 text-mute">✉️</span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="邮箱" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
           </div>
-          <div className="flex items-center gap-2 px-4 py-3 rounded-card bg-surface border border-hairline">
-            <span className="text-mute">🔒</span>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密码（至少6位）" className="flex-1 bg-transparent text-sm outline-none" />
+          <div className="flex h-12 items-center gap-2 rounded-card bg-surface border border-hairline px-4">
+            <span className="shrink-0 text-mute">🔒</span>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密码（至少6位）" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
           </div>
-          <div className="flex gap-2">
-            <div className="flex-1 flex items-center gap-2 px-4 py-3 rounded-card bg-surface border border-hairline">
-              <span className="text-mute">🔑</span>
-              <input type="text" value={captcha} onChange={(e) => setCaptcha(e.target.value)} placeholder="图片验证码" className="flex-1 bg-transparent text-sm outline-none" />
-            </div>
+          <div className="flex h-12 items-center gap-2 rounded-card bg-surface border border-hairline px-4">
+            <span className="shrink-0 text-mute">🔑</span>
+            <input type="text" value={captcha} onChange={(e) => setCaptcha(e.target.value)} placeholder="验证码" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
             {captchaImage ? (
-              <img src={captchaImage} alt="验证码" onClick={loadCaptcha} className="h-11 w-[100px] object-contain rounded-card cursor-pointer border border-hairline" />
+              <img src={captchaImage} alt="验证码" onClick={loadCaptcha} className="h-9 w-[96px] shrink-0 object-contain rounded-card cursor-pointer border border-hairline bg-canvas" />
+            ) : captchaLoading ? (
+              <div className="h-9 w-[96px] shrink-0 rounded-card border border-hairline bg-canvas flex items-center justify-center" aria-label="加载验证码">
+                <span className="h-4 w-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+              </div>
             ) : (
-              <button type="button" onClick={loadCaptcha} className="px-4 py-3 bg-surface rounded-card text-xs font-semibold text-primary whitespace-nowrap">显示验证码</button>
+              <button type="button" onClick={loadCaptcha} aria-label={captchaError ? '重新加载验证码' : '加载验证码'} className="h-9 w-[96px] shrink-0 rounded-card border border-hairline bg-canvas text-lg font-semibold text-primary">
+                ↻
+              </button>
             )}
           </div>
-          <div className="flex gap-2">
-            <div className="flex-1 flex items-center gap-2 px-4 py-3 rounded-card bg-surface border border-hairline">
-              <span className="text-mute">💌</span>
-              <input type="text" value={emailCode} onChange={(e) => setEmailCode(e.target.value)} placeholder="邮箱验证码" className="flex-1 bg-transparent text-sm outline-none" />
-            </div>
-            <button type="button" onClick={handleSendEmail} disabled={countdown > 0} className="px-4 py-3 bg-surface rounded-card text-xs font-semibold text-primary whitespace-nowrap disabled:text-mute">
+          <div className="flex h-12 items-center gap-2 rounded-card bg-surface border border-hairline px-4">
+            <span className="shrink-0 text-mute">💌</span>
+            <input type="text" value={emailCode} onChange={(e) => setEmailCode(e.target.value)} placeholder="邮箱验证码" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
+            <button type="button" onClick={handleSendEmail} disabled={countdown > 0} className="h-9 w-[96px] shrink-0 rounded-card bg-canvas text-xs font-semibold text-primary whitespace-nowrap disabled:text-mute">
               {countdown > 0 ? `${countdown}s` : '发送验证码'}
             </button>
           </div>

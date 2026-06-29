@@ -22,7 +22,8 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port int `yaml:"port"`
+	Port      int    `yaml:"port"`
+	UploadDir string `yaml:"upload_dir"`
 }
 
 type DatabaseConfig struct {
@@ -67,6 +68,7 @@ func Load(path string) (*Config, error) {
 
 func applyEnvOverrides(cfg *Config) {
 	setIntEnv("SERVER_PORT", &cfg.Server.Port)
+	setStringEnv("UPLOAD_DIR", &cfg.Server.UploadDir)
 
 	setStringEnv("DB_HOST", &cfg.Database.Host)
 	setIntEnv("DB_PORT", &cfg.Database.Port)

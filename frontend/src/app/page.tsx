@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 import HomeClient from './HomeClient';
+import { normalizeAssetUrls } from '@/lib/assets';
 
 async function getData() {
   const API = 'http://127.0.0.1:8080/api/v1';
@@ -14,7 +15,7 @@ async function getData() {
     const extract = async (res: Response) => {
       if (!res.ok) return [];
       const json = await res.json();
-      return json.data || [];
+      return normalizeAssetUrls(json.data || []);
     };
     const [navItems, banners, latest, categories, vipPackages] = await Promise.all([
       extract(navRes), extract(bannerRes), extract(latestRes), extract(categoriesRes), extract(vipRes),

@@ -140,6 +140,7 @@ func Test_Register_成功注册返回token(t *testing.T) {
 
 	authSvc.SetEmailCode("user@example.com", "123456")
 	_, result := postJSON(ts.URL+"/api/v1/auth/register", map[string]string{
+		"username":   "paint_user",
 		"email":      "user@example.com",
 		"email_code": "123456",
 		"password":   "password123",
@@ -150,6 +151,7 @@ func Test_Register_成功注册返回token(t *testing.T) {
 	json.Unmarshal(result.Data, &data)
 	assert.NotEmpty(t, data.Token)
 	assert.Equal(t, "user@example.com", data.User.Email)
+	assert.Equal(t, "paint_user", data.User.Username)
 }
 
 func Test_Register_邮箱重复注册返回40001(t *testing.T) {
@@ -173,6 +175,29 @@ func Test_Register_邮箱重复注册返回40001(t *testing.T) {
 	})
 	assert.Equal(t, 40001, result.Code)
 	assert.Contains(t, result.Message, "已注册")
+}
+
+func Test_Register_用户名重复返回40001(t *testing.T) {
+	authSvc, ts := setupTestRouter(t)
+	defer ts.Close()
+
+	authSvc.SetEmailCode("user1@example.com", "111111")
+	postJSON(ts.URL+"/api/v1/auth/register", map[string]string{
+		"username":   "same_name",
+		"email":      "user1@example.com",
+		"email_code": "111111",
+		"password":   "password123",
+	})
+
+	authSvc.SetEmailCode("user2@example.com", "222222")
+	_, result := postJSON(ts.URL+"/api/v1/auth/register", map[string]string{
+		"username":   "same_name",
+		"email":      "user2@example.com",
+		"email_code": "222222",
+		"password":   "password123",
+	})
+	assert.Equal(t, 40001, result.Code)
+	assert.Contains(t, result.Message, "用户名已存在")
 }
 
 func Test_Login_密码错误返回40001(t *testing.T) {

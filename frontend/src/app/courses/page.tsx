@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import CoursesClient from './CoursesClient';
+import { normalizeAssetUrls } from '@/lib/assets';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,9 +13,9 @@ async function getData() {
       fetch(`${baseUrl}/tags`, { cache: 'no-store' }),
     ]);
     const [courses, categories, tags] = await Promise.all([
-      coursesRes.ok ? coursesRes.json().then(r => r.data || { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 }) : { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 },
-      categoriesRes.ok ? categoriesRes.json().then(r => r.data || []) : [],
-      tagsRes.ok ? tagsRes.json().then(r => r.data || []) : [],
+      coursesRes.ok ? coursesRes.json().then(r => normalizeAssetUrls(r.data || { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 })) : { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 },
+      categoriesRes.ok ? categoriesRes.json().then(r => normalizeAssetUrls(r.data || [])) : [],
+      tagsRes.ok ? tagsRes.json().then(r => normalizeAssetUrls(r.data || [])) : [],
     ]);
     return { courses, categories, tags };
   } catch {

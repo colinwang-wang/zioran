@@ -11,6 +11,10 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: '知猿课堂 - 学有所长',
   description: '以知为基，以猿为伴，打造优质网课资源课堂',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -21,7 +21,7 @@ func SetupRouter(
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(corsMiddleware())
-	r.Static("/uploads", "./uploads")
+	r.Static("/uploads", uploadHandler.uploadDir)
 
 	v1 := r.Group("/api/v1")
 	{

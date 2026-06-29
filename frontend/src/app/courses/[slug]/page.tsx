@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import CourseDetailClient from './CourseDetailClient';
+import { normalizeAssetUrls } from '@/lib/assets';
 import type { CourseDetail } from '@/types';
 
 const baseUrl = 'http://127.0.0.1:8080/api/v1';
@@ -11,7 +12,7 @@ async function getCourse(slug: string): Promise<CourseDetail | null> {
   try {
     const res = await fetch(`${baseUrl}/courses/${slug}`, { cache: 'no-store' });
     if (!res.ok) return null;
-    return res.json().then(r => r.data);
+    return res.json().then(r => normalizeAssetUrls(r.data));
   } catch {
     return null;
   }

@@ -6,6 +6,8 @@ import { createCourse, updateCourse, getCourse, getCategories, getTags, uploadIm
 import type { Category, Tag } from '@/types'
 import type { UploadFile } from 'antd'
 
+const imageAccept = 'image/jpeg,image/png,image/webp,image/gif'
+
 export default function CourseForm() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -57,8 +59,8 @@ export default function CourseForm() {
     <Card title={id ? '编辑课程' : '新增课程'}>
       <Form form={form} layout="vertical" onFinish={onFinish} style={{ maxWidth: 800 }}
         initialValues={{ status: 'draft', resources: [{ link: '', code: '' }] }}>
-        <Form.Item label="主图">
-          <Upload listType="picture-card" fileList={coverList} maxCount={1} beforeUpload={() => false}
+        <Form.Item label="主图" extra="建议尺寸 1200x750px（16:10），用于课程卡片和详情页头图；支持 JPG/PNG/WebP/GIF，单张不超过 5MB。">
+          <Upload listType="picture-card" accept={imageAccept} fileList={coverList} maxCount={1} beforeUpload={() => false}
             onChange={({ fileList }) => setCoverList(fileList)}>
             {coverList.length < 1 && <PlusOutlined />}
           </Upload>
@@ -90,8 +92,8 @@ export default function CourseForm() {
         <Form.Item name="detailSubtitle" label="详情副标题">
           <Input />
         </Form.Item>
-        <Form.Item label="详情图">
-          <Upload listType="picture-card" fileList={detailImages} multiple beforeUpload={() => false}
+        <Form.Item label="详情图" extra="建议宽度 1200px，高度不限，按展示顺序上传；支持 JPG/PNG/WebP/GIF，单张不超过 5MB。">
+          <Upload listType="picture-card" accept={imageAccept} fileList={detailImages} multiple beforeUpload={() => false}
             onChange={({ fileList }) => setDetailImages(fileList)}>
             <PlusOutlined />
           </Upload>

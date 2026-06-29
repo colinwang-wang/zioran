@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import CoursesClient from '../../CoursesClient';
+import { normalizeAssetUrls } from '@/lib/assets';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,8 +12,8 @@ async function getData(slug: string) {
       fetch(`${baseUrl}/tags`, { cache: 'no-store' }),
     ]);
     const [categories, tags] = await Promise.all([
-      categoriesRes.ok ? categoriesRes.json().then(r => r.data || []) : [],
-      tagsRes.ok ? tagsRes.json().then(r => r.data || []) : [],
+      categoriesRes.ok ? categoriesRes.json().then(r => normalizeAssetUrls(r.data || [])) : [],
+      tagsRes.ok ? tagsRes.json().then(r => normalizeAssetUrls(r.data || [])) : [],
     ]);
     const cat = categories.find((c: { slug: string }) => c.slug === slug);
     if (!cat) {
@@ -20,7 +21,7 @@ async function getData(slug: string) {
     }
     const catId = cat.id;
     const coursesRes = await fetch(`${baseUrl}/courses?page=1&pageSize=16&categoryId=${catId}`, { cache: 'no-store' });
-    const courses = coursesRes.ok ? await coursesRes.json().then(r => r.data || { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 }) : { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 };
+    const courses = coursesRes.ok ? await coursesRes.json().then(r => normalizeAssetUrls(r.data || { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 })) : { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 };
     return { courses, categories, tags, categoryId: catId };
   } catch {
     return { courses: { items: [], total: 0, page: 1, pageSize: 16, totalPages: 0 }, categories: [], tags: [], categoryId: null };

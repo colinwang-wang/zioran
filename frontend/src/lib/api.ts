@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { normalizeAssetUrls } from '@/lib/assets';
 
 const isServer = typeof window === 'undefined';
 const baseURL = process.env.NEXT_PUBLIC_API_URL || (isServer ? 'http://127.0.0.1:8080/api/v1' : '/api/v1');
@@ -21,8 +22,8 @@ api.interceptors.response.use(
       if (body.code !== 0) {
         return Promise.reject({ response: { data: body, status: res.status } });
       }
-      // 将res.data替换为body.data（实际业务数据）
-      res.data = body.data;
+      // 将res.data替换为body.data（实际业务数据），同时修正上传图片相对路径
+      res.data = normalizeAssetUrls(body.data);
     }
     return res;
   },
