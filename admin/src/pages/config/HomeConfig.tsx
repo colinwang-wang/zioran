@@ -144,6 +144,10 @@ function BannersTab() {
   const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm()
   const [fileList, setFileList] = useState<UploadFile[]>([])
+  const placement = Form.useWatch('placement', form)
+  const imageTip = placement === 'vip'
+    ? '会员页 Banner 横向铺满，高度约 200-240px；建议 1920x240px，重要文字和主体放在中间安全区域；支持 JPG/PNG/WebP，单张不超过 5MB。'
+    : '首页 Banner 建议 1200x400px，重要内容放在中间安全区域；支持 JPG/PNG/WebP，单张不超过 5MB。'
 
   const fetchData = async () => { setLoading(true); try { const res = await getBanners(); setData(res.data) } finally { setLoading(false) } }
   useEffect(() => { fetchData() }, [])
@@ -188,7 +192,7 @@ function BannersTab() {
       <Modal title={editing ? '编辑Banner' : '新增Banner'} open={modalOpen} onCancel={() => setModalOpen(false)} onOk={handleSubmit} confirmLoading={submitting}>
         <Form form={form} layout="vertical">
           <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}><Input /></Form.Item>
-          <Form.Item label="图片" extra="首页 Banner 建议 1200x400px，会员 Banner 建议 1920x360px；支持 JPG/PNG/WebP，单张不超过 5MB。">
+          <Form.Item label="图片" extra={imageTip}>
             <Upload listType="picture-card" fileList={fileList} maxCount={1} beforeUpload={() => false} onChange={({ fileList: fl }) => setFileList(fl)}>
               {fileList.length < 1 && <PlusOutlined />}
             </Upload>

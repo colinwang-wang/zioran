@@ -114,7 +114,8 @@ func (h *AdminPaymentHandler) UserList(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
 	keyword := c.Query("keyword")
-	result, err := h.paySvc.AdminUsers(c.Request.Context(), page, pageSize, keyword)
+	vipFilter := c.Query("vipFilter")
+	result, err := h.paySvc.AdminUsers(c.Request.Context(), page, pageSize, keyword, vipFilter)
 	if err != nil {
 		response.Error(c, errcode.ErrInternal)
 		return
@@ -264,8 +265,9 @@ func (h *AdminPaymentHandler) GuestbookPin(c *gin.Context) {
 
 func parseAdminOrderFilter(c *gin.Context) (model.AdminOrderFilter, error) {
 	filter := model.AdminOrderFilter{
-		Status: c.Query("status"),
-		Type:   c.Query("type"),
+		Status:  c.Query("status"),
+		Type:    c.Query("type"),
+		Keyword: c.Query("keyword"),
 	}
 	start := firstQuery(c, "startDate", "start_date", "from")
 	end := firstQuery(c, "endDate", "end_date", "to")

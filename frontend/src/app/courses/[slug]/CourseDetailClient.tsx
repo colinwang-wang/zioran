@@ -14,6 +14,7 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
   const [likeCount, setLikeCount] = useState(course.like_count);
   const [favorited, setFavorited] = useState(course.user_access?.is_favorited || false);
   const [resources, setResources] = useState<ResourceItem[]>(course.resources || []);
+  const [downloadModal, setDownloadModal] = useState<{ open: boolean; resources: ResourceItem[] }>({ open: false, resources: [] });
 
   const handleLike = async () => {
     if (!isLoggedIn) { window.location.href = '/login'; return; }
@@ -56,7 +57,7 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
       const res = await downloadCourse(course.id);
       setResources(res.resources || []);
       if (res.resources.length > 0) {
-        alert(`下载链接:\n${res.resources.map(r => `${r.name}: ${r.url}${r.password ? ` 密码:${r.password}` : ''}`).join('\n')}`);
+        setDownloadModal({ open: true, resources: res.resources });
       } else {
         alert('暂无可用资源，请联系管理员');
       }
@@ -64,6 +65,11 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || '下载失败';
       alert(msg);
     }
+  };
+
+  const handleCopyResources = () => {
+    const text = downloadModal.resources.map(r => `${r.name}: ${r.url}${r.password ? ` 提取码:${r.password}` : ''}`).join('\n');
+    navigator.clipboard.writeText(text).then(() => alert('已复制到剪贴板')).catch(() => alert('复制失败，请手动复制'));
   };
 
   const canDownload = course.user_access?.can_download || purchased;
@@ -212,6 +218,32 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
           </div>
         </aside>
       </div>
+
+      {/* 下载弹窗 */}
+      {downloadModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setDownloadModal({ open: false, resources: [] })}>
+          <div className="bg-white rounded-card p-6 w-full max-w-md mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-ink mb-4">下载资源</h3>
+            <div className="space-y-3 mb-6">
+              {downloadModal.resources.map((r) => (
+                <div key={r.id} className="rounded-card bg-surface border border-hairline p-3 text-sm">
+                  <div className="font-semibold text-primary">{r.name}</div>
+                  <div className="mt-1 text-mute break-all">{r.url}</div>
+                  {r.password && <div className="mt-1 text-mute">提取码: <span className="text-ink font-semibold">{r.password}</span></div>}
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={handleCopyResources} className="flex-1 py-3 bg-ink text-white text-sm font-bold rounded-card hover:bg-[#333]">
+                复制
+              </button>
+              <button onClick={() => setDownloadModal({ open: false, resources: [] })} className="flex-1 py-3 bg-primary text-white text-sm font-bold rounded-card hover:bg-primary-pressed">
+                确定
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

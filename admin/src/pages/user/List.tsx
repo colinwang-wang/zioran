@@ -14,7 +14,7 @@ export default function UserList() {
   const [rechargeModal, setRechargeModal] = useState<{ open: boolean; userId: number }>({ open: false, userId: 0 })
   const [rechargeLoading, setRechargeLoading] = useState(false)
   const [rechargeForm] = Form.useForm()
-  const [params, setParams] = useState<Record<string, unknown>>({ page: 1, pageSize: 20, keyword: '', type: undefined })
+  const [params, setParams] = useState<Record<string, unknown>>({ page: 1, pageSize: 20, keyword: '', vipFilter: undefined })
 
   const fetchData = async () => {
     setLoading(true)
@@ -50,8 +50,8 @@ export default function UserList() {
   return (
     <Card>
       <Space style={{ marginBottom: 16 }} wrap>
-        <Input.Search placeholder="搜索手机号/昵称" allowClear onSearch={v => handleSearch('keyword', v)} style={{ width: 200 }} />
-        <Select placeholder="用户类型" allowClear style={{ width: 120 }} onChange={v => handleSearch('type', v)}
+        <Input.Search placeholder="搜索手机号/用户名" allowClear onSearch={v => handleSearch('keyword', v)} style={{ width: 200 }} />
+        <Select placeholder="用户类型" allowClear style={{ width: 120 }} onChange={v => handleSearch('vipFilter', v)}
           options={[{ label: 'VIP会员', value: 'vip' }, { label: '普通用户', value: 'normal' }]} />
       </Space>
 
@@ -60,7 +60,7 @@ export default function UserList() {
         columns={[
           { title: 'ID', dataIndex: 'id', width: 60 },
           { title: '手机号', dataIndex: 'phone', width: 130, render: (v: string) => v ? v.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '-' },
-          { title: '昵称', dataIndex: 'nickname' },
+          { title: '用户名', dataIndex: 'username' },
           { title: '余额', dataIndex: 'balance', width: 80, render: (v: number) => `${v}金币` },
           { title: 'VIP到期', dataIndex: 'vipExpireAt', width: 120, render: (v: string, r: User) => r.isVip ? (v ? dayjs(v).format('YYYY-MM-DD') : '终身VIP') : '非VIP' },
           { title: '已购课程', dataIndex: 'purchasedCount', width: 80 },

@@ -687,3 +687,258 @@ func Test_DeductCoins_不允许负数(t *testing.T) {
 	json.Unmarshal(balResult.Data, &bal)
 	assert.Equal(t, 0, bal.Balance)
 }
+
+// === Bug1: 退款逻辑修复 (TDD-RED) ===
+
+func Test_AdminRefund_Coin订单_余额不足时拒绝全额退款(t *testing.T) {
+	db, ts, token := setupPhase34Router(t)
+	defer ts.Close()
+
+	// 充值10元（mock自动完成，余额为10）
+	authedPost(ts.URL+"/api/v1/coins/recharge", token, map[string]interface{}{
+		"amount": 10, "pay_method": "wechat",
+	})
+
+	// 消费4金币：创建课程并购买
+	cat := model.Category{Name: "test", Slug: "test", IsActive: true}
+	db.Create(&cat)
+	course := model.Course{Title: "课程A", Slug: "course-a", CategoryID: cat.ID, Price: 4, Status: "published",
+		Resources: []model.CourseResource{{Name: "R1", URL: "http://example.com"}}}
+	db.Create(&course)
+	authedPost(ts.URL+"/api/v1/orders", token, map[string]interface{}{
+		"type": "course", "target_id": course.ID,
+	})
+
+	// 余额应该是 10 - 4 = 6
+	balResult := authedGet(ts.URL+"/api/v1/coins/balance", token)
+	var bal model.CoinBalanceResponse
+	json.Unmarshal(balResult.Data, &bal)
+	assert.Equal(t, 6, bal.Balance)
+
+	// 查找充值订单（第一个订单）
+	var rechargeOrder model.Order
+	db.Where("type = ? AND status = ?", "coin", "paid").First(&rechargeOrder)
+
+	// 退款充值订单 — 应该只能退6（当前余额），而非10（充值金额）
+	// 或者应该拒绝退款因为金额已部分消费
+	refundResult := authedPost(fmt.Sprintf("%s/api/v1/admin/orders/%d/refund", ts.URL, rechargeOrder.ID), token, nil)
+
+	// 退款后余额应为0（退了6金币），而非变成负数
+	balResult2 := authedGet(ts.URL+"/api/v1/coins/balance", token)
+	var bal2 model.CoinBalanceResponse
+	json.Unmarshal(balResult2.Data, &bal2)
+	assert.Equal(t, 0, bal2.Balance, "退款后余额应为0")
+	assert.Equal(t, 0, refundResult.Code, "退款操作应成功")
+
+	// 订单状态应变为 refunded
+	var updatedOrder model.Order
+	db.First(&updatedOrder, rechargeOrder.ID)
+	assert.Equal(t, "refunded", updatedOrder.Status)
+}
+
+func Test_AdminRefund_Course订单_应退还金币到用户账户(t *testing.T) {
+	db, ts, token := setupPhase34Router(t)
+	defer ts.Close()
+
+	// 充值20
+	authedPost(ts.URL+"/api/v1/coins/recharge", token, map[string]interface{}{
+		"amount": 20, "pay_method": "wechat",
+	})
+
+	// 购买课程花费10
+	cat := model.Category{Name: "test", Slug: "test-cat", IsActive: true}
+	db.Create(&cat)
+	course := model.Course{Title: "课程B", Slug: "course-b", CategoryID: cat.ID, Price: 10, Status: "published",
+		Resources: []model.CourseResource{{Name: "R1", URL: "http://example.com"}}}
+	db.Create(&course)
+	authedPost(ts.URL+"/api/v1/orders", token, map[string]interface{}{
+		"type": "course", "target_id": course.ID,
+	})
+
+	// 余额 = 20 - 10 = 10
+	balResult := authedGet(ts.URL+"/api/v1/coins/balance", token)
+	var bal model.CoinBalanceResponse
+	json.Unmarshal(balResult.Data, &bal)
+	assert.Equal(t, 10, bal.Balance)
+
+	// 找到课程购买订单
+	var courseOrder model.Order
+	db.Where("type = ? AND status = ?", "course", "paid").First(&courseOrder)
+
+	// 退款课程订单 — 应退还10金币
+	refundResult := authedPost(fmt.Sprintf("%s/api/v1/admin/orders/%d/refund", ts.URL, courseOrder.ID), token, nil)
+	assert.Equal(t, 0, refundResult.Code, "课程订单退款应成功")
+
+	// 退款后余额 = 10 + 10 = 20
+	balResult2 := authedGet(ts.URL+"/api/v1/coins/balance", token)
+	var bal2 model.CoinBalanceResponse
+	json.Unmarshal(balResult2.Data, &bal2)
+	assert.Equal(t, 20, bal2.Balance, "课程退款应退还金币")
+}
+
+func Test_AdminRefund_VIP订单_应退还金币(t *testing.T) {
+	db, ts, token := setupPhase34Router(t)
+	defer ts.Close()
+
+	db.Create(&model.VipPackage{Name: "终身VIP", Price: 99, IsActive: true})
+
+	// 充值100
+	authedPost(ts.URL+"/api/v1/coins/recharge", token, map[string]interface{}{
+		"amount": 100, "pay_method": "wechat",
+	})
+
+	// 购买VIP花费99
+	authedPost(ts.URL+"/api/v1/vip/purchase", token, map[string]interface{}{"package_id": 1})
+
+	// 余额 = 100 - 99 = 1
+	balResult := authedGet(ts.URL+"/api/v1/coins/balance", token)
+	var bal model.CoinBalanceResponse
+	json.Unmarshal(balResult.Data, &bal)
+	assert.Equal(t, 1, bal.Balance)
+
+	// 找到VIP购买订单
+	var vipOrder model.Order
+	db.Where("type = ? AND status = ?", "vip", "paid").First(&vipOrder)
+
+	// 退款VIP订单 — 应退还99金币
+	refundResult := authedPost(fmt.Sprintf("%s/api/v1/admin/orders/%d/refund", ts.URL, vipOrder.ID), token, nil)
+	assert.Equal(t, 0, refundResult.Code, "VIP订单退款应成功")
+
+	// 退款后余额 = 1 + 99 = 100
+	balResult2 := authedGet(ts.URL+"/api/v1/coins/balance", token)
+	var bal2 model.CoinBalanceResponse
+	json.Unmarshal(balResult2.Data, &bal2)
+	assert.Equal(t, 100, bal2.Balance, "VIP退款应退还金币")
+}
+
+// === Bug2: 用户管理VIP筛选 (TDD-RED) ===
+
+func Test_AdminUserList_VIP筛选_只返回VIP用户(t *testing.T) {
+	db, ts, token := setupPhase34Router(t)
+	defer ts.Close()
+
+	// 创建普通用户和VIP用户
+	normalUser := &model.User{Username: "normaluser", Phone: "13900000002", PasswordHash: "$2a$10$dummy", Role: "user", Status: "active"}
+	db.Create(normalUser)
+	vipUser := &model.User{Username: "vipuser", Phone: "13900000003", PasswordHash: "$2a$10$dummy", Role: "user", Status: "active"}
+	db.Create(vipUser)
+
+	// 给vipUser设置VIP
+	db.Create(&model.UserVip{UserID: vipUser.ID, PackageID: 1, StartedAt: time.Now(), IsActive: true})
+
+	// 用vipFilter=vip筛选
+	result := authedGet(ts.URL+"/api/v1/admin/users?vipFilter=vip", token)
+	assert.Equal(t, 0, result.Code)
+
+	var page struct {
+		Items []model.AdminUserResponse `json:"items"`
+		Total int64                     `json:"total"`
+	}
+	json.Unmarshal(result.Data, &page)
+
+	// 应该只包含VIP用户（vipUser），不包含normalUser和默认testuser
+	for _, u := range page.Items {
+		assert.True(t, u.IsVip, "vipFilter=vip 应只返回VIP用户，但返回了: "+u.Username)
+	}
+	assert.True(t, page.Total >= 1, "至少应有1个VIP用户")
+}
+
+func Test_AdminUserList_Normal筛选_只返回非VIP用户(t *testing.T) {
+	db, ts, token := setupPhase34Router(t)
+	defer ts.Close()
+
+	normalUser := &model.User{Username: "normaluser", Phone: "13900000002", PasswordHash: "$2a$10$dummy", Role: "user", Status: "active"}
+	db.Create(normalUser)
+	vipUser := &model.User{Username: "vipuser", Phone: "13900000003", PasswordHash: "$2a$10$dummy", Role: "user", Status: "active"}
+	db.Create(vipUser)
+	db.Create(&model.UserVip{UserID: vipUser.ID, PackageID: 1, StartedAt: time.Now(), IsActive: true})
+
+	// 用vipFilter=normal筛选
+	result := authedGet(ts.URL+"/api/v1/admin/users?vipFilter=normal", token)
+	assert.Equal(t, 0, result.Code)
+
+	var page struct {
+		Items []model.AdminUserResponse `json:"items"`
+		Total int64                     `json:"total"`
+	}
+	json.Unmarshal(result.Data, &page)
+
+	// 不应包含VIP用户
+	for _, u := range page.Items {
+		assert.False(t, u.IsVip, "vipFilter=normal 应只返回非VIP用户，但返回了VIP: "+u.Username)
+	}
+}
+
+// === Bug3: 订单管理搜索功能 (TDD-RED) ===
+
+func Test_AdminOrders_Keyword搜索_按订单号(t *testing.T) {
+	db, ts, token := setupPhase34Router(t)
+	defer ts.Close()
+
+	user := &model.User{Username: "buyer", Phone: "13900000010", PasswordHash: "$2a$10$dummy", Role: "user", Status: "active"}
+	db.Create(user)
+	now := time.Now()
+	db.Create(&model.Order{OrderNo: "ORD_SEARCH_001", UserID: user.ID, Type: "coin", TargetName: "充值100金币", Amount: 100, Status: "paid", CreatedAt: now})
+	db.Create(&model.Order{OrderNo: "ORD_SEARCH_002", UserID: user.ID, Type: "course", TargetName: "Go实战课程", Amount: 20, Status: "paid", CreatedAt: now})
+	db.Create(&model.Order{OrderNo: "ORD_OTHER_003", UserID: user.ID, Type: "vip", TargetName: "终身VIP", Amount: 99, Status: "paid", CreatedAt: now})
+
+	// 按订单号搜索
+	result := authedGet(ts.URL+"/api/v1/admin/orders?keyword=SEARCH_001", token)
+	assert.Equal(t, 0, result.Code)
+	var page struct {
+		Items []model.OrderResponse `json:"items"`
+		Total int64                 `json:"total"`
+	}
+	json.Unmarshal(result.Data, &page)
+	assert.Equal(t, int64(1), page.Total, "按订单号搜索应只匹配1条")
+	if assert.Len(t, page.Items, 1) {
+		assert.Equal(t, "ORD_SEARCH_001", page.Items[0].OrderNo)
+	}
+}
+
+func Test_AdminOrders_Keyword搜索_按商品名称(t *testing.T) {
+	db, ts, token := setupPhase34Router(t)
+	defer ts.Close()
+
+	user := &model.User{Username: "buyer2", Phone: "13900000011", PasswordHash: "$2a$10$dummy", Role: "user", Status: "active"}
+	db.Create(user)
+	now := time.Now()
+	db.Create(&model.Order{OrderNo: "ORD_A1", UserID: user.ID, Type: "course", TargetName: "Go实战课程", Amount: 20, Status: "paid", CreatedAt: now})
+	db.Create(&model.Order{OrderNo: "ORD_A2", UserID: user.ID, Type: "coin", TargetName: "充值50金币", Amount: 50, Status: "paid", CreatedAt: now})
+
+	// 按商品名称搜索
+	result := authedGet(ts.URL+"/api/v1/admin/orders?keyword=Go实战", token)
+	assert.Equal(t, 0, result.Code)
+	var page struct {
+		Items []model.OrderResponse `json:"items"`
+		Total int64                 `json:"total"`
+	}
+	json.Unmarshal(result.Data, &page)
+	assert.Equal(t, int64(1), page.Total, "按商品名搜索应只匹配1条")
+	if assert.Len(t, page.Items, 1) {
+		assert.Equal(t, "Go实战课程", page.Items[0].TargetName)
+	}
+}
+
+func Test_AdminOrders_Keyword搜索_按用户名(t *testing.T) {
+	db, ts, token := setupPhase34Router(t)
+	defer ts.Close()
+
+	user1 := &model.User{Username: "zhangsan", Phone: "13900000020", PasswordHash: "$2a$10$dummy", Role: "user", Status: "active"}
+	db.Create(user1)
+	user2 := &model.User{Username: "lisi", Phone: "13900000021", PasswordHash: "$2a$10$dummy", Role: "user", Status: "active"}
+	db.Create(user2)
+	now := time.Now()
+	db.Create(&model.Order{OrderNo: "ORD_U1", UserID: user1.ID, Type: "coin", TargetName: "充值", Amount: 10, Status: "paid", CreatedAt: now})
+	db.Create(&model.Order{OrderNo: "ORD_U2", UserID: user2.ID, Type: "coin", TargetName: "充值", Amount: 20, Status: "paid", CreatedAt: now})
+
+	// 按用户名搜索
+	result := authedGet(ts.URL+"/api/v1/admin/orders?keyword=zhangsan", token)
+	assert.Equal(t, 0, result.Code)
+	var page struct {
+		Items []model.OrderResponse `json:"items"`
+		Total int64                 `json:"total"`
+	}
+	json.Unmarshal(result.Data, &page)
+	assert.Equal(t, int64(1), page.Total, "按用户名搜索应只匹配该用户的订单")
+}

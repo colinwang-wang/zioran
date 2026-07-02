@@ -291,6 +291,18 @@ func Test_Search_返回匹配结果(t *testing.T) {
 	assert.True(t, data.Total >= 1)
 }
 
+func Test_Search_支持标签关键字(t *testing.T) {
+	_, ts, _ := setupCourseTestRouter(t)
+	defer ts.Close()
+
+	_, result := getJSON(ts.URL+"/api/v1/search?q=PS%E8%AF%BE%E7%A8%8B", "")
+	assert.Equal(t, 0, result.Code)
+
+	var data model.PaginatedList
+	json.Unmarshal(result.Data, &data)
+	assert.Equal(t, int64(5), data.Total)
+}
+
 // === Admin Course CRUD ===
 
 func Test_AdminCourse_未登录返回40101(t *testing.T) {

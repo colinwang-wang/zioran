@@ -47,7 +47,7 @@ export default function NewTicketPage() {
       </div>
       <form onSubmit={handleCreate} className="p-4 bg-canvas rounded-lg border border-hairline space-y-4">
         <div>
-          <label className="block text-sm font-semibold text-ink mb-2">工单主题</label>
+          <label className="block text-sm font-semibold text-ink mb-2"><span className="text-[#ff0036]">*</span> 工单主题</label>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -56,7 +56,7 @@ export default function NewTicketPage() {
           />
         </div>
         <div>
-          <label className="block text-sm font-semibold text-ink mb-2">问题说明</label>
+          <label className="block text-sm font-semibold text-ink mb-2"><span className="text-[#ff0036]">*</span> 问题说明</label>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}

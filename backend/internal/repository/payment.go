@@ -271,6 +271,13 @@ func (r *PaymentRepository) AdminOrders(ctx context.Context, page, pageSize int,
 	if filter.Type != "" {
 		query = query.Where("type = ?", normalizeOrderType(filter.Type))
 	}
+	if filter.Keyword != "" {
+		kw := "%" + filter.Keyword + "%"
+		query = query.Where(
+			"(order_no LIKE ? OR target_name LIKE ? OR user_id IN (SELECT id FROM users WHERE username LIKE ? OR phone LIKE ?))",
+			kw, kw, kw, kw,
+		)
+	}
 	if filter.StartDate != nil {
 		query = query.Where("created_at >= ?", *filter.StartDate)
 	}
@@ -369,12 +376,18 @@ func (r *PaymentRepository) RemoveFavorite(ctx context.Context, userID, courseID
 }
 
 // Admin users
-func (r *PaymentRepository) AdminUsers(ctx context.Context, page, pageSize int, keyword string) ([]model.User, int64, error) {
+func (r *PaymentRepository) AdminUsers(ctx context.Context, page, pageSize int, keyword string, vipFilter string) ([]model.User, int64, error) {
 	var users []model.User
 	var total int64
 	query := r.db.WithContext(ctx).Model(&model.User{})
 	if keyword != "" {
 		query = query.Where("username LIKE ? OR phone LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
+	}
+	switch vipFilter {
+	case "vip":
+		query = query.Where("id IN (SELECT user_id FROM user_vip WHERE is_active = ? AND (expires_at IS NULL OR expires_at > ?))", true, time.Now())
+	case "normal":
+		query = query.Where("id NOT IN (SELECT user_id FROM user_vip WHERE is_active = ? AND (expires_at IS NULL OR expires_at > ?))", true, time.Now())
 	}
 	query.Count(&total)
 	err := query.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&users).Error

@@ -63,6 +63,7 @@ type OrderResponse struct {
 type AdminOrderFilter struct {
 	Status    string
 	Type      string
+	Keyword   string
 	StartDate *time.Time
 	EndDate   *time.Time
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Table, Button, Space, Select, DatePicker, Tag, Card } from 'antd'
+import { Table, Button, Space, Select, DatePicker, Tag, Card, Input } from 'antd'
 import { getOrders } from '@/api'
 import type { Order } from '@/types'
 import dayjs from 'dayjs'
@@ -16,7 +16,7 @@ export default function OrderList() {
   const [data, setData] = useState<Order[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
-  const [params, setParams] = useState<Record<string, unknown>>({ page: 1, pageSize: 20, type: undefined, status: undefined, startDate: undefined, endDate: undefined })
+  const [params, setParams] = useState<Record<string, unknown>>({ page: 1, pageSize: 20, keyword: '', type: undefined, status: undefined, startDate: undefined, endDate: undefined })
 
   const fetchData = async () => {
     setLoading(true)
@@ -31,6 +31,7 @@ export default function OrderList() {
   return (
     <Card>
       <Space style={{ marginBottom: 16 }} wrap>
+        <Input.Search placeholder="搜索订单号/商品名/用户名" allowClear onSearch={v => handleSearch('keyword', v)} style={{ width: 240 }} />
         <Select placeholder="订单类型" allowClear style={{ width: 130 }} onChange={v => handleSearch('type', v)}
           options={[{ label: '金币充值', value: 'coin_recharge' }, { label: 'VIP购买', value: 'vip_purchase' }, { label: '课程购买', value: 'course_purchase' }]} />
         <Select placeholder="支付状态" allowClear style={{ width: 120 }} onChange={v => handleSearch('status', v)}

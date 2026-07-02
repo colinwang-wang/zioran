@@ -114,7 +114,20 @@ func (r *CourseRepository) Related(ctx context.Context, categoryID int, excludeI
 
 func (r *CourseRepository) Search(ctx context.Context, req *model.SearchRequest) ([]model.Course, int64, error) {
 	query := r.publishedQuery(ctx)
-	query = query.Where("courses.title LIKE ? OR courses.subtitle LIKE ?", "%"+req.Q+"%", "%"+req.Q+"%")
+	likeKeyword := "%" + req.Q + "%"
+	query = query.Where(
+		`courses.title LIKE ? OR courses.subtitle LIKE ? OR EXISTS (
+			SELECT 1
+			FROM course_tags
+			JOIN tags ON tags.id = course_tags.tag_id
+			WHERE course_tags.course_id = courses.id
+				AND (tags.name LIKE ? OR tags.slug LIKE ?)
+		)`,
+		likeKeyword,
+		likeKeyword,
+		likeKeyword,
+		likeKeyword,
+	)
 	if req.CategoryID > 0 {
 		query = query.Where("courses.category_id = ?", req.CategoryID)
 	}

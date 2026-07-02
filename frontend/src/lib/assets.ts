@@ -11,7 +11,11 @@ const assetOrigin = (() => {
     }
   }
 
-  if (typeof window !== 'undefined') return window.location.origin;
+  if (typeof window !== 'undefined') {
+    return ['localhost', '127.0.0.1'].includes(window.location.hostname)
+      ? window.location.origin
+      : 'https://api.zioran.com';
+  }
   return '';
 })();
 

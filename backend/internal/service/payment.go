@@ -515,9 +515,33 @@ func (s *PaymentService) AdminRefund(ctx context.Context, orderID int64) error {
 	if order.Status != "paid" {
 		return errcode.New(40001, "订单状态不允许退款")
 	}
-	if order.Type != "coin" {
-		s.payRepo.Recharge(ctx, order.UserID, order.Amount, order.ID)
+
+	switch order.Type {
+	case "coin":
+		// 金币充值订单退款：从用户账户扣减金币（退还现金）
+		// 退款金额 = min(用户当前余额, 充值金额)
+		acc, accErr := s.payRepo.GetOrCreateAccount(ctx, order.UserID)
+		if accErr != nil {
+			return errcode.ErrInternal
+		}
+		refundCoins := order.Amount
+		if acc.Balance < refundCoins {
+			refundCoins = acc.Balance
+		}
+		if refundCoins <= 0 {
+			return errcode.New(40001, "用户余额不足，无法退款")
+		}
+		// 扣减金币（使用DeductCoins确保余额安全）
+		if err := s.payRepo.DeductCoins(ctx, order.UserID, refundCoins, "refund", "退款: "+order.TargetName, &orderID); err != nil {
+			return errcode.New(40001, "退款扣减金币失败")
+		}
+	case "course", "vip":
+		// 课程/VIP订单退款：退还金币到用户账户
+		if err := s.payRepo.Recharge(ctx, order.UserID, order.Amount, order.ID); err != nil {
+			return errcode.ErrInternal
+		}
 	}
+
 	return s.payRepo.UpdateOrderStatus(ctx, orderID, "refunded")
 }
 
@@ -533,14 +557,14 @@ func (s *PaymentService) AdminGetOrder(ctx context.Context, orderID int64) (*mod
 	}, nil
 }
 
-func (s *PaymentService) AdminUsers(ctx context.Context, page, pageSize int, keyword string) (*model.PaginatedList, error) {
+func (s *PaymentService) AdminUsers(ctx context.Context, page, pageSize int, keyword string, vipFilter string) (*model.PaginatedList, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 {
 		pageSize = 20
 	}
-	users, total, err := s.payRepo.AdminUsers(ctx, page, pageSize, keyword)
+	users, total, err := s.payRepo.AdminUsers(ctx, page, pageSize, keyword, vipFilter)
 	if err != nil {
 		return nil, errcode.ErrInternal
 	}
