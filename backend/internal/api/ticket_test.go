@@ -356,6 +356,30 @@ func TestAdminAccountManagement(t *testing.T) {
 	assert.Equal(t, 0, resp.Code)
 }
 
+func TestAdminAccountManagement_ListIncludesSuperAdmin(t *testing.T) {
+	db, ts, _, baseURL := setupTicketTestRouter(t)
+	defer ts.Close()
+	_, adminToken := createTestAdmin(t, db)
+
+	resp := doPost(baseURL+"/api/v1/admin/admins", adminToken, map[string]string{
+		"username": "rootadmin", "password": "pass123456", "role": "super_admin",
+	})
+	assert.Equal(t, 0, resp.Code)
+
+	resp = doGet(baseURL+"/api/v1/admin/admins", adminToken)
+	assert.Equal(t, 0, resp.Code)
+
+	var admins []model.AdminUserInfo
+	json.Unmarshal(resp.Data, &admins)
+	found := false
+	for _, admin := range admins {
+		if admin.Username == "rootadmin" && admin.Role == "super_admin" {
+			found = true
+		}
+	}
+	assert.True(t, found, "super_admin 应出现在管理员列表中")
+}
+
 // === Test Finance ===
 
 func TestFinanceEndpoints(t *testing.T) {

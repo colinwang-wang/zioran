@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 // Auth DTOs
 
 type CaptchaResponse struct {
@@ -58,7 +60,9 @@ type AdminLoginResponse struct {
 }
 
 type AdminUserInfo struct {
-	ID       int64  `json:"id"`
-	Username string `json:"username"`
-	Role     string `json:"role"`
+	ID        int64     `json:"id"`
+	Username  string    `json:"username"`
+	Role      string    `json:"role"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
 }

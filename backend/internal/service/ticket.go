@@ -193,7 +193,7 @@ func (s *TicketService) ListAdmins(ctx context.Context) ([]model.AdminUserInfo, 
 	}
 	result := make([]model.AdminUserInfo, len(users))
 	for i, u := range users {
-		result[i] = model.AdminUserInfo{ID: u.ID, Username: u.Username, Role: u.Role}
+		result[i] = model.AdminUserInfo{ID: u.ID, Username: u.Username, Role: u.Role, Status: u.Status, CreatedAt: u.CreatedAt}
 	}
 	return result, nil
 }
@@ -213,7 +213,7 @@ func (s *TicketService) CreateAdmin(ctx context.Context, req *model.AdminCreateR
 	if err := s.repo.CreateAdmin(ctx, user); err != nil {
 		return nil, errcode.ErrInternal
 	}
-	return &model.AdminUserInfo{ID: user.ID, Username: user.Username, Role: user.Role}, nil
+	return &model.AdminUserInfo{ID: user.ID, Username: user.Username, Role: user.Role, Status: user.Status, CreatedAt: user.CreatedAt}, nil
 }
 
 func (s *TicketService) UpdateAdmin(ctx context.Context, id int64, req *model.AdminUpdateRequest) error {

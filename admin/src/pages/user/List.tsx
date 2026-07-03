@@ -56,7 +56,7 @@ export default function UserList() {
       </Space>
 
       <Table dataSource={data} rowKey="id" loading={loading}
-        pagination={{ current: params.page as number, pageSize: params.pageSize as number, total, onChange: (p, ps) => setParams(prev => ({ ...prev, page: p, pageSize: ps })) }}
+        pagination={{ current: params.page as number, pageSize: params.pageSize as number, total, showSizeChanger: true, showTotal: (t) => `共 ${t} 条`, onChange: (p, ps) => setParams(prev => ({ ...prev, page: p, pageSize: ps })) }}
         columns={[
           { title: 'ID', dataIndex: 'id', width: 60 },
           { title: '手机号', dataIndex: 'phone', width: 130, render: (v: string) => v ? v.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '-' },

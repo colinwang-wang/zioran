@@ -25,17 +25,26 @@ export default function AdminList() {
 
   const handleOk = async () => {
     const values = await form.validateFields()
-    if (editing) {
-      await updateAdmin(editing.id, values)
-      message.success('更新成功')
-    } else {
-      await createAdmin(values)
-      message.success('创建成功')
+    try {
+      if (editing) {
+        // 编辑时如果密码为空则不传password字段
+        const payload: Record<string, unknown> = { username: values.username, role: values.role }
+        if (values.password && values.password.trim()) {
+          payload.password = values.password
+        }
+        await updateAdmin(editing.id, payload)
+        message.success('更新成功')
+      } else {
+        await createAdmin(values)
+        message.success('创建成功')
+      }
+      setModalOpen(false)
+      form.resetFields()
+      setEditing(null)
+      fetchData()
+    } catch {
+      message.error('操作失败，请检查参数')
     }
-    setModalOpen(false)
-    form.resetFields()
-    setEditing(null)
-    fetchData()
   }
 
   const handleDelete = async (id: number) => {
@@ -47,7 +56,7 @@ export default function AdminList() {
   return (
     <Card title="管理员管理" extra={<Button type="primary" onClick={() => { setEditing(null); form.resetFields(); setModalOpen(true) }}>添加管理员</Button>}>
       <Table rowKey="id" dataSource={data} loading={loading}
-        pagination={{ current: page, pageSize: 20, total, onChange: setPage }}
+        pagination={{ current: page, pageSize: 20, total, showSizeChanger: true, showTotal: (t) => `共 ${t} 条`, onChange: setPage }}
         columns={[
           { title: 'ID', dataIndex: 'id', width: 60 },
           { title: '用户名', dataIndex: 'username' },
@@ -56,7 +65,7 @@ export default function AdminList() {
           { title: '创建时间', dataIndex: 'createdAt', width: 180 },
           { title: '操作', width: 150, render: (_: unknown, r: Admin) => (
             <Space>
-              <Button type="link" size="small" onClick={() => { setEditing(r); form.setFieldsValue(r); setModalOpen(true) }}>编辑</Button>
+              <Button type="link" size="small" onClick={() => { setEditing(r); form.setFieldsValue({ username: r.username, role: r.role, password: '' }); setModalOpen(true) }}>编辑</Button>
               <Popconfirm title="确定删除?" onConfirm={() => handleDelete(r.id)}><Button type="link" size="small" danger>删除</Button></Popconfirm>
             </Space>
           )},
@@ -65,7 +74,7 @@ export default function AdminList() {
       <Modal title={editing ? '编辑管理员' : '添加管理员'} open={modalOpen} onOk={handleOk} onCancel={() => { setModalOpen(false); setEditing(null) }}>
         <Form form={form} layout="vertical">
           <Form.Item label="用户名" name="username" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item label="密码" name="password" rules={editing ? [] : [{ required: true }]}><Input.Password placeholder={editing ? '留空不修改' : ''} /></Form.Item>
+          <Form.Item label="密码" name="password" rules={editing ? [{ min: 6, message: '密码至少6位' }] : [{ required: true, message: '请输入密码' }, { min: 6, message: '密码至少6位' }]}><Input.Password placeholder={editing ? '留空不修改' : ''} /></Form.Item>
           <Form.Item label="角色" name="role" rules={[{ required: true }]}>
             <Select><Select.Option value="admin">管理员</Select.Option><Select.Option value="super_admin">超级管理员</Select.Option></Select>
           </Form.Item>

@@ -247,11 +247,8 @@ func (s *PaymentService) PurchaseVip(ctx context.Context, userID int64, req *mod
 	now := time.Now()
 	order.PaidAt = &now
 
-	return &model.OrderResponse{
-		ID: order.ID, OrderNo: order.OrderNo, Type: order.Type,
-		TargetName: order.TargetName, Amount: order.Amount,
-		Status: order.Status, CreatedAt: order.CreatedAt, PaidAt: order.PaidAt,
-	}, nil
+	resp := s.orderResponse(ctx, order)
+	return &resp, nil
 }
 
 // Orders
@@ -264,11 +261,8 @@ func (s *PaymentService) GetOrder(ctx context.Context, userID, orderID int64) (*
 	if order.UserID != userID {
 		return nil, errcode.ErrForbidden
 	}
-	return &model.OrderResponse{
-		ID: order.ID, OrderNo: order.OrderNo, Type: order.Type,
-		TargetName: order.TargetName, Amount: order.Amount,
-		Status: order.Status, CreatedAt: order.CreatedAt, PaidAt: order.PaidAt,
-	}, nil
+	resp := s.orderResponse(ctx, order)
+	return &resp, nil
 }
 
 func (s *PaymentService) UserOrders(ctx context.Context, userID int64, page, pageSize int) (*model.PaginatedList, error) {
@@ -284,11 +278,7 @@ func (s *PaymentService) UserOrders(ctx context.Context, userID int64, page, pag
 	}
 	items := make([]model.OrderResponse, len(orders))
 	for i, o := range orders {
-		items[i] = model.OrderResponse{
-			ID: o.ID, OrderNo: o.OrderNo, Type: o.Type,
-			TargetName: o.TargetName, Amount: o.Amount,
-			Status: o.Status, CreatedAt: o.CreatedAt, PaidAt: o.PaidAt,
-		}
+		items[i] = s.orderResponse(ctx, &o)
 	}
 	totalPages := int(total) / pageSize
 	if int(total)%pageSize > 0 {
@@ -322,11 +312,8 @@ func (s *PaymentService) PurchaseCourse(ctx context.Context, userID int64, cours
 		order.PaidAt = &now
 		s.payRepo.CreateOrder(ctx, order)
 		s.payRepo.CreatePurchase(ctx, &model.Purchase{UserID: userID, CourseID: courseID, OrderID: &order.ID})
-		return &model.OrderResponse{
-			ID: order.ID, OrderNo: order.OrderNo, Type: order.Type,
-			TargetName: order.TargetName, Amount: 0, Status: "paid",
-			CreatedAt: order.CreatedAt, PaidAt: order.PaidAt,
-		}, nil
+		resp := s.orderResponse(ctx, order)
+		return &resp, nil
 	}
 
 	// Non-VIP: charge coins
@@ -350,11 +337,8 @@ func (s *PaymentService) PurchaseCourse(ctx context.Context, userID int64, cours
 	now := time.Now()
 	order.PaidAt = &now
 
-	return &model.OrderResponse{
-		ID: order.ID, OrderNo: order.OrderNo, Type: order.Type,
-		TargetName: order.TargetName, Amount: order.Amount,
-		Status: "paid", CreatedAt: order.CreatedAt, PaidAt: order.PaidAt,
-	}, nil
+	resp := s.orderResponse(ctx, order)
+	return &resp, nil
 }
 
 // Download
@@ -494,11 +478,7 @@ func (s *PaymentService) AdminOrders(ctx context.Context, page, pageSize int, fi
 	}
 	items := make([]model.OrderResponse, len(orders))
 	for i, o := range orders {
-		items[i] = model.OrderResponse{
-			ID: o.ID, OrderNo: o.OrderNo, Type: o.Type,
-			TargetName: o.TargetName, Amount: o.Amount,
-			Status: o.Status, CreatedAt: o.CreatedAt, PaidAt: o.PaidAt,
-		}
+		items[i] = s.orderResponse(ctx, &o)
 	}
 	totalPages := int(total) / pageSize
 	if int(total)%pageSize > 0 {
@@ -515,34 +495,13 @@ func (s *PaymentService) AdminRefund(ctx context.Context, orderID int64) error {
 	if order.Status != "paid" {
 		return errcode.New(40001, "订单状态不允许退款")
 	}
-
-	switch order.Type {
-	case "coin":
-		// 金币充值订单退款：从用户账户扣减金币（退还现金）
-		// 退款金额 = min(用户当前余额, 充值金额)
-		acc, accErr := s.payRepo.GetOrCreateAccount(ctx, order.UserID)
-		if accErr != nil {
-			return errcode.ErrInternal
+	if err := s.payRepo.RefundOrder(ctx, orderID, s.rechargeCoinsForOrder(ctx, order)); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errcode.ErrNotFound
 		}
-		refundCoins := order.Amount
-		if acc.Balance < refundCoins {
-			refundCoins = acc.Balance
-		}
-		if refundCoins <= 0 {
-			return errcode.New(40001, "用户余额不足，无法退款")
-		}
-		// 扣减金币（使用DeductCoins确保余额安全）
-		if err := s.payRepo.DeductCoins(ctx, order.UserID, refundCoins, "refund", "退款: "+order.TargetName, &orderID); err != nil {
-			return errcode.New(40001, "退款扣减金币失败")
-		}
-	case "course", "vip":
-		// 课程/VIP订单退款：退还金币到用户账户
-		if err := s.payRepo.Recharge(ctx, order.UserID, order.Amount, order.ID); err != nil {
-			return errcode.ErrInternal
-		}
+		return errcode.New(40001, "订单状态不允许退款")
 	}
-
-	return s.payRepo.UpdateOrderStatus(ctx, orderID, "refunded")
+	return nil
 }
 
 func (s *PaymentService) AdminGetOrder(ctx context.Context, orderID int64) (*model.OrderResponse, error) {
@@ -550,11 +509,8 @@ func (s *PaymentService) AdminGetOrder(ctx context.Context, orderID int64) (*mod
 	if err != nil {
 		return nil, errcode.ErrNotFound
 	}
-	return &model.OrderResponse{
-		ID: order.ID, OrderNo: order.OrderNo, Type: order.Type,
-		TargetName: order.TargetName, Amount: order.Amount,
-		Status: order.Status, CreatedAt: order.CreatedAt, PaidAt: order.PaidAt,
-	}, nil
+	resp := s.orderResponse(ctx, order)
+	return &resp, nil
 }
 
 func (s *PaymentService) AdminUsers(ctx context.Context, page, pageSize int, keyword string, vipFilter string) (*model.PaginatedList, error) {
@@ -681,6 +637,19 @@ func (s *PaymentService) RemoveFavorite(ctx context.Context, userID, courseID in
 }
 
 // helpers
+
+func (s *PaymentService) orderResponse(ctx context.Context, order *model.Order) model.OrderResponse {
+	resp := model.OrderResponse{
+		ID: order.ID, OrderNo: order.OrderNo, UserID: order.UserID,
+		Type: order.Type, TargetName: order.TargetName, Amount: order.Amount,
+		PayMethod: order.PayMethod, Status: order.Status,
+		CreatedAt: order.CreatedAt, PaidAt: order.PaidAt,
+	}
+	if user, err := s.userRepo.FindByID(ctx, order.UserID); err == nil {
+		resp.UserName = user.Username
+	}
+	return resp
+}
 
 func generateOrderNo() string {
 	return fmt.Sprintf("ORD%d", time.Now().UnixNano())

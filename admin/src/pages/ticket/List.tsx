@@ -33,13 +33,13 @@ export default function TicketList() {
       </Select>
     }>
       <Table rowKey="id" dataSource={data} loading={loading}
-        pagination={{ current: params.page, pageSize: params.pageSize, total, onChange: (page, pageSize) => setParams(p => ({ ...p, page, pageSize })) }}
+        pagination={{ current: params.page, pageSize: params.pageSize, total, showSizeChanger: true, showTotal: (t) => `共 ${t} 条`, onChange: (page, pageSize) => setParams(p => ({ ...p, page, pageSize })) }}
         columns={[
-          { title: 'ID', dataIndex: 'id', width: 60 },
+          { title: 'ID', dataIndex: 'id', width: 60, sorter: (a: Ticket, b: Ticket) => a.id - b.id },
           { title: '用户', dataIndex: 'userName', width: 120 },
           { title: '主题', dataIndex: 'subject' },
           { title: '状态', dataIndex: 'status', width: 100, render: (s: Ticket['status']) => <Tag color={statusColor[s]}>{statusMap[s]}</Tag> },
-          { title: '创建时间', dataIndex: 'createdAt', width: 180 },
+          { title: '创建时间', dataIndex: 'createdAt', width: 180, sorter: (a: Ticket, b: Ticket) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(), render: (v: string) => v ? new Date(v).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-' },
           { title: '操作', width: 80, render: (_: unknown, r: Ticket) => <Button type="link" size="small" onClick={() => navigate(`/tickets/${r.id}`)}>详情</Button> },
         ]}
       />

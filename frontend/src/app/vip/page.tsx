@@ -42,10 +42,10 @@ export default function VipPage() {
 
   return (
     <div>
-      <section className="relative overflow-hidden text-white" style={{ background: banners[0]?.background_color || '#111827' }}>
+      <section className="relative overflow-hidden text-white" style={{ background: banners[0]?.background_color || '#111827', minHeight: '240px' }}>
         {banners[0]?.image_url && <img src={banners[0].image_url} alt="" className="absolute inset-0 h-full w-full object-cover" />}
         <div className="absolute inset-0 bg-black/40" />
-        <div className="relative mx-auto max-w-[1280px] px-6 py-16 text-center">
+        <div className="relative mx-auto max-w-[1280px] px-6 py-16 text-center flex flex-col justify-center" style={{ minHeight: '240px' }}>
           <h1 className="text-4xl font-bold">成为知猿VIP会员</h1>
           <p className="mt-3 text-base text-white/80">全站课程免费下载，持续更新优质资源</p>
         </div>

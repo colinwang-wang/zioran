@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Card, Col, Row, Statistic, Select, Empty } from 'antd'
-import { UserOutlined, BookOutlined, ShoppingCartOutlined, DollarOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons'
+import { UserOutlined, BookOutlined, ShoppingCartOutlined, DollarOutlined, ArrowUpOutlined, ArrowDownOutlined, HeartOutlined, ClockCircleOutlined, UserAddOutlined } from '@ant-design/icons'
 import { getDashboardStats, getDashboardCharts } from '@/api'
 import type { DashboardStats, ChartData } from '@/types'
 
@@ -20,16 +20,19 @@ export default function DataBoard() {
     { title: '课程总数', value: stats.totalCourses, icon: <BookOutlined />, growth: stats.courseGrowth },
     { title: '订单总数', value: stats.totalOrders, icon: <ShoppingCartOutlined />, growth: stats.orderGrowth },
     { title: '今日收入', value: stats.todayRevenue, icon: <DollarOutlined />, growth: stats.revenueGrowth, prefix: '¥' },
+    { title: '课程收藏', value: stats.totalFavorites || 0, icon: <HeartOutlined />, growth: 0 },
+    { title: '待支付订单', value: stats.pendingOrders || 0, icon: <ClockCircleOutlined />, growth: 0 },
+    { title: '新增用户(近3天)', value: stats.recentNewUsers || 0, icon: <UserAddOutlined />, growth: 0 },
   ] : []
 
   return (
     <div>
-      <Row gutter={16}>
+      <Row gutter={[16, 16]}>
         {statCards.map(s => (
-          <Col span={6} key={s.title}>
+          <Col xs={12} sm={8} md={6} key={s.title}>
             <Card>
               <Statistic title={s.title} value={s.value} prefix={s.prefix || s.icon}
-                suffix={<span style={{ fontSize: 14, color: s.growth >= 0 ? '#3f8600' : '#cf1322' }}>{s.growth >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}{Math.abs(s.growth)}%</span>} />
+                suffix={s.growth !== 0 ? <span style={{ fontSize: 14, color: s.growth >= 0 ? '#3f8600' : '#cf1322' }}>{s.growth >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}{Math.abs(s.growth).toFixed(0)}%</span> : undefined} />
             </Card>
           </Col>
         ))}

@@ -84,12 +84,13 @@ function NavItemsTab() {
     <>
       <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal()} style={{ marginBottom: 16 }}>新增金刚区</Button>
       <Table dataSource={data} rowKey="id" loading={loading} pagination={false} columns={[
-        { title: 'ID', dataIndex: 'id', width: 60 },
+        { title: 'ID', dataIndex: 'id', width: 60, sorter: (a: NavItem, b: NavItem) => a.id - b.id },
         { title: '标题', dataIndex: 'title' },
         { title: '副标题', dataIndex: 'subtitle' },
         { title: '图标', dataIndex: 'icon', width: 80, render: (v: string) => v ? <img src={v} style={{ width: 32, height: 32 }} /> : '-' },
         { title: '链接', dataIndex: 'link', ellipsis: true },
-        { title: '排序', dataIndex: 'sort', width: 60 },
+        { title: '排序', dataIndex: 'sort', width: 60, sorter: (a: NavItem, b: NavItem) => (a.sort || 0) - (b.sort || 0) },
+        { title: '创建时间', dataIndex: 'createdAt', width: 160, sorter: (a: NavItem, b: NavItem) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime(), render: (v: string) => v ? new Date(v).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-' },
         { title: '操作', width: 150, render: (_: unknown, r: NavItem) => (
           <Space><Button type="link" size="small" onClick={() => openModal(r)}>编辑</Button><Button type="link" size="small" danger onClick={() => handleDelete(r.id)}>删除</Button></Space>
         )},

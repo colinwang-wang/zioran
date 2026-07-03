@@ -83,7 +83,7 @@ func (r *TicketRepository) UpsertSettings(ctx context.Context, settings model.Se
 
 func (r *TicketRepository) ListAdmins(ctx context.Context) ([]model.User, error) {
 	var users []model.User
-	err := r.db.WithContext(ctx).Where("role = ?", "admin").Find(&users).Error
+	err := r.db.WithContext(ctx).Where("role IN ?", []string{"admin", "super_admin"}).Order("created_at DESC").Find(&users).Error
 	return users, err
 }
 

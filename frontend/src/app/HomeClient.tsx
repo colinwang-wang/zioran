@@ -93,7 +93,7 @@ export default function HomeClient({ navItems, banners, latest, categories, vipP
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const visibleNavItems = navItems.length > 0
-    ? navItems.slice(0, 8).map((item) => ({
+    ? navItems.slice(0, 10).map((item) => ({
         id: item.id,
         title: item.title,
         icon: item.icon || navIcons[item.title] || item.title.slice(0, 2),

@@ -736,6 +736,28 @@ func Test_AdminRefund_Coin订单_余额不足时拒绝全额退款(t *testing.T)
 	assert.Equal(t, "refunded", updatedOrder.Status)
 }
 
+func Test_AdminRefund_Coin订单_按实际到账金币扣减(t *testing.T) {
+	db, ts, token := setupPhase34Router(t)
+	defer ts.Close()
+
+	db.Create(&model.Setting{Key: "coinRechargeRatio", Value: "10"})
+
+	authedPost(ts.URL+"/api/v1/coins/recharge", token, map[string]interface{}{
+		"amount": 10, "pay_method": "wechat",
+	})
+
+	var rechargeOrder model.Order
+	db.Where("type = ? AND status = ?", "coin", "paid").First(&rechargeOrder)
+
+	refundResult := authedPost(fmt.Sprintf("%s/api/v1/admin/orders/%d/refund", ts.URL, rechargeOrder.ID), token, nil)
+	assert.Equal(t, 0, refundResult.Code)
+
+	balResult := authedGet(ts.URL+"/api/v1/coins/balance", token)
+	var bal model.CoinBalanceResponse
+	json.Unmarshal(balResult.Data, &bal)
+	assert.Equal(t, 0, bal.Balance, "充值10元按10倍到账100金币，退款应扣减100金币")
+}
+
 func Test_AdminRefund_Course订单_应退还金币到用户账户(t *testing.T) {
 	db, ts, token := setupPhase34Router(t)
 	defer ts.Close()
@@ -774,6 +796,36 @@ func Test_AdminRefund_Course订单_应退还金币到用户账户(t *testing.T) 
 	var bal2 model.CoinBalanceResponse
 	json.Unmarshal(balResult2.Data, &bal2)
 	assert.Equal(t, 20, bal2.Balance, "课程退款应退还金币")
+}
+
+func Test_AdminRefund_Course订单_重复退款不重复退金币(t *testing.T) {
+	db, ts, token := setupPhase34Router(t)
+	defer ts.Close()
+
+	authedPost(ts.URL+"/api/v1/coins/recharge", token, map[string]interface{}{
+		"amount": 20, "pay_method": "wechat",
+	})
+
+	cat := model.Category{Name: "test", Slug: "repeat-refund", IsActive: true}
+	db.Create(&cat)
+	course := model.Course{Title: "重复退款课程", Slug: "repeat-refund-course", CategoryID: cat.ID, Price: 10, Status: "published"}
+	db.Create(&course)
+	authedPost(ts.URL+"/api/v1/orders", token, map[string]interface{}{
+		"type": "course", "target_id": course.ID,
+	})
+
+	var courseOrder model.Order
+	db.Where("type = ? AND status = ?", "course", "paid").First(&courseOrder)
+
+	firstRefund := authedPost(fmt.Sprintf("%s/api/v1/admin/orders/%d/refund", ts.URL, courseOrder.ID), token, nil)
+	secondRefund := authedPost(fmt.Sprintf("%s/api/v1/admin/orders/%d/refund", ts.URL, courseOrder.ID), token, nil)
+	assert.Equal(t, 0, firstRefund.Code)
+	assert.NotEqual(t, 0, secondRefund.Code)
+
+	balResult := authedGet(ts.URL+"/api/v1/coins/balance", token)
+	var bal model.CoinBalanceResponse
+	json.Unmarshal(balResult.Data, &bal)
+	assert.Equal(t, 20, bal.Balance, "重复退款后余额不应超过原始充值余额")
 }
 
 func Test_AdminRefund_VIP订单_应退还金币(t *testing.T) {
@@ -936,9 +988,15 @@ func Test_AdminOrders_Keyword搜索_按用户名(t *testing.T) {
 	result := authedGet(ts.URL+"/api/v1/admin/orders?keyword=zhangsan", token)
 	assert.Equal(t, 0, result.Code)
 	var page struct {
-		Items []model.OrderResponse `json:"items"`
-		Total int64                 `json:"total"`
+		Items []struct {
+			OrderNo  string `json:"order_no"`
+			UserName string `json:"user_name"`
+		} `json:"items"`
+		Total int64 `json:"total"`
 	}
 	json.Unmarshal(result.Data, &page)
 	assert.Equal(t, int64(1), page.Total, "按用户名搜索应只匹配该用户的订单")
+	if assert.Len(t, page.Items, 1) {
+		assert.Equal(t, "zhangsan", page.Items[0].UserName)
+	}
 }

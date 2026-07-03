@@ -64,6 +64,7 @@ export interface Tag {
 export interface User {
   id: number
   phone: string
+  username: string
   nickname: string
   avatar: string
   balance: number
@@ -81,10 +82,11 @@ export interface Order {
   orderNo: string
   userId: number
   userName: string
+  targetName: string
   productName: string
   amount: number
   payMethod: string
-  type: 'coin_recharge' | 'vip_purchase' | 'course_purchase'
+  type: 'coin' | 'vip' | 'course' | 'coin_recharge' | 'vip_purchase' | 'course_purchase'
   status: 'pending' | 'paid' | 'refunded' | 'cancelled'
   createdAt: string
   paidAt: string
@@ -126,6 +128,7 @@ export interface NavItem {
   categoryId?: number | null
   sort: number
   status?: 'active' | 'inactive'
+  createdAt?: string
 }
 
 // Banner
@@ -160,6 +163,9 @@ export interface DashboardStats {
   courseGrowth: number
   orderGrowth: number
   revenueGrowth: number
+  totalFavorites?: number
+  pendingOrders?: number
+  recentNewUsers?: number
 }
 
 export interface ChartData {

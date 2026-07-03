@@ -9,7 +9,14 @@ const { RangePicker } = DatePicker
 
 const statusColors: Record<string, string> = { pending: 'orange', paid: 'green', refunded: 'blue', cancelled: 'red' }
 const statusLabels: Record<string, string> = { pending: '待支付', paid: '已支付', refunded: '已退款', cancelled: '已取消' }
-const typeLabels: Record<string, string> = { coin_recharge: '金币充值', vip_purchase: 'VIP购买', course_purchase: '课程购买' }
+const typeLabels: Record<string, string> = {
+  coin: '金币充值',
+  vip: 'VIP购买',
+  course: '课程购买',
+  coin_recharge: '金币充值',
+  vip_purchase: 'VIP购买',
+  course_purchase: '课程购买',
+}
 
 export default function OrderList() {
   const navigate = useNavigate()
@@ -43,7 +50,7 @@ export default function OrderList() {
       </Space>
 
       <Table dataSource={data} rowKey="id" loading={loading}
-        pagination={{ current: params.page as number, pageSize: params.pageSize as number, total, onChange: (p, ps) => setParams(prev => ({ ...prev, page: p, pageSize: ps })) }}
+        pagination={{ current: params.page as number, pageSize: params.pageSize as number, total, showSizeChanger: true, showTotal: (t) => `共 ${t} 条`, onChange: (p, ps) => setParams(prev => ({ ...prev, page: p, pageSize: ps })) }}
         columns={[
           { title: '订单号', dataIndex: 'orderNo', width: 180 },
           { title: '用户', dataIndex: 'userName', width: 100 },

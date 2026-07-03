@@ -35,7 +35,7 @@ export default function CommentList() {
   return (
     <Card>
       <Table dataSource={data} rowKey="id" loading={loading}
-        pagination={{ current: params.page as number, pageSize: params.pageSize as number, total, onChange: (p, ps) => setParams({ page: p, pageSize: ps }) }}
+        pagination={{ current: params.page as number, pageSize: params.pageSize as number, total, showSizeChanger: true, showTotal: (t) => `共 ${t} 条`, onChange: (p, ps) => setParams({ page: p, pageSize: ps }) }}
         columns={[
           { title: 'ID', dataIndex: 'id', width: 60 },
           { title: '用户', dataIndex: 'userName', width: 100 },

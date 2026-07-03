@@ -52,9 +52,12 @@ type CreateOrderRequest struct {
 type OrderResponse struct {
 	ID         int64      `json:"id"`
 	OrderNo    string     `json:"order_no"`
+	UserID     int64      `json:"user_id"`
+	UserName   string     `json:"user_name"`
 	Type       string     `json:"type"`
 	TargetName string     `json:"target_name"`
 	Amount     int        `json:"amount"`
+	PayMethod  string     `json:"pay_method"`
 	Status     string     `json:"status"`
 	CreatedAt  time.Time  `json:"created_at"`
 	PaidAt     *time.Time `json:"paid_at"`
@@ -208,6 +211,10 @@ type DashboardStats struct {
 	CourseGrowth  float64 `json:"courseGrowth"`
 	OrderGrowth   float64 `json:"orderGrowth"`
 	RevenueGrowth float64 `json:"revenueGrowth"`
+	// 新增统计
+	TotalFavorites  int64 `json:"totalFavorites"`
+	PendingOrders   int64 `json:"pendingOrders"`
+	RecentNewUsers  int64 `json:"recentNewUsers"`
 }
 
 type RechargeResponse struct {

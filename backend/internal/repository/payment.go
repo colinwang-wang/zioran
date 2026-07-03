@@ -247,6 +247,81 @@ func (r *PaymentRepository) UpdateOrderStatus(ctx context.Context, id int64, sta
 	return r.db.WithContext(ctx).Model(&model.Order{}).Where("id = ?", id).Updates(updates).Error
 }
 
+func (r *PaymentRepository) RefundOrder(ctx context.Context, orderID int64, coinRefundLimit int) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var order model.Order
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&order, orderID).Error; err != nil {
+			return err
+		}
+		if order.Status != "paid" {
+			return fmt.Errorf("order status does not allow refund")
+		}
+
+		switch order.Type {
+		case "coin":
+			var acc model.CoinAccount
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("user_id = ?", order.UserID).First(&acc).Error; err != nil {
+				return err
+			}
+			refundCoins := coinRefundLimit
+			if acc.Balance < refundCoins {
+				refundCoins = acc.Balance
+			}
+			if refundCoins <= 0 {
+				return fmt.Errorf("insufficient balance for refund")
+			}
+			acc.Balance -= refundCoins
+			acc.TotalSpent += refundCoins
+			if err := tx.Save(&acc).Error; err != nil {
+				return err
+			}
+			txn := model.CoinTransaction{
+				UserID:       order.UserID,
+				Type:         "refund",
+				Amount:       -refundCoins,
+				BalanceAfter: acc.Balance,
+				Description:  "退款: " + order.TargetName,
+				OrderID:      &order.ID,
+			}
+			if err := tx.Create(&txn).Error; err != nil {
+				return err
+			}
+		case "course", "vip":
+			var acc model.CoinAccount
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("user_id = ?", order.UserID).First(&acc).Error; err != nil {
+				if err == gorm.ErrRecordNotFound {
+					acc = model.CoinAccount{UserID: order.UserID}
+					if createErr := tx.Create(&acc).Error; createErr != nil {
+						return createErr
+					}
+				} else {
+					return err
+				}
+			}
+			acc.Balance += order.Amount
+			acc.TotalEarned += order.Amount
+			if err := tx.Save(&acc).Error; err != nil {
+				return err
+			}
+			txn := model.CoinTransaction{
+				UserID:       order.UserID,
+				Type:         "refund",
+				Amount:       order.Amount,
+				BalanceAfter: acc.Balance,
+				Description:  "退款: " + order.TargetName,
+				OrderID:      &order.ID,
+			}
+			if err := tx.Create(&txn).Error; err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unsupported order type")
+		}
+
+		return tx.Model(&model.Order{}).Where("id = ? AND status = ?", order.ID, "paid").Update("status", "refunded").Error
+	})
+}
+
 func (r *PaymentRepository) LogPayment(ctx context.Context, orderID *int64, logType, detail string) error {
 	log := &model.PaymentLog{OrderID: orderID, Type: logType, Detail: detail}
 	return r.db.WithContext(ctx).Create(log).Error
@@ -428,6 +503,12 @@ func (r *PaymentRepository) DashboardStats(ctx context.Context) (*model.Dashboar
 	r.db.WithContext(ctx).Model(&model.User{}).Count(&stats.TotalUsers)
 	r.db.WithContext(ctx).Model(&model.Course{}).Count(&stats.TotalCourses)
 	r.db.WithContext(ctx).Model(&model.Order{}).Count(&stats.TotalOrders)
+
+	// 新增统计
+	r.db.WithContext(ctx).Model(&model.UserFavorite{}).Count(&stats.TotalFavorites)
+	r.db.WithContext(ctx).Model(&model.Order{}).Where("status = ?", "pending").Count(&stats.PendingOrders)
+	threeDaysAgo := time.Now().AddDate(0, 0, -3)
+	r.db.WithContext(ctx).Model(&model.User{}).Where("created_at >= ?", threeDaysAgo).Count(&stats.RecentNewUsers)
 
 	var todayRevenue *int64
 	now := time.Now()

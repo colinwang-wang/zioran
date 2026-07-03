@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { changePassword, getProfile, updateProfile } from '@/lib/services';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function SettingsPage() {
+  const { user, setAuth, token } = useAuth();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [oldPwd, setOldPwd] = useState('');
@@ -25,6 +27,10 @@ export default function SettingsPage() {
       const profile = await updateProfile({ username, email });
       setUsername(profile.username || '');
       setEmail(profile.email || '');
+      // 即时更新头像处名称
+      if (user && token) {
+        setAuth(token, { ...user, username: profile.username || user.username });
+      }
       alert('资料已保存');
     } catch { alert('保存失败'); }
     setProfileLoading(false);
@@ -55,6 +61,7 @@ export default function SettingsPage() {
 
       <section>
         <h2 className="text-lg font-bold mb-4">修改密码</h2>
+        <p className="text-xs text-mute mb-4">邮箱和密码修改只对邮箱注册的用户有效，微信登录用户无需设置。</p>
       <form onSubmit={handleSubmit} className="max-w-sm space-y-4">
         <input type="password" value={oldPwd} onChange={(e) => setOldPwd(e.target.value)} placeholder="当前密码" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />
         <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} placeholder="新密码（至少6位）" className="w-full px-4 py-3 rounded-card bg-surface border border-hairline text-sm focus:border-primary outline-none" />

@@ -52,7 +52,7 @@ export default function SettingsPage() {
           <Form.Item label="联系邮箱" name="contactEmail"><Input /></Form.Item>
           <Form.Item label="最低提现(元)" name="withdrawMinAmount"><InputNumber min={0} precision={2} /></Form.Item>
           <Form.Item label="佣金比例(%)" name="commissionRate"><InputNumber min={0} max={100} /></Form.Item>
-          <Form.Item label="充值比例" name="coinRechargeRatio" rules={[{ required: true, message: '请输入充值比例' }]} extra="填写 1 元可兑换多少金币">
+          <Form.Item label="充值比例" name="coinRechargeRatio" rules={[{ required: true, message: '请输入充值比例' }]} extra="填写 1 元可兑换多少金币（需先填写站点名称才能正常使用金币功能）">
             <InputNumber min={1} precision={0} addonBefore="1 元 =" addonAfter="金币" />
           </Form.Item>
           <Form.Item label="充值档位(元)" name="coinRechargeAmounts" extra="多个金额用英文逗号分隔，例如：10,50,100,200">
