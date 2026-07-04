@@ -3,7 +3,9 @@ package api
 import (
 	"io"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +14,7 @@ import (
 	"github.com/zioran/backend/internal/service"
 	"github.com/zioran/backend/pkg/errcode"
 	"github.com/zioran/backend/pkg/oauth"
+	ossClient "github.com/zioran/backend/pkg/oss"
 	"github.com/zioran/backend/pkg/payment"
 	"github.com/zioran/backend/pkg/response"
 )
@@ -24,10 +27,11 @@ type TicketHandler struct {
 	jwtSecret   string
 	jwtExpire   time.Duration
 	uploadDir   string
+	oss         *ossClient.Client
 }
 
-func NewTicketHandler(ticketSvc *service.TicketService, authSvc *service.AuthService, paySvc *service.PaymentService, wechatOAuth *oauth.WechatOAuth, jwtSecret string, jwtExpire time.Duration, uploadDir string) *TicketHandler {
-	return &TicketHandler{ticketSvc: ticketSvc, authSvc: authSvc, paySvc: paySvc, wechatOAuth: wechatOAuth, jwtSecret: jwtSecret, jwtExpire: jwtExpire, uploadDir: uploadDir}
+func NewTicketHandler(ticketSvc *service.TicketService, authSvc *service.AuthService, paySvc *service.PaymentService, wechatOAuth *oauth.WechatOAuth, jwtSecret string, jwtExpire time.Duration, uploadDir string, oss *ossClient.Client) *TicketHandler {
+	return &TicketHandler{ticketSvc: ticketSvc, authSvc: authSvc, paySvc: paySvc, wechatOAuth: wechatOAuth, jwtSecret: jwtSecret, jwtExpire: jwtExpire, uploadDir: uploadDir, oss: oss}
 }
 
 // === Auth extensions ===
@@ -514,7 +518,29 @@ func (h *TicketHandler) BatchImageUpload(c *gin.Context) {
 	}
 	urls := make([]string, 0, len(files))
 	for _, file := range files {
-		url, saveErr := saveUploadedImage(c, h.uploadDir, file)
+		var url string
+		var saveErr error
+		if h.oss != nil {
+			ext := strings.ToLower(filepath.Ext(file.Filename))
+			if !allowedImageExts[ext] {
+				response.Error(c, errcode.New(40001, "仅支持 jpg、png、webp、gif 图片"))
+				return
+			}
+			if file.Size > maxImageUploadSize {
+				response.Error(c, errcode.New(40001, "图片大小不能超过 5MB"))
+				return
+			}
+			src, err := file.Open()
+			if err != nil {
+				response.Error(c, errcode.ErrInternal)
+				return
+			}
+			objectKey := h.oss.GenerateObjectKey(ext)
+			url, saveErr = h.oss.Upload(objectKey, src)
+			src.Close()
+		} else {
+			url, saveErr = saveUploadedImageLocal(c, h.uploadDir, file)
+		}
 		if saveErr != nil {
 			if e, ok := saveErr.(*errcode.Error); ok {
 				response.Error(c, e)

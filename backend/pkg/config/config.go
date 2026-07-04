@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/zioran/backend/pkg/email"
+	ossconfig "github.com/zioran/backend/pkg/oss"
 	"github.com/zioran/backend/pkg/oauth"
 	"github.com/zioran/backend/pkg/payment"
 	"gopkg.in/yaml.v3"
@@ -19,6 +20,7 @@ type Config struct {
 	Email    email.EmailConfig `yaml:"email"`
 	Payment  PaymentConfig     `yaml:"payment"`
 	OAuth    OAuthConfig       `yaml:"oauth"`
+	OSS      ossconfig.Config  `yaml:"oss"`
 }
 
 type ServerConfig struct {
@@ -114,6 +116,14 @@ func applyEnvOverrides(cfg *Config) {
 	setStringEnv("OAUTH_WECHAT_APP_SECRET", &cfg.OAuth.Wechat.AppSecret)
 	setStringEnv("OAUTH_WECHAT_REDIRECT_URI", &cfg.OAuth.Wechat.RedirectURI)
 	setStringEnv("OAUTH_WECHAT_FRONTEND_REDIRECT_URI", &cfg.OAuth.Wechat.FrontendRedirectURI)
+
+	// OSS
+	setStringEnv("OSS_ENDPOINT", &cfg.OSS.Endpoint)
+	setStringEnv("OSS_ACCESS_KEY_ID", &cfg.OSS.AccessKeyID)
+	setStringEnv("OSS_ACCESS_KEY_SECRET", &cfg.OSS.AccessKeySecret)
+	setStringEnv("OSS_BUCKET", &cfg.OSS.Bucket)
+	setStringEnv("OSS_CDN_DOMAIN", &cfg.OSS.CDNDomain)
+	setStringEnv("OSS_UPLOAD_PREFIX", &cfg.OSS.UploadPrefix)
 }
 
 func setStringEnv(key string, target *string) {

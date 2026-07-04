@@ -12,6 +12,7 @@ import (
 	"github.com/zioran/backend/pkg/config"
 	"github.com/zioran/backend/pkg/email"
 	"github.com/zioran/backend/pkg/oauth"
+	ossClient "github.com/zioran/backend/pkg/oss"
 	"github.com/zioran/backend/pkg/payment"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -66,8 +67,20 @@ func main() {
 		log.Fatalf("resolve upload dir: %v", err)
 	}
 	log.Printf("Upload dir: %s", uploadDir)
-	uploadHandler := api.NewUploadHandler(uploadDir)
-	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, paySvc, wechatOAuth, cfg.JWT.Secret, cfg.JWT.Expire, uploadDir)
+
+	// OSS client (nil if not configured, falls back to local storage)
+	var oss *ossClient.Client
+	if cfg.OSS.Endpoint != "" {
+		oss, err = ossClient.NewClient(cfg.OSS)
+		if err != nil {
+			log.Printf("WARNING: OSS init failed: %v (falling back to local storage)", err)
+		} else {
+			log.Printf("OSS enabled: bucket=%s, cdn=%s", cfg.OSS.Bucket, cfg.OSS.CDNDomain)
+		}
+	}
+
+	uploadHandler := api.NewUploadHandler(uploadDir, oss)
+	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, paySvc, wechatOAuth, cfg.JWT.Secret, cfg.JWT.Expire, uploadDir, oss)
 
 	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, uploadHandler, ticketHandler, cfg.JWT.Secret)
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)

@@ -79,9 +79,9 @@ func setupCourseTestRouter(t *testing.T) (*gorm.DB, *httptest.Server, string) {
 	adminPayHandler := api.NewAdminPaymentHandler(paySvc, commSvc)
 	ticketRepo := repository.NewTicketRepository(db)
 	ticketSvc := service.NewTicketService(ticketRepo, userRepo)
-	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, paySvc, oauth.NewWechatOAuth(oauth.WechatOAuthConfig{}), testJWTSecret, 72*time.Hour, t.TempDir())
+	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, paySvc, oauth.NewWechatOAuth(oauth.WechatOAuthConfig{}), testJWTSecret, 72*time.Hour, t.TempDir(), nil)
 
-	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, api.NewUploadHandler(t.TempDir()), ticketHandler, testJWTSecret)
+	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, api.NewUploadHandler(t.TempDir(), nil), ticketHandler, testJWTSecret)
 	ts := httptest.NewServer(r)
 
 	// Register a user and get token
