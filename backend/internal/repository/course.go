@@ -211,3 +211,9 @@ func (r *CourseRepository) IncrementLikeCount(ctx context.Context, id int64, del
 	return r.db.WithContext(ctx).Model(&model.Course{}).Where("id = ?", id).
 		Update("like_count", gorm.Expr("like_count + ?", delta)).Error
 }
+
+func (r *CourseRepository) CountByCategory(ctx context.Context, categoryID int) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&model.Course{}).Where("category_id = ?", categoryID).Count(&count).Error
+	return count, err
+}

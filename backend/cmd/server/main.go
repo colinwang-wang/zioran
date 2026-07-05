@@ -79,6 +79,11 @@ func main() {
 		}
 	}
 
+	// Inject OSS into services that need file cleanup
+	if oss != nil {
+		courseSvc.SetOSS(oss)
+	}
+
 	uploadHandler := api.NewUploadHandler(uploadDir, oss)
 	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, paySvc, wechatOAuth, cfg.JWT.Secret, cfg.JWT.Expire, uploadDir, oss)
 

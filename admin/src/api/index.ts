@@ -161,6 +161,8 @@ const adaptTicketDetail = (item: AnyRecord): TicketDetail => ({
 
 const stripAssetOrigin = (url: string) => {
   if (!url) return ''
+  // Keep OSS CDN URLs as-is
+  if (url.includes('img.zioran.com') || url.includes('aliyuncs.com')) return url
   try {
     const u = new URL(url)
     if (u.pathname.startsWith('/uploads/')) return u.pathname

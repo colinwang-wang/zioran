@@ -16,10 +16,23 @@ type CourseService struct {
 	catRepo    *repository.CategoryRepository
 	tagRepo    *repository.TagRepository
 	favRepo    *repository.FavoriteRepository
+	oss        OSSClient
+}
+
+// OSSClient is the interface for OSS operations used by CourseService.
+type OSSClient interface {
+	IsOSSURL(rawURL string) bool
+	ObjectKeyFromURL(rawURL string) string
+	DeleteMultiple(objectKeys []string) error
 }
 
 func NewCourseService(courseRepo *repository.CourseRepository, catRepo *repository.CategoryRepository, tagRepo *repository.TagRepository, favRepo *repository.FavoriteRepository) *CourseService {
 	return &CourseService{courseRepo: courseRepo, catRepo: catRepo, tagRepo: tagRepo, favRepo: favRepo}
+}
+
+// SetOSS sets the OSS client for file cleanup on deletion.
+func (s *CourseService) SetOSS(oss OSSClient) {
+	s.oss = oss
 }
 
 func (s *CourseService) List(ctx context.Context, req *model.CourseListRequest) (*model.PaginatedList, error) {
@@ -215,8 +228,16 @@ func (s *CourseService) AdminCreate(ctx context.Context, req *model.AdminCourseR
 		Status:         "draft",
 		PublishedAt:    &now,
 	}
+	// Try to create; if slug conflicts, append timestamp suffix
 	if err := s.courseRepo.Create(ctx, course); err != nil {
-		return nil, errcode.ErrInternal
+		if strings.Contains(err.Error(), "Duplicate") && strings.Contains(err.Error(), "slug") {
+			course.Slug = fmt.Sprintf("%s-%d", req.Slug, time.Now().UnixMilli())
+			if err2 := s.courseRepo.Create(ctx, course); err2 != nil {
+				return nil, errcode.ErrInternal
+			}
+		} else {
+			return nil, errcode.ErrInternal
+		}
 	}
 	if len(req.TagIDs) > 0 {
 		s.courseRepo.ReplaceTags(ctx, course.ID, req.TagIDs)
@@ -267,10 +288,34 @@ func (s *CourseService) AdminUpdate(ctx context.Context, id int64, req *model.Ad
 }
 
 func (s *CourseService) AdminDelete(ctx context.Context, id int64) error {
-	_, err := s.courseRepo.FindByID(ctx, id)
+	course, err := s.courseRepo.FindByID(ctx, id)
 	if err != nil {
 		return errcode.ErrNotFound
 	}
+
+	// Collect OSS object keys to delete
+	if s.oss != nil {
+		var keys []string
+		if course.CoverImage != "" && s.oss.IsOSSURL(course.CoverImage) {
+			if key := s.oss.ObjectKeyFromURL(course.CoverImage); key != "" {
+				keys = append(keys, key)
+			}
+		}
+		// Note: CourseResource.URL is typically an external link (Baidu Pan, etc.)
+		// Only clean up if it's hosted on our OSS
+		for _, r := range course.Resources {
+			if s.oss.IsOSSURL(r.URL) {
+				if key := s.oss.ObjectKeyFromURL(r.URL); key != "" {
+					keys = append(keys, key)
+				}
+			}
+		}
+		if len(keys) > 0 {
+			// Best-effort cleanup: don't block deletion if OSS cleanup fails
+			_ = s.oss.DeleteMultiple(keys)
+		}
+	}
+
 	return s.courseRepo.Delete(ctx, id)
 }
 
@@ -324,9 +369,18 @@ func (s *CourseService) AdminCategoryUpdate(ctx context.Context, id int, req *mo
 }
 
 func (s *CourseService) AdminCategoryDelete(ctx context.Context, id int) error {
-	_, err := s.catRepo.FindByID(ctx, id)
+	cat, err := s.catRepo.FindByID(ctx, id)
 	if err != nil {
 		return errcode.ErrNotFound
+	}
+	// Check if there are courses under this category
+	if cat.CourseCount > 0 {
+		return errcode.New(40001, "该分类下还有课程，无法删除")
+	}
+	// Double check in DB
+	count, _ := s.courseRepo.CountByCategory(ctx, id)
+	if count > 0 {
+		return errcode.New(40001, "该分类下还有课程，无法删除")
 	}
 	return s.catRepo.Delete(ctx, id)
 }
