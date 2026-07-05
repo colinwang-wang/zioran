@@ -239,6 +239,8 @@ func (s *CourseService) AdminCreate(ctx context.Context, req *model.AdminCourseR
 			return nil, errcode.ErrInternal
 		}
 	}
+	// Update category course_count
+	s.catRepo.IncrementCourseCount(ctx, req.CategoryID, 1)
 	if len(req.TagIDs) > 0 {
 		s.courseRepo.ReplaceTags(ctx, course.ID, req.TagIDs)
 	}
@@ -316,7 +318,11 @@ func (s *CourseService) AdminDelete(ctx context.Context, id int64) error {
 		}
 	}
 
-	return s.courseRepo.Delete(ctx, id)
+	err = s.courseRepo.Delete(ctx, id)
+	if err == nil {
+		s.catRepo.IncrementCourseCount(ctx, course.CategoryID, -1)
+	}
+	return err
 }
 
 func (s *CourseService) AdminUpdateStatus(ctx context.Context, id int64, status string) error {
@@ -369,15 +375,11 @@ func (s *CourseService) AdminCategoryUpdate(ctx context.Context, id int, req *mo
 }
 
 func (s *CourseService) AdminCategoryDelete(ctx context.Context, id int) error {
-	cat, err := s.catRepo.FindByID(ctx, id)
+	_, err := s.catRepo.FindByID(ctx, id)
 	if err != nil {
 		return errcode.ErrNotFound
 	}
-	// Check if there are courses under this category
-	if cat.CourseCount > 0 {
-		return errcode.New(40001, "该分类下还有课程，无法删除")
-	}
-	// Double check in DB
+	// Check actual course count in DB
 	count, _ := s.courseRepo.CountByCategory(ctx, id)
 	if count > 0 {
 		return errcode.New(40001, "该分类下还有课程，无法删除")

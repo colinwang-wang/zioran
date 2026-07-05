@@ -45,21 +45,22 @@ const mapPage = <T extends AnyRecord, U>(data: AnyRecord, mapper: (item: T) => U
 
 const adaptCourse = (item: AnyRecord): Course => ({
   ...item,
-  coverImage: assetUrl(item.coverImage || item.cover || ''),
-  categoryId: item.categoryId ?? item.category?.id ?? 0,
-  categoryName: item.categoryName || item.category?.name || '-',
-  vipPrice: item.vipPrice ?? 0,
-  qualityLabel: item.qualityLabel || '',
-  detailTitle: item.detailTitle || '',
-  detailSubtitle: item.detailSubtitle || '',
-  detailImages: Array.isArray(item.detailImages) ? item.detailImages.map(assetUrl) : [],
+  coverImage: assetUrl(item.coverImage || item.cover_image || item.cover || ''),
+  categoryId: item.categoryId ?? item.category_id ?? item.category?.id ?? 0,
+  categoryName: item.categoryName || item.category_name || item.category?.name || '-',
+  vipPrice: item.vipPrice ?? item.vip_price ?? 0,
+  qualityLabel: item.qualityLabel || item.quality_label || '',
+  detailTitle: item.detailTitle || item.detail_title || '',
+  detailSubtitle: item.detailSubtitle || item.detail_subtitle || '',
+  content: item.content || '',
+  detailImages: Array.isArray(item.detailImages || item.detail_images) ? (item.detailImages || item.detail_images).map(assetUrl) : [],
   tags: Array.isArray(item.tags) ? item.tags : [],
   resources: Array.isArray(item.resources)
     ? item.resources.map((r: AnyRecord) => ({ link: r.link || r.url || '', code: r.code || r.password || '' }))
     : [],
-  createdAt: item.createdAt || '',
-  updatedAt: item.updatedAt || '',
-} as Course)
+  createdAt: item.createdAt || item.created_at || '',
+  updatedAt: item.updatedAt || item.updated_at || '',
+} as unknown as Course)
 
 const adaptCategory = (item: AnyRecord): Category => ({
   ...item,

@@ -47,3 +47,8 @@ func (r *CategoryRepository) AdminList(ctx context.Context) ([]model.Category, e
 	err := r.db.WithContext(ctx).Order("sort_order ASC").Find(&categories).Error
 	return categories, err
 }
+
+func (r *CategoryRepository) IncrementCourseCount(ctx context.Context, id int, delta int) {
+	r.db.WithContext(ctx).Model(&model.Category{}).Where("id = ?", id).
+		Update("course_count", gorm.Expr("GREATEST(course_count + ?, 0)", delta))
+}

@@ -16,65 +16,16 @@ interface Props {
   vipPackages: VipPackage[];
 }
 
-const fallbackCategories: CategoryBrief[] = [
-  { id: 1, name: 'AIGC课堂', slug: 'aigc' },
-  { id: 2, name: 'Blender课堂', slug: 'blender' },
-  { id: 3, name: 'C4D课程', slug: 'c4d' },
-  { id: 4, name: '手绘课程', slug: 'painting' },
-  { id: 5, name: 'AE课程', slug: 'ae' },
-  { id: 6, name: 'UI课程', slug: 'ui' },
-];
+const fallbackCategories: CategoryBrief[] = [];
 
-const fallbackNavItems = [
-  { id: 1, title: 'AIGC课堂', icon: 'AI', subtitle: 'AI绘画生成', url: '/courses?categoryId=1' },
-  { id: 2, title: 'Blender课堂', icon: 'B', subtitle: '3D建模渲染', url: '/courses?categoryId=2' },
-  { id: 3, title: 'C4D课程', icon: 'C4', subtitle: '三维动画', url: '/courses?categoryId=3' },
-  { id: 4, title: '手绘课程', icon: 'PS', subtitle: '插画绘画', url: '/courses?categoryId=4' },
-  { id: 5, title: 'AE课程', icon: 'AE', subtitle: '动效合成', url: '/courses?categoryId=5' },
-  { id: 6, title: 'UI课程', icon: 'UI', subtitle: '界面设计', url: '/courses?categoryId=6' },
-  { id: 7, title: '摄影课程', icon: '📷', subtitle: '摄影后期', url: '/courses' },
-  { id: 8, title: '室内设计', icon: '🏠', subtitle: '空间规划', url: '/courses' },
-];
+const fallbackNavItems: { id: number; title: string; icon: string; subtitle: string; url: string }[] = [];
 
-const navSubtitles: Record<string, string> = Object.fromEntries(fallbackNavItems.map((item) => [item.title, item.subtitle]));
-const navIcons: Record<string, string> = Object.fromEntries(fallbackNavItems.map((item) => [item.title, item.icon]));
+const navSubtitles: Record<string, string> = {};
+const navIcons: Record<string, string> = {};
 
-function makeCourse(id: number, category: string, title: string, relativeTime: string): CourseListItem {
-  return {
-    id,
-    title,
-    subtitle: '',
-    slug: `prototype-course-${id}`,
-    cover: '',
-    category: { id, name: category, slug: category.toLowerCase() },
-    price: 2,
-    vip_price: 0,
-    relative_time: relativeTime,
-    published_at: null,
-  };
-}
+const fallbackLatestCourses: CourseListItem[] = [];
 
-const fallbackLatestCourses = [
-  makeCourse(101, '手绘课程', '塵蒲2026唯美古风半厚涂第5期基础课', '2小时前'),
-  makeCourse(102, 'AIGC课程', 'Midjourney商业插画全流程实战2026', '5小时前'),
-  makeCourse(103, 'Blender课程', 'Blender 4.0写实场景全流程教学', '1天前'),
-  makeCourse(104, 'C4D课程', 'C4D电商产品渲染高级班第3期', '1天前'),
-  makeCourse(105, '手绘课程', '角色设计商业插画系统训练营', '2天前'),
-  makeCourse(106, 'AE课程', 'AE高级动效设计与MG动画实战', '2天前'),
-  makeCourse(107, 'UI课程', 'UI/UX产品设计全流程进阶课', '3天前'),
-  makeCourse(108, '平面设计', '品牌视觉设计与商业提案实战', '3天前'),
-];
-
-const fallbackClassroomCourses = [
-  makeCourse(201, 'AIGC课程', 'Stable Diffusion商用级出图全攻略', '1天前'),
-  makeCourse(202, 'Blender课程', 'Blender程序化建模进阶教程', '2天前'),
-  makeCourse(203, 'C4D课程', 'C4D+OC渲染器产品级渲染', '3天前'),
-  makeCourse(204, '手绘课程', '日系色彩速涂团练第6期', '3天前'),
-  makeCourse(205, 'AE课程', 'AE表达式与脚本高级应用', '4天前'),
-  makeCourse(206, '摄影课程', '人像摄影与后期调色系统课', '4天前'),
-  makeCourse(207, '电商设计', '电商详情页设计与视觉营销', '5天前'),
-  makeCourse(208, '室内设计', '3Dmax室内全景效果图实战', '5天前'),
-];
+const fallbackClassroomCourses: CourseListItem[] = [];
 
 function normalizeHref(url?: string) {
   if (!url) return '/courses';
