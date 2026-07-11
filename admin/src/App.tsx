@@ -21,6 +21,7 @@ const TicketList = lazy(() => import('./pages/ticket/List'))
 const TicketDetail = lazy(() => import('./pages/ticket/Detail'))
 const SettingsPage = lazy(() => import('./pages/settings/Index'))
 const AdminList = lazy(() => import('./pages/admin/List'))
+const PermissionConfig = lazy(() => import('./pages/permission/Config'))
 
 const Loading = <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 200 }}><Spin size="large" /></div>
 
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="tickets/:id" element={<TicketDetail />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="admins" element={<AdminList />} />
+          <Route path="permissions" element={<PermissionConfig />} />
         </Route>
       </Routes>
     </Suspense>

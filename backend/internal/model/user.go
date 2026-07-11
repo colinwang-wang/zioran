@@ -19,3 +19,13 @@ type User struct {
 }
 
 func (User) TableName() string { return "users" }
+
+// RolePermission stores dynamic role-to-permission mappings.
+type RolePermission struct {
+	ID         int64     `json:"id" gorm:"primaryKey;autoIncrement"`
+	Role       string    `json:"role" gorm:"size:30;not null;uniqueIndex:uk_role_permission"`
+	Permission string    `json:"permission" gorm:"size:50;not null;uniqueIndex:uk_role_permission"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+func (RolePermission) TableName() string { return "role_permissions" }

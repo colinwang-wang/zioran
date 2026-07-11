@@ -55,8 +55,9 @@ type AdminLoginRequest struct {
 }
 
 type AdminLoginResponse struct {
-	Token string        `json:"token"`
-	Admin AdminUserInfo `json:"admin"`
+	Token       string        `json:"token"`
+	Admin       AdminUserInfo `json:"admin"`
+	Permissions []string      `json:"permissions"`
 }
 
 type AdminUserInfo struct {

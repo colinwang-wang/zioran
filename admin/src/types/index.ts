@@ -233,4 +233,5 @@ export interface LoginParams {
 export interface LoginResult {
   token: string
   admin: { id: number; username: string; role: string }
+  permissions: string[]
 }

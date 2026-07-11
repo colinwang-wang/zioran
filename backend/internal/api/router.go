@@ -137,93 +137,101 @@ func SetupRouter(
 			admin.Use(middleware.AdminRequired(db[0]))
 		}
 		{
-			// Course management
-			admin.GET("/courses", adminHandler.CourseList)
-			admin.POST("/courses", adminHandler.CourseCreate)
-			admin.PUT("/courses/:id", adminHandler.CourseUpdate)
-			admin.DELETE("/courses/:id", adminHandler.CourseDelete)
-			admin.PUT("/courses/:id/status", adminHandler.CourseUpdateStatus)
-			admin.POST("/courses/batch", adminHandler.CourseBatch)
+			// === 所有管理角色可访问（仪表盘） ===
+			admin.GET("/dashboard/stats", adminPayHandler.DashboardStats)
+			admin.GET("/dashboard/charts", adminPayHandler.DashboardCharts)
 
-			// Category management
-			admin.GET("/categories", adminHandler.CategoryList)
-			admin.POST("/categories", adminHandler.CategoryCreate)
-			admin.PUT("/categories/:id", adminHandler.CategoryUpdate)
-			admin.DELETE("/categories/:id", adminHandler.CategoryDelete)
-			admin.PUT("/categories/:id/status", adminHandler.CategoryUpdateStatus)
-
-			// Tag management
-			admin.GET("/tags", adminHandler.TagList)
-			admin.POST("/tags", adminHandler.TagCreate)
-			admin.PUT("/tags/:id", adminHandler.TagUpdate)
-			admin.DELETE("/tags/:id", adminHandler.TagDelete)
-
-			// Order management
-			admin.GET("/orders", adminPayHandler.OrderList)
-			admin.GET("/orders/:id", adminPayHandler.OrderDetail)
-			admin.POST("/orders/:id/refund", adminPayHandler.OrderRefund)
-
-			// VIP package management
-			admin.GET("/vip/packages", adminPayHandler.VipPackageList)
-			admin.PUT("/vip/packages/:id", adminPayHandler.VipPackageUpdate)
-
-			// User management
-			admin.GET("/users", adminPayHandler.UserList)
-			admin.GET("/users/:id", adminPayHandler.UserDetail)
-			admin.PUT("/users/:id/status", adminPayHandler.UserUpdateStatus)
-			admin.POST("/users/:id/recharge", adminPayHandler.UserRecharge)
-
-			// Guestbook management
+			// === 客服+运营+管理员+超管 可访问 ===
+			// Tickets
+			admin.GET("/tickets", ticketHandler.AdminTicketList)
+			admin.GET("/tickets/:id", ticketHandler.AdminTicketDetail)
+			admin.PUT("/tickets/:id/status", ticketHandler.AdminTicketUpdateStatus)
+			admin.POST("/tickets/:id/reply", ticketHandler.AdminTicketReply)
+			// Guestbook
 			admin.GET("/guestbook", adminPayHandler.GuestbookList)
 			admin.PUT("/guestbook/:id/status", adminPayHandler.GuestbookUpdateStatus)
 			admin.PUT("/guestbook/:id/pin", adminPayHandler.GuestbookPin)
 			admin.DELETE("/guestbook/:id", adminPayHandler.GuestbookDelete)
-
-			// Comment management
+			// Comments
 			admin.GET("/comments", adminPayHandler.CommentList)
 			admin.PUT("/comments/:id/status", adminPayHandler.CommentUpdateStatus)
 			admin.DELETE("/comments/:id", adminPayHandler.CommentDelete)
 			admin.POST("/comments/:id/reply", ticketHandler.AdminCommentReply)
 
-			// Nav items management
-			admin.GET("/nav-items", adminPayHandler.NavItemList)
-			admin.POST("/nav-items", adminPayHandler.NavItemCreate)
-			admin.PUT("/nav-items/:id", adminPayHandler.NavItemUpdate)
-			admin.DELETE("/nav-items/:id", adminPayHandler.NavItemDelete)
+			// === 运营+管理员+超管 可访问 ===
+			ops := admin.Group("")
+			ops.Use(middleware.PermissionRequired("courses", "orders", "home_config"))
+			{
+				// Course management
+				ops.GET("/courses", adminHandler.CourseList)
+				ops.POST("/courses", adminHandler.CourseCreate)
+				ops.PUT("/courses/:id", adminHandler.CourseUpdate)
+				ops.DELETE("/courses/:id", adminHandler.CourseDelete)
+				ops.PUT("/courses/:id/status", adminHandler.CourseUpdateStatus)
+				ops.POST("/courses/batch", adminHandler.CourseBatch)
+				// Category management
+				ops.GET("/categories", adminHandler.CategoryList)
+				ops.POST("/categories", adminHandler.CategoryCreate)
+				ops.PUT("/categories/:id", adminHandler.CategoryUpdate)
+				ops.DELETE("/categories/:id", adminHandler.CategoryDelete)
+				ops.PUT("/categories/:id/status", adminHandler.CategoryUpdateStatus)
+				// Tag management
+				ops.GET("/tags", adminHandler.TagList)
+				ops.POST("/tags", adminHandler.TagCreate)
+				ops.PUT("/tags/:id", adminHandler.TagUpdate)
+				ops.DELETE("/tags/:id", adminHandler.TagDelete)
+				// Order management
+				ops.GET("/orders", adminPayHandler.OrderList)
+				ops.GET("/orders/:id", adminPayHandler.OrderDetail)
+				ops.POST("/orders/:id/refund", adminPayHandler.OrderRefund)
+				// VIP package management
+				ops.GET("/vip/packages", adminPayHandler.VipPackageList)
+				ops.PUT("/vip/packages/:id", adminPayHandler.VipPackageUpdate)
+				// Nav items management
+				ops.GET("/nav-items", adminPayHandler.NavItemList)
+				ops.POST("/nav-items", adminPayHandler.NavItemCreate)
+				ops.PUT("/nav-items/:id", adminPayHandler.NavItemUpdate)
+				ops.DELETE("/nav-items/:id", adminPayHandler.NavItemDelete)
+				// Banner management
+				ops.GET("/banners", adminPayHandler.BannerList)
+				ops.POST("/banners", adminPayHandler.BannerCreate)
+				ops.PUT("/banners/:id", adminPayHandler.BannerUpdate)
+				ops.DELETE("/banners/:id", adminPayHandler.BannerDelete)
+				// Data
+				ops.GET("/finance/summary", ticketHandler.FinanceSummary)
+				ops.GET("/finance/withdrawals", ticketHandler.FinanceWithdrawals)
+				ops.GET("/logs/operations", ticketHandler.OperationLogs)
+				ops.GET("/logs/payments", ticketHandler.PaymentLogs)
+			}
 
-			// Banner management
-			admin.GET("/banners", adminPayHandler.BannerList)
-			admin.POST("/banners", adminPayHandler.BannerCreate)
-			admin.PUT("/banners/:id", adminPayHandler.BannerUpdate)
-			admin.DELETE("/banners/:id", adminPayHandler.BannerDelete)
+			// === 管理员+超管 可访问 ===
+			mgr := admin.Group("")
+			mgr.Use(middleware.PermissionRequired("users"))
+			{
+				// User management
+				mgr.GET("/users", adminPayHandler.UserList)
+				mgr.GET("/users/:id", adminPayHandler.UserDetail)
+				mgr.PUT("/users/:id/status", adminPayHandler.UserUpdateStatus)
+				mgr.POST("/users/:id/recharge", adminPayHandler.UserRecharge)
+			}
 
-			// Dashboard
-			admin.GET("/dashboard/stats", adminPayHandler.DashboardStats)
-			admin.GET("/dashboard/charts", adminPayHandler.DashboardCharts)
-
-			// Tickets (admin)
-			admin.GET("/tickets", ticketHandler.AdminTicketList)
-			admin.GET("/tickets/:id", ticketHandler.AdminTicketDetail)
-			admin.PUT("/tickets/:id/status", ticketHandler.AdminTicketUpdateStatus)
-			admin.POST("/tickets/:id/reply", ticketHandler.AdminTicketReply)
-
-			// Settings
-			admin.GET("/settings", ticketHandler.GetSettings)
-			admin.PUT("/settings", ticketHandler.UpdateSettings)
-
-			// Admin account management
-			admin.GET("/admins", ticketHandler.AdminList)
-			admin.POST("/admins", ticketHandler.AdminCreate)
-			admin.PUT("/admins/:id", ticketHandler.AdminUpdate)
-			admin.DELETE("/admins/:id", ticketHandler.AdminDelete)
-
-			// Finance
-			admin.GET("/finance/summary", ticketHandler.FinanceSummary)
-			admin.GET("/finance/withdrawals", ticketHandler.FinanceWithdrawals)
-
-			// Logs
-			admin.GET("/logs/operations", ticketHandler.OperationLogs)
-			admin.GET("/logs/payments", ticketHandler.PaymentLogs)
+			// === 仅超管可访问 ===
+			superOnly := admin.Group("")
+			superOnly.Use(middleware.PermissionRequired("settings", "admins"))
+			{
+				// Settings
+				superOnly.GET("/settings", ticketHandler.GetSettings)
+				superOnly.PUT("/settings", ticketHandler.UpdateSettings)
+				// Admin account management
+				superOnly.GET("/admins", ticketHandler.AdminList)
+				superOnly.POST("/admins", ticketHandler.AdminCreate)
+				superOnly.PUT("/admins/:id", ticketHandler.AdminUpdate)
+				superOnly.DELETE("/admins/:id", ticketHandler.AdminDelete)
+				// Permission management
+				superOnly.GET("/permissions/all", ticketHandler.GetAllPermissions)
+				superOnly.GET("/permissions/:role", ticketHandler.GetRolePermissions)
+				superOnly.PUT("/permissions/:role", ticketHandler.UpdateRolePermissions)
+			}
 		}
 	}
 

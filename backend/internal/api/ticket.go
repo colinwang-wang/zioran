@@ -563,3 +563,60 @@ func (h *TicketHandler) HomeConfig(c *gin.Context) {
 	}
 	response.Success(c, settings)
 }
+
+// === Permission Management (super_admin only) ===
+
+// AllPermissions defines all available permission keys with labels.
+var AllPermissions = []map[string]string{
+	{"key": "dashboard", "label": "仪表盘"},
+	{"key": "courses", "label": "课程管理"},
+	{"key": "categories", "label": "分类管理"},
+	{"key": "tags", "label": "标签管理"},
+	{"key": "users", "label": "用户管理"},
+	{"key": "orders", "label": "订单管理"},
+	{"key": "guestbook", "label": "留言管理"},
+	{"key": "comments", "label": "评论管理"},
+	{"key": "home_config", "label": "首页配置"},
+	{"key": "data", "label": "数据看板"},
+	{"key": "tickets", "label": "工单管理"},
+	{"key": "settings", "label": "系统设置"},
+	{"key": "admins", "label": "管理员管理"},
+}
+
+func (h *TicketHandler) GetAllPermissions(c *gin.Context) {
+	response.Success(c, gin.H{"permissions": AllPermissions})
+}
+
+func (h *TicketHandler) GetRolePermissions(c *gin.Context) {
+	role := c.Param("role")
+	if role == "" {
+		response.Error(c, errcode.ErrParam)
+		return
+	}
+	perms, err := h.ticketSvc.GetRolePermissions(c.Request.Context(), role)
+	if err != nil {
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
+	response.Success(c, gin.H{"role": role, "permissions": perms})
+}
+
+func (h *TicketHandler) UpdateRolePermissions(c *gin.Context) {
+	role := c.Param("role")
+	if role == "" || role == "super_admin" {
+		response.Error(c, errcode.New(40001, "不能修改超级管理员权限"))
+		return
+	}
+	var req struct {
+		Permissions []string `json:"permissions"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, errcode.ErrParam)
+		return
+	}
+	if err := h.ticketSvc.SetRolePermissions(c.Request.Context(), role, req.Permissions); err != nil {
+		response.Error(c, errcode.ErrInternal)
+		return
+	}
+	response.Success(c, nil)
+}

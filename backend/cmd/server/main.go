@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/zioran/backend/internal/api"
+	"github.com/zioran/backend/internal/middleware"
 	"github.com/zioran/backend/internal/repository"
 	"github.com/zioran/backend/internal/service"
 	"github.com/zioran/backend/pkg/config"
@@ -50,6 +52,10 @@ func main() {
 	// Services
 	authSvc := service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.Expire)
 	authSvc.SetEmailSender(emailSender)
+	authSvc.SetPermissionGetter(func(ctx context.Context, role string) []string {
+		perms, _ := ticketRepo.GetRolePermissions(ctx, role)
+		return perms
+	})
 	courseSvc := service.NewCourseService(courseRepo, catRepo, tagRepo, favRepo)
 	paySvc := service.NewPaymentService(payRepo, courseRepo, userRepo, wechatPay, alipayClient)
 	commSvc := service.NewCommunityService(commRepo)
@@ -88,6 +94,7 @@ func main() {
 	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, paySvc, wechatOAuth, cfg.JWT.Secret, cfg.JWT.Expire, uploadDir, oss)
 
 	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, uploadHandler, ticketHandler, cfg.JWT.Secret, db)
+	middleware.InitPermCache(db)
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
 	log.Printf("Server starting on %s", addr)
 	if err := r.Run(addr); err != nil {

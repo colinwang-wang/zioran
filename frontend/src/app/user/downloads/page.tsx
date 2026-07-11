@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { getUserDownloads, downloadCourse } from '@/lib/services';
 import Pagination from '@/components/Pagination';
-import type { PaginatedList, DownloadItem } from '@/types';
+import DownloadModal from '@/components/DownloadModal';
+import type { PaginatedList, DownloadItem, ResourceItem } from '@/types';
 
 const formatDateTime = (value: string) => {
   const date = new Date(value);
@@ -13,6 +14,8 @@ const formatDateTime = (value: string) => {
 
 export default function DownloadsPage() {
   const [data, setData] = useState<PaginatedList<DownloadItem>>({ items: [], total: 0, page: 1, pageSize: 10, totalPages: 0 });
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalResources, setModalResources] = useState<ResourceItem[]>([]);
 
   const fetchData = (page = 1) => { getUserDownloads({ page }).then(setData).catch(() => {}); };
   useEffect(() => { fetchData(); }, []);
@@ -20,12 +23,12 @@ export default function DownloadsPage() {
   const handleDownload = async (courseId: number) => {
     try {
       const res = await downloadCourse(courseId);
-      if (res.resources?.length > 0) {
-        alert(`下载链接:\n${res.resources.map((r: { name: string; url: string; password?: string }) => `${r.name}: ${r.url}${r.password ? ` 密码:${r.password}` : ''}`).join('\n')}`);
-      } else {
-        alert('暂无可用资源');
-      }
-    } catch { alert('下载失败'); }
+      setModalResources(res.resources || []);
+      setModalOpen(true);
+    } catch {
+      setModalResources([]);
+      setModalOpen(true);
+    }
   };
 
   return (
@@ -66,6 +69,7 @@ export default function DownloadsPage() {
       </div>
       {data.items.length === 0 && <p className="text-sm text-mute text-center py-8">暂无下载记录</p>}
       <Pagination page={data.page} totalPages={data.totalPages} onChange={fetchData} />
+      <DownloadModal open={modalOpen} resources={modalResources} onClose={() => setModalOpen(false)} />
     </div>
   );
 }

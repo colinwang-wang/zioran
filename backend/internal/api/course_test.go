@@ -335,14 +335,15 @@ func Test_AdminCourse_创建课程(t *testing.T) {
 }
 
 func Test_AdminCourse_更新课程(t *testing.T) {
-	_, ts, token := setupCourseTestRouter(t)
+	db, ts, token := setupCourseTestRouter(t)
 	defer ts.Close()
 
 	body := model.AdminCourseRequest{
-		Title:      "更新标题",
-		Slug:       "course-1",
-		CategoryID: 1,
-		Price:      30,
+		Title:        "更新标题",
+		Slug:         "course-1",
+		CategoryID:   1,
+		Price:        30,
+		DetailImages: []string{"https://img.zioran.com/uploads/detail-1.png"},
 	}
 	req, _ := http.NewRequest("PUT", ts.URL+"/api/v1/admin/courses/1", jsonBody(body))
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -353,6 +354,10 @@ func Test_AdminCourse_更新课程(t *testing.T) {
 	resp.Body.Close()
 
 	assert.Equal(t, 0, result.Code)
+
+	var updated model.Course
+	assert.NoError(t, db.First(&updated, 1).Error)
+	assert.JSONEq(t, `["https://img.zioran.com/uploads/detail-1.png"]`, updated.DetailImages)
 }
 
 func Test_AdminCourse_更新状态(t *testing.T) {

@@ -1000,3 +1000,152 @@ func Test_AdminOrders_Keyword搜索_按用户名(t *testing.T) {
 		assert.Equal(t, "zhangsan", page.Items[0].UserName)
 	}
 }
+
+// === RBAC + 退款后下载权限 集成测试 ===
+
+func setupRBACRouter(t *testing.T) (*gorm.DB, *httptest.Server) {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	assert.NoError(t, err)
+	assert.NoError(t, db.AutoMigrate(
+		&model.User{}, &model.Course{}, &model.Category{}, &model.Tag{},
+		&model.CourseResource{}, &model.UserFavorite{},
+		&model.CoinAccount{}, &model.CoinTransaction{}, &model.VipPackage{},
+		&model.UserVip{}, &model.Order{}, &model.Purchase{},
+		&model.Guestbook{}, &model.GuestbookLike{}, &model.Comment{},
+		&model.NavItem{}, &model.Banner{}, &model.UserDownload{},
+		&model.Ticket{}, &model.TicketReply{}, &model.TicketAttachment{}, &model.Setting{},
+		&model.OperationLog{}, &model.PaymentLog{}, &model.WithdrawalRequest{},
+	))
+
+	userRepo := repository.NewUserRepository(db)
+	courseRepo := repository.NewCourseRepository(db)
+	catRepo := repository.NewCategoryRepository(db)
+	tagRepo := repository.NewTagRepository(db)
+	favRepo := repository.NewFavoriteRepository(db)
+	payRepo := repository.NewPaymentRepository(db)
+	commRepo := repository.NewCommunityRepository(db)
+	ticketRepo := repository.NewTicketRepository(db)
+
+	authSvc := service.NewAuthService(userRepo, testJWTSecret, 72*time.Hour)
+	courseSvc := service.NewCourseService(courseRepo, catRepo, tagRepo, favRepo)
+	paySvc := service.NewPaymentService(payRepo, courseRepo, userRepo, payment.NewWechatPay(payment.WechatPayConfig{MockAutoComplete: true}), payment.NewAlipayClient(payment.AlipayConfig{MockAutoComplete: true}))
+	commSvc := service.NewCommunityService(commRepo)
+	ticketSvc := service.NewTicketService(ticketRepo, userRepo)
+
+	authHandler := api.NewAuthHandler(authSvc)
+	courseHandler := api.NewCourseHandler(courseSvc)
+	adminHandler := api.NewAdminHandler(courseSvc)
+	payHandler := api.NewPaymentHandler(paySvc)
+	commHandler := api.NewCommunityHandler(commSvc)
+	adminPayHandler := api.NewAdminPaymentHandler(paySvc, commSvc)
+	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, paySvc, oauth.NewWechatOAuth(oauth.WechatOAuthConfig{}), testJWTSecret, 72*time.Hour, t.TempDir(), nil)
+
+	// 传入 db 以启用 RBAC
+	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, api.NewUploadHandler(t.TempDir(), nil), ticketHandler, testJWTSecret, db)
+	middleware.InitPermCache(db)
+	// 插入测试权限数据
+	db.AutoMigrate(&model.RolePermission{})
+	testPerms := []model.RolePermission{
+		{Role: "admin", Permission: "dashboard"}, {Role: "admin", Permission: "courses"}, {Role: "admin", Permission: "settings"}, {Role: "admin", Permission: "admins"}, {Role: "admin", Permission: "users"}, {Role: "admin", Permission: "orders"},
+		{Role: "operator", Permission: "dashboard"}, {Role: "operator", Permission: "courses"}, {Role: "operator", Permission: "orders"},
+		{Role: "support", Permission: "tickets"}, {Role: "support", Permission: "guestbook"}, {Role: "support", Permission: "comments"},
+	}
+	db.Create(&testPerms)
+	ts := httptest.NewServer(r)
+	return db, ts
+}
+
+func Test_RBAC_普通用户不能访问后台(t *testing.T) {
+	db, ts := setupRBACRouter(t)
+	defer ts.Close()
+
+	// 创建普通用户
+	user := &model.User{Username: "normaluser", Phone: "13900000001", PasswordHash: "$2a$10$dummy", Role: "user", Status: "active"}
+	db.Create(user)
+	token, _ := middleware.GenerateToken(user.ID, testJWTSecret, 72*time.Hour)
+
+	// 普通用户访问 admin 接口应返回 40301
+	result := authedGet(ts.URL+"/api/v1/admin/courses", token)
+	assert.Equal(t, 40301, result.Code, "普通用户应该被 RBAC 拒绝")
+}
+
+func Test_RBAC_客服不能访问课程管理(t *testing.T) {
+	db, ts := setupRBACRouter(t)
+	defer ts.Close()
+
+	// 创建客服用户
+	support := &model.User{Username: "support01", Phone: "13900000002", PasswordHash: "$2a$10$dummy", Role: "support", Status: "active"}
+	db.Create(support)
+	token, _ := middleware.GenerateToken(support.ID, testJWTSecret, 72*time.Hour)
+
+	// 客服可以访问工单
+	result := authedGet(ts.URL+"/api/v1/admin/tickets", token)
+	assert.Equal(t, 0, result.Code, "客服应该能访问工单")
+
+	// 客服不能访问课程管理
+	result = authedGet(ts.URL+"/api/v1/admin/courses", token)
+	assert.Equal(t, 40301, result.Code, "客服不应该能访问课程管理")
+
+	// 客服不能访问系统设置
+	result = authedGet(ts.URL+"/api/v1/admin/settings", token)
+	assert.Equal(t, 40301, result.Code, "客服不应该能访问系统设置")
+}
+
+func Test_RBAC_超管可以访问所有接口(t *testing.T) {
+	db, ts := setupRBACRouter(t)
+	defer ts.Close()
+
+	admin := &model.User{Username: "superadmin", Phone: "13900000003", PasswordHash: "$2a$10$dummy", Role: "super_admin", Status: "active"}
+	db.Create(admin)
+	token, _ := middleware.GenerateToken(admin.ID, testJWTSecret, 72*time.Hour)
+
+	// 超管可以访问课程
+	result := authedGet(ts.URL+"/api/v1/admin/courses", token)
+	assert.Equal(t, 0, result.Code, "超管应该能访问课程管理")
+
+	// 超管可以访问设置
+	result = authedGet(ts.URL+"/api/v1/admin/settings", token)
+	assert.Equal(t, 0, result.Code, "超管应该能访问系统设置")
+
+	// 超管可以访问管理员列表
+	result = authedGet(ts.URL+"/api/v1/admin/admins", token)
+	assert.Equal(t, 0, result.Code, "超管应该能访问管理员列表")
+}
+
+func Test_退款后下载被拒绝(t *testing.T) {
+	db, ts := setupRBACRouter(t)
+	defer ts.Close()
+
+	// 创建用户、课程、购买记录
+	user := &model.User{Username: "buyer", Phone: "13900000010", PasswordHash: "$2a$10$dummy", Role: "user", Status: "active"}
+	db.Create(user)
+	token, _ := middleware.GenerateToken(user.ID, testJWTSecret, 72*time.Hour)
+
+	cat := &model.Category{Name: "test", Slug: "test"}
+	db.Create(cat)
+	course := &model.Course{Title: "Test Course", Slug: "test-course", CategoryID: cat.ID, Status: "published", Price: 10}
+	db.Create(course)
+	db.Create(&model.CourseResource{CourseID: course.ID, Name: "资源1", URL: "https://pan.baidu.com/xxx", Password: "abcd"})
+
+	// 模拟购买：创建订单+purchase+金币扣除
+	targetID := int(course.ID)
+	order := &model.Order{UserID: user.ID, Type: "course", TargetID: &targetID, TargetName: course.Title, Amount: 10, Status: "paid"}
+	db.Create(order)
+	db.Create(&model.Purchase{UserID: user.ID, CourseID: course.ID, OrderID: &order.ID})
+	db.Create(&model.CoinAccount{UserID: user.ID, Balance: 0, TotalEarned: 10, TotalSpent: 10})
+
+	// 下载应该成功
+	result := authedPost(fmt.Sprintf("%s/api/v1/courses/%d/download", ts.URL, course.ID), token, nil)
+	assert.Equal(t, 0, result.Code, "购买后应该可以下载")
+
+	// 管理员退款
+	admin := &model.User{Username: "admin_refund", Phone: "13900000011", PasswordHash: "$2a$10$dummy", Role: "super_admin", Status: "active"}
+	db.Create(admin)
+	adminToken, _ := middleware.GenerateToken(admin.ID, testJWTSecret, 72*time.Hour)
+	refundResult := authedPost(fmt.Sprintf("%s/api/v1/admin/orders/%d/refund", ts.URL, order.ID), adminToken, nil)
+	assert.Equal(t, 0, refundResult.Code, "退款应该成功")
+
+	// 退款后下载应被拒绝
+	result = authedPost(fmt.Sprintf("%s/api/v1/courses/%d/download", ts.URL, course.ID), token, nil)
+	assert.Equal(t, 40301, result.Code, "退款后应该不能下载")
+}

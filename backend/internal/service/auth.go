@@ -21,12 +21,13 @@ import (
 )
 
 type AuthService struct {
-	userRepo    *repository.UserRepository
-	jwtSecret   string
-	jwtExpire   time.Duration
-	emailSender email.Sender
-	captchas    sync.Map // key -> answer
-	emailCodes  sync.Map // email -> code
+	userRepo         *repository.UserRepository
+	jwtSecret        string
+	jwtExpire        time.Duration
+	emailSender      email.Sender
+	captchas         sync.Map // key -> answer
+	emailCodes       sync.Map // email -> code
+	permissionGetter func(ctx context.Context, role string) []string
 }
 
 func NewAuthService(userRepo *repository.UserRepository, jwtSecret string, jwtExpire time.Duration) *AuthService {
@@ -42,6 +43,10 @@ func (s *AuthService) SetEmailSender(sender email.Sender) {
 	if sender != nil {
 		s.emailSender = sender
 	}
+}
+
+func (s *AuthService) SetPermissionGetter(fn func(ctx context.Context, role string) []string) {
+	s.permissionGetter = fn
 }
 
 func (s *AuthService) GenerateCaptcha() (*model.CaptchaResponse, error) {
@@ -218,8 +223,9 @@ func (s *AuthService) AdminLogin(ctx context.Context, req *model.AdminLoginReque
 		return nil, errcode.ErrInternal
 	}
 	return &model.AdminLoginResponse{
-		Token: token,
-		Admin: model.AdminUserInfo{ID: user.ID, Username: user.Username, Role: user.Role},
+		Token:       token,
+		Admin:       model.AdminUserInfo{ID: user.ID, Username: user.Username, Role: user.Role},
+		Permissions: s.getPermissionsForRole(ctx, user.Role),
 	}, nil
 }
 
@@ -229,6 +235,17 @@ func isAdminRole(role string) bool {
 		return true
 	}
 	return false
+}
+
+func (s *AuthService) getPermissionsForRole(ctx context.Context, role string) []string {
+	if role == "super_admin" {
+		// super_admin has all permissions
+		return []string{"dashboard", "courses", "categories", "tags", "users", "orders", "guestbook", "comments", "home_config", "data", "tickets", "settings", "admins"}
+	}
+	if s.permissionGetter != nil {
+		return s.permissionGetter(ctx, role)
+	}
+	return nil
 }
 
 func maskUserResponse(user *model.User) model.UserResponse {

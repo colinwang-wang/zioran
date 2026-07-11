@@ -413,3 +413,17 @@ func shortSHA1(value string, size int) string {
 }
 
 // Refresh token - validated in handler using middleware.GenerateToken directly
+
+// === Permission Management ===
+
+func (s *TicketService) GetRolePermissions(ctx context.Context, role string) ([]string, error) {
+	return s.repo.GetRolePermissions(ctx, role)
+}
+
+func (s *TicketService) SetRolePermissions(ctx context.Context, role string, permissions []string) error {
+	return s.repo.SetRolePermissions(ctx, role, permissions)
+}
+
+func (s *TicketService) GetAllRolePermissions(ctx context.Context) (map[string][]string, error) {
+	return s.repo.GetAllRolePermissions(ctx)
+}

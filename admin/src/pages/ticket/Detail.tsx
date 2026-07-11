@@ -5,8 +5,8 @@ import dayjs from 'dayjs'
 import { getTicket, replyTicket, updateTicketStatus } from '@/api'
 import type { TicketDetail as TicketDetailType } from '@/types'
 
-const statusMap = { pending: '待处理', processing: '处理中', replied: '已回复', closed: '已关闭' }
-const statusColor = { pending: 'orange', processing: 'blue', replied: 'green', closed: 'default' }
+const statusMap: Record<string, string> = { open: '待处理', processing: '处理中', replied: '已回复', closed: '已关闭' }
+const statusColor: Record<string, string> = { open: 'orange', processing: 'blue', replied: 'green', closed: 'default' }
 
 export default function TicketDetail() {
   const { id } = useParams()

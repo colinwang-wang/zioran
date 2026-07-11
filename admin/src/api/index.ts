@@ -432,3 +432,8 @@ export const getAdmins = async (params?: Record<string, unknown>): Promise<PageR
 export const createAdmin = (data: { username: string; password: string; role: string }) => request.post<unknown, ApiResponse<Admin>>('/admin/admins', data)
 export const updateAdmin = (id: number, data: Partial<Admin & { password?: string }>) => request.put<unknown, ApiResponse<null>>(`/admin/admins/${id}`, data)
 export const deleteAdmin = (id: number) => request.delete<unknown, ApiResponse<null>>(`/admin/admins/${id}`)
+
+// Permission management (super_admin only)
+export const getAllPermissions = () => request.get<unknown, ApiResponse<{ permissions: { key: string; label: string }[] }>>('/admin/permissions/all')
+export const getRolePermissions = (role: string) => request.get<unknown, ApiResponse<{ role: string; permissions: string[] }>>(`/admin/permissions/${role}`)
+export const updateRolePermissions = (role: string, permissions: string[]) => request.put<unknown, ApiResponse<null>>(`/admin/permissions/${role}`, { permissions })

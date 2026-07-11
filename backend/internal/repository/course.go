@@ -152,7 +152,7 @@ func (r *CourseRepository) Update(ctx context.Context, course *model.Course) err
 func (r *CourseRepository) UpdateFields(ctx context.Context, course *model.Course) error {
 	return r.db.WithContext(ctx).Model(course).Select(
 		"Title", "Subtitle", "Slug", "CategoryID", "QualityLabel",
-		"CoverImage", "Content", "DetailTitle", "DetailSubtitle",
+		"CoverImage", "Content", "DetailImages", "DetailTitle", "DetailSubtitle",
 		"Price", "VipPrice",
 	).Updates(course).Error
 }

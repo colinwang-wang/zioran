@@ -83,7 +83,7 @@ func (r *TicketRepository) UpsertSettings(ctx context.Context, settings model.Se
 
 func (r *TicketRepository) ListAdmins(ctx context.Context) ([]model.User, error) {
 	var users []model.User
-	err := r.db.WithContext(ctx).Where("role IN ?", []string{"admin", "super_admin"}).Order("created_at DESC").Find(&users).Error
+	err := r.db.WithContext(ctx).Where("role IN ?", []string{"super_admin", "admin", "operator", "support"}).Order("created_at DESC").Find(&users).Error
 	return users, err
 }
 
@@ -177,4 +177,44 @@ func normalizeTicketStatus(status string) string {
 func startOfToday() time.Time {
 	now := time.Now()
 	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+}
+
+// === Role Permissions ===
+
+// GetRolePermissions returns all permission keys for a given role.
+func (r *TicketRepository) GetRolePermissions(ctx context.Context, role string) ([]string, error) {
+	var perms []string
+	err := r.db.WithContext(ctx).Model(&model.RolePermission{}).
+		Where("role = ?", role).Pluck("permission", &perms).Error
+	return perms, err
+}
+
+// SetRolePermissions replaces all permissions for a role.
+func (r *TicketRepository) SetRolePermissions(ctx context.Context, role string, permissions []string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("role = ?", role).Delete(&model.RolePermission{}).Error; err != nil {
+			return err
+		}
+		if len(permissions) == 0 {
+			return nil
+		}
+		records := make([]model.RolePermission, len(permissions))
+		for i, p := range permissions {
+			records[i] = model.RolePermission{Role: role, Permission: p}
+		}
+		return tx.Create(&records).Error
+	})
+}
+
+// GetAllRolePermissions returns permissions grouped by role (for admin UI).
+func (r *TicketRepository) GetAllRolePermissions(ctx context.Context) (map[string][]string, error) {
+	var perms []model.RolePermission
+	if err := r.db.WithContext(ctx).Find(&perms).Error; err != nil {
+		return nil, err
+	}
+	result := make(map[string][]string)
+	for _, p := range perms {
+		result[p.Role] = append(result[p.Role], p.Permission)
+	}
+	return result, nil
 }
