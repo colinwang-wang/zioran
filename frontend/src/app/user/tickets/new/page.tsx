@@ -21,7 +21,7 @@ export default function NewTicketPage() {
       if (validType && !validSize) alert(`${file.name} 超过 5MB`);
       return validType && validSize;
     });
-    setFiles(validFiles.slice(0, 5));
+    setFiles(validFiles.slice(0, 1));
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -70,11 +70,10 @@ export default function NewTicketPage() {
           <input
             type="file"
             accept="image/png,image/jpeg"
-            multiple
             onChange={handleFileChange}
             className="block w-full text-sm text-mute file:mr-4 file:rounded-card file:border-0 file:bg-[#ff0036] file:px-4 file:py-2 file:text-sm file:font-bold file:text-white"
           />
-          <p className="mt-2 text-xs text-mute">支持 JPG/PNG，不超过 5MB</p>
+          <p className="mt-2 text-xs text-mute">仅限1张图片，支持JPG/PNG，不超过5MB</p>
           {files.length > 0 && (
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {files.map((file) => (

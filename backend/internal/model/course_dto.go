@@ -47,6 +47,7 @@ type CourseDetailResponse struct {
 	Slug           string           `json:"slug"`
 	Cover          string           `json:"cover"`
 	Content        string           `json:"content"`
+	DetailImages   []string         `json:"detail_images"`
 	DetailTitle    string           `json:"detail_title"`
 	DetailSubtitle string           `json:"detail_subtitle"`
 	Price          int              `json:"price"`
@@ -111,6 +112,7 @@ type AdminCourseRequest struct {
 	QualityLabel   string       `json:"quality_label"`
 	CoverImage     string       `json:"cover_image"`
 	Content        string       `json:"content"`
+	DetailImages   []string     `json:"detail_images"`
 	DetailTitle    string       `json:"detail_title"`
 	DetailSubtitle string       `json:"detail_subtitle"`
 	Price          int          `json:"price"`

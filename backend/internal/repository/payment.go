@@ -318,6 +318,11 @@ func (r *PaymentRepository) RefundOrder(ctx context.Context, orderID int64, coin
 			return fmt.Errorf("unsupported order type")
 		}
 
+		// 退款后撤销下载权限：删除该订单对应的 purchase 记录
+		if order.Type == "course" {
+			tx.Where("order_id = ?", order.ID).Delete(&model.Purchase{})
+		}
+
 		return tx.Model(&model.Order{}).Where("id = ? AND status = ?", order.ID, "paid").Update("status", "refunded").Error
 	})
 }

@@ -5,8 +5,8 @@ import { getTickets } from '@/api'
 import type { Ticket } from '@/types'
 import { useEffect } from 'react'
 
-const statusMap = { pending: '待处理', processing: '处理中', replied: '已回复', closed: '已关闭' }
-const statusColor = { pending: 'orange', processing: 'blue', replied: 'green', closed: 'default' }
+const statusMap = { open: '待处理', processing: '处理中', replied: '已回复', closed: '已关闭' }
+const statusColor = { open: 'orange', processing: 'blue', replied: 'green', closed: 'default' }
 
 export default function TicketList() {
   const navigate = useNavigate()

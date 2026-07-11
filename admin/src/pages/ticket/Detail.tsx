@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Descriptions, Tag, List, Input, Button, Space, Select, message, Spin, Image } from 'antd'
+import dayjs from 'dayjs'
 import { getTicket, replyTicket, updateTicketStatus } from '@/api'
 import type { TicketDetail as TicketDetailType } from '@/types'
 
@@ -64,7 +65,7 @@ export default function TicketDetail() {
               </Image.PreviewGroup>
             </Descriptions.Item>
           )}
-          <Descriptions.Item label="创建时间">{ticket.createdAt}</Descriptions.Item>
+          <Descriptions.Item label="创建时间">{ticket.createdAt ? dayjs(ticket.createdAt).format('YYYY-MM-DD HH:mm:ss') : '-'}</Descriptions.Item>
         </Descriptions>
       </Card>
       <Card title="回复记录">

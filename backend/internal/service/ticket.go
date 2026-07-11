@@ -24,6 +24,9 @@ func NewTicketService(repo *repository.TicketRepository, userRepo *repository.Us
 // User ticket operations
 
 func (s *TicketService) Create(ctx context.Context, userID int64, req *model.CreateTicketRequest) (*model.TicketResponse, error) {
+	if len(req.Attachments) > 1 {
+		return nil, errcode.New(40001, "最多上传1张图片")
+	}
 	ticket := &model.Ticket{
 		UserID:  userID,
 		Title:   req.Title,

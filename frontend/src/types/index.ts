@@ -57,6 +57,7 @@ export interface CourseDetail {
   slug: string;
   cover: string;
   content: string;
+  detail_images: string[];
   detail_title: string;
   detail_subtitle: string;
   price: number;

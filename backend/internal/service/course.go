@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -73,6 +74,7 @@ func (s *CourseService) Detail(ctx context.Context, slug string, userID int64) (
 		Slug:           course.Slug,
 		Cover:          course.CoverImage,
 		Content:        course.Content,
+		DetailImages:   unmarshalDetailImages(course.DetailImages),
 		DetailTitle:    course.DetailTitle,
 		DetailSubtitle: course.DetailSubtitle,
 		Price:          course.Price,
@@ -221,6 +223,7 @@ func (s *CourseService) AdminCreate(ctx context.Context, req *model.AdminCourseR
 		QualityLabel:   req.QualityLabel,
 		CoverImage:     req.CoverImage,
 		Content:        req.Content,
+		DetailImages:   marshalDetailImages(req.DetailImages),
 		DetailTitle:    req.DetailTitle,
 		DetailSubtitle: req.DetailSubtitle,
 		Price:          req.Price,
@@ -266,6 +269,7 @@ func (s *CourseService) AdminUpdate(ctx context.Context, id int64, req *model.Ad
 	course.QualityLabel = req.QualityLabel
 	course.CoverImage = req.CoverImage
 	course.Content = req.Content
+	course.DetailImages = marshalDetailImages(req.DetailImages)
 	course.DetailTitle = req.DetailTitle
 	course.DetailSubtitle = req.DetailSubtitle
 	course.Price = req.Price
@@ -477,4 +481,28 @@ func relativeTime(t time.Time) string {
 	default:
 		return t.Format("2006-01-02")
 	}
+}
+
+// marshalDetailImages converts a string slice to a JSON string for DB storage.
+func marshalDetailImages(images []string) string {
+	if len(images) == 0 {
+		return ""
+	}
+	data, err := json.Marshal(images)
+	if err != nil {
+		return ""
+	}
+	return string(data)
+}
+
+// unmarshalDetailImages parses the JSON string from DB into a string slice.
+func unmarshalDetailImages(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+	var images []string
+	if err := json.Unmarshal([]byte(raw), &images); err != nil {
+		return nil
+	}
+	return images
 }

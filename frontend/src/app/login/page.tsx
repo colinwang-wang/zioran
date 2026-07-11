@@ -50,7 +50,7 @@ export default function LoginPage() {
       setAuth(res.token, res.user);
       router.push('/');
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || '登录失败';
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || '登录失败，请检查邮箱和密码';
       setError(msg);
       loadCaptcha();
     }
@@ -76,7 +76,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex h-12 items-center gap-2 rounded-card bg-surface border border-hairline px-4">
             <span className="shrink-0 text-mute">👤</span>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="用户名/邮箱" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="邮箱" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
           </div>
           <div className="flex h-12 items-center gap-2 rounded-card bg-surface border border-hairline px-4">
             <span className="shrink-0 text-mute">🔒</span>

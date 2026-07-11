@@ -140,10 +140,10 @@ func (s *AuthService) Login(ctx context.Context, req *model.LoginRequest) (*mode
 	}
 	user, err := s.userRepo.FindByEmail(ctx, normalizeEmail(req.Email))
 	if err != nil {
-		return nil, errcode.New(40001, "邮箱或密码错误")
+		return nil, errcode.New(40001, "该邮箱未注册，请先注册账号")
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-		return nil, errcode.New(40001, "邮箱或密码错误")
+		return nil, errcode.New(40001, "密码错误，请重新输入")
 	}
 	token, err := middleware.GenerateToken(user.ID, s.jwtSecret, s.jwtExpire)
 	if err != nil {
@@ -207,7 +207,7 @@ func (s *AuthService) AdminLogin(ctx context.Context, req *model.AdminLoginReque
 	if err != nil {
 		return nil, errcode.New(40001, "用户名或密码错误")
 	}
-	if user.Role != "admin" {
+	if !isAdminRole(user.Role) {
 		return nil, errcode.New(40001, "用户名或密码错误")
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
@@ -221,6 +221,14 @@ func (s *AuthService) AdminLogin(ctx context.Context, req *model.AdminLoginReque
 		Token: token,
 		Admin: model.AdminUserInfo{ID: user.ID, Username: user.Username, Role: user.Role},
 	}, nil
+}
+
+func isAdminRole(role string) bool {
+	switch role {
+	case "super_admin", "admin", "operator", "support":
+		return true
+	}
+	return false
 }
 
 func maskUserResponse(user *model.User) model.UserResponse {

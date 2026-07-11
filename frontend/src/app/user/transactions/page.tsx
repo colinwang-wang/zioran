@@ -9,6 +9,8 @@ const typeLabels: Record<string, string> = {
   recharge: '充值',
   purchase: '购买资源',
   vip: '升级VIP',
+  refund: '退款',
+  admin_recharge: '后台充值',
 };
 
 export default function TransactionsPage() {

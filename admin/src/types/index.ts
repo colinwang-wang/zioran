@@ -180,7 +180,7 @@ export interface Ticket {
   userName: string
   subject: string
   content: string
-  status: 'pending' | 'processing' | 'replied' | 'closed'
+  status: 'open' | 'processing' | 'replied' | 'closed'
   attachments?: string[]
   createdAt: string
   updatedAt: string

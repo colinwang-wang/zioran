@@ -179,6 +179,7 @@ const toCoursePayload = (data: AnyRecord) => ({
   quality_label: data.qualityLabel || '',
   cover_image: stripAssetOrigin(data.coverImage || ''),
   content: data.content || '',
+  detail_images: Array.isArray(data.detailImages) ? data.detailImages.map(stripAssetOrigin).filter(Boolean) : [],
   detail_title: data.detailTitle || '',
   detail_subtitle: data.detailSubtitle || '',
   price: data.price ?? 0,

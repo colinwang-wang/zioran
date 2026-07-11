@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Table, Card, Button, Modal, Form, Input, Select, message, Popconfirm, Space } from 'antd'
+import dayjs from 'dayjs'
 import { getAdmins, createAdmin, updateAdmin, deleteAdmin } from '@/api'
 import type { Admin } from '@/types'
 
@@ -62,7 +63,7 @@ export default function AdminList() {
           { title: '用户名', dataIndex: 'username' },
           { title: '角色', dataIndex: 'role', width: 100 },
           { title: '状态', dataIndex: 'status', width: 80 },
-          { title: '创建时间', dataIndex: 'createdAt', width: 180 },
+          { title: '创建时间', dataIndex: 'createdAt', width: 180, render: (v: string) => v ? dayjs(v).format('YYYY-MM-DD HH:mm') : '-' },
           { title: '操作', width: 150, render: (_: unknown, r: Admin) => (
             <Space>
               <Button type="link" size="small" onClick={() => { setEditing(r); form.setFieldsValue({ username: r.username, role: r.role, password: '' }); setModalOpen(true) }}>编辑</Button>
@@ -76,7 +77,7 @@ export default function AdminList() {
           <Form.Item label="用户名" name="username" rules={[{ required: true }]}><Input /></Form.Item>
           <Form.Item label="密码" name="password" rules={editing ? [{ min: 6, message: '密码至少6位' }] : [{ required: true, message: '请输入密码' }, { min: 6, message: '密码至少6位' }]}><Input.Password placeholder={editing ? '留空不修改' : ''} /></Form.Item>
           <Form.Item label="角色" name="role" rules={[{ required: true }]}>
-            <Select><Select.Option value="admin">管理员</Select.Option><Select.Option value="super_admin">超级管理员</Select.Option></Select>
+            <Select><Select.Option value="super_admin">超级管理员</Select.Option><Select.Option value="admin">管理员</Select.Option><Select.Option value="operator">运营</Select.Option><Select.Option value="support">客服</Select.Option></Select>
           </Form.Item>
         </Form>
       </Modal>

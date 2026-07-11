@@ -14,6 +14,7 @@ export default function Login() {
     try {
       const res = await login(values)
       localStorage.setItem('admin_token', res.data.token)
+      localStorage.setItem('admin_role', res.data.admin?.role || 'admin')
       message.success('登录成功')
       navigate('/', { replace: true })
     } catch { /* handled by interceptor */ } finally {

@@ -105,6 +105,13 @@ export default function CourseDetailClient({ course }: { course: CourseDetail })
           {/* Detail */}
           {course.detail_title && <h2 className="text-lg font-bold text-ink mt-8">{course.detail_title}</h2>}
           {course.detail_subtitle && <p className="text-mute mt-1">{course.detail_subtitle}</p>}
+          {course.detail_images && course.detail_images.length > 0 && (
+            <div className="mt-4 space-y-4">
+              {course.detail_images.map((img, idx) => (
+                <img key={idx} src={img} alt={`${course.title} 详情图 ${idx + 1}`} className="w-full rounded-card" loading="lazy" />
+              ))}
+            </div>
+          )}
           {course.content && (
             <div className="mt-4 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: course.content }} />
           )}

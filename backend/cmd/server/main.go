@@ -87,7 +87,7 @@ func main() {
 	uploadHandler := api.NewUploadHandler(uploadDir, oss)
 	ticketHandler := api.NewTicketHandler(ticketSvc, authSvc, paySvc, wechatOAuth, cfg.JWT.Secret, cfg.JWT.Expire, uploadDir, oss)
 
-	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, uploadHandler, ticketHandler, cfg.JWT.Secret)
+	r := api.SetupRouter(authHandler, courseHandler, adminHandler, payHandler, commHandler, adminPayHandler, uploadHandler, ticketHandler, cfg.JWT.Secret, db)
 	addr := fmt.Sprintf(":%d", cfg.Server.Port)
 	log.Printf("Server starting on %s", addr)
 	if err := r.Run(addr); err != nil {

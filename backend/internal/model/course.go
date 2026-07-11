@@ -11,6 +11,7 @@ type Course struct {
 	QualityLabel   string     `json:"quality_label" gorm:"size:50"`
 	CoverImage     string     `json:"cover_image" gorm:"size:500"`
 	Content        string     `json:"content" gorm:"type:text"`
+	DetailImages   string     `json:"detail_images" gorm:"type:text"`
 	DetailTitle    string     `json:"detail_title" gorm:"size:500"`
 	DetailSubtitle string     `json:"detail_subtitle" gorm:"size:500"`
 	Price          int        `json:"price" gorm:"not null;default:0"`

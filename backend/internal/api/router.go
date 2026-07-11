@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/zioran/backend/internal/middleware"
+	"gorm.io/gorm"
 )
 
 func SetupRouter(
@@ -17,6 +18,7 @@ func SetupRouter(
 	uploadHandler *UploadHandler,
 	ticketHandler *TicketHandler,
 	jwtSecret string,
+	db ...*gorm.DB,
 ) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -131,6 +133,9 @@ func SetupRouter(
 		// Admin routes
 		admin := v1.Group("/admin")
 		admin.Use(middleware.JWTAuth(jwtSecret))
+		if len(db) > 0 && db[0] != nil {
+			admin.Use(middleware.AdminRequired(db[0]))
+		}
 		{
 			// Course management
 			admin.GET("/courses", adminHandler.CourseList)
