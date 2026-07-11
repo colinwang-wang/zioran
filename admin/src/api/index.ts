@@ -19,6 +19,20 @@ export const assetUrl = (url?: string) => {
   return url
 }
 
+const adaptDetailImages = (value: unknown): string[] => {
+  let images = value
+  if (typeof images === 'string') {
+    try {
+      images = JSON.parse(images)
+    } catch {
+      images = images ? [images] : []
+    }
+  }
+  return Array.isArray(images)
+    ? images.filter((url): url is string => typeof url === 'string' && url.length > 0).map(assetUrl)
+    : []
+}
+
 const slugify = (value?: string, fallback = 'item') => {
   const slug = (value || '')
     .trim()
@@ -53,7 +67,7 @@ const adaptCourse = (item: AnyRecord): Course => ({
   detailTitle: item.detailTitle || item.detail_title || '',
   detailSubtitle: item.detailSubtitle || item.detail_subtitle || '',
   content: item.content || '',
-  detailImages: Array.isArray(item.detailImages || item.detail_images) ? (item.detailImages || item.detail_images).map(assetUrl) : [],
+  detailImages: adaptDetailImages(item.detailImages ?? item.detail_images),
   tags: Array.isArray(item.tags) ? item.tags : [],
   resources: Array.isArray(item.resources)
     ? item.resources.map((r: AnyRecord) => ({ link: r.link || r.url || '', code: r.code || r.password || '' }))
