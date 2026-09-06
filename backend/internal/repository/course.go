@@ -150,11 +150,22 @@ func (r *CourseRepository) Update(ctx context.Context, course *model.Course) err
 }
 
 func (r *CourseRepository) UpdateFields(ctx context.Context, course *model.Course) error {
-	return r.db.WithContext(ctx).Model(course).Select(
-		"Title", "Subtitle", "Slug", "CategoryID", "QualityLabel",
-		"CoverImage", "Content", "DetailImages", "DetailTitle", "DetailSubtitle",
-		"Price", "VipPrice",
-	).Updates(course).Error
+	// 使用 map 更新避免 GORM struct 模式下零值/关联数据导致字段不更新的问题
+	updates := map[string]interface{}{
+		"title":           course.Title,
+		"subtitle":        course.Subtitle,
+		"slug":            course.Slug,
+		"category_id":     course.CategoryID,
+		"quality_label":   course.QualityLabel,
+		"cover_image":     course.CoverImage,
+		"content":         course.Content,
+		"detail_images":   course.DetailImages,
+		"detail_title":    course.DetailTitle,
+		"detail_subtitle": course.DetailSubtitle,
+		"price":           course.Price,
+		"vip_price":       course.VipPrice,
+	}
+	return r.db.WithContext(ctx).Model(&model.Course{}).Where("id = ?", course.ID).Updates(updates).Error
 }
 
 func (r *CourseRepository) Delete(ctx context.Context, id int64) error {

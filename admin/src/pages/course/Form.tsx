@@ -17,6 +17,9 @@ export default function CourseForm() {
   const [tags, setTags] = useState<Tag[]>([])
   const [coverList, setCoverList] = useState<UploadFile[]>([])
   const [detailImages, setDetailImages] = useState<UploadFile[]>([])
+  // 保留编辑时的原始 slug 和 content，避免每次保存时被覆盖
+  const [originalSlug, setOriginalSlug] = useState<string>('')
+  const [originalContent, setOriginalContent] = useState<string>('')
 
   useEffect(() => {
     getCategories().then(res => setCategories(res.data))
@@ -28,6 +31,9 @@ export default function CourseForm() {
           form.setFieldsValue({ ...course, tags: course.tags?.map(t => t.id) })
           if (course.coverImage) setCoverList([{ uid: '-1', name: 'cover', status: 'done', url: course.coverImage }])
           if (course.detailImages?.length) setDetailImages(course.detailImages.map((url, i) => ({ uid: String(i), name: `img${i}`, status: 'done', url })))
+          // 保存原始 slug 和 content，编辑时不丢失
+          setOriginalSlug((course as any).slug || '')
+          setOriginalContent((course as any).content || '')
         }
       })
     }
@@ -47,12 +53,20 @@ export default function CourseForm() {
         if (f.url) imgs.push(f.url)
         else if (f.originFileObj) imgs.push(await handleUpload(f.originFileObj))
       }
-      const payload = { ...values, coverImage: coverUrl, detailImages: imgs }
+      // 编辑时保留原始 slug 和 content，避免被覆盖为空值
+      const payload = {
+        ...values,
+        coverImage: coverUrl,
+        detailImages: imgs,
+        ...(id ? { slug: originalSlug, content: originalContent } : {}),
+      }
       if (id) await updateCourse(Number(id), payload)
       else await createCourse(payload)
       message.success(id ? '更新成功' : '创建成功')
       navigate('/courses')
-    } catch { /* handled */ } finally { setLoading(false) }
+    } catch (err: any) {
+      message.error(err?.message || '保存失败，请重试')
+    } finally { setLoading(false) }
   }
 
   return (
